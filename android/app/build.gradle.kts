@@ -1,5 +1,6 @@
 import java.io.FileInputStream
 import java.util.Properties
+import org.gradle.api.GradleException
 
 plugins {
     id("com.android.application")
@@ -57,7 +58,7 @@ android {
             if (hasReleaseKeystore) {
                 signingConfig = signingConfigs.getByName("release")
             } else {
-                signingConfig = signingConfigs.getByName("debug")
+                throw GradleException("Missing android/key.properties. Provide the Android signing environment variables so CI can generate the release keystore configuration.")
             }
             isMinifyEnabled = false
             isShrinkResources = false
