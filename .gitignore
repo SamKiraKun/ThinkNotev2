@@ -23,6 +23,11 @@ Thumbs.db
 android/local.properties
 android/.gradle/
 android/app/build/
+android/key.properties
+android/app/*.jks
+android/app/*.keystore
+*.jks
+*.keystore
 
 ios/Pods/
 ios/Flutter/ephemeral/

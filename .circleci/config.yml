@@ -1,0 +1,105 @@
+version: 2.1
+
+jobs:
+  build_android:
+    docker:
+      - image: ghcr.io/cirruslabs/flutter:stable
+    resource_class: large
+
+    steps:
+      - checkout
+
+      - run:
+          name: Verify Flutter project root
+          command: |
+            set -euo pipefail
+
+            if [ ! -f pubspec.yaml ] || [ ! -d android ]; then
+              echo "Expected Flutter project at the repository root."
+              exit 1
+            fi
+
+      - restore_cache:
+          keys:
+            - flutter-pub-v1-{{ arch }}-{{ checksum "pubspec.lock" }}-{{ checksum "pubspec.yaml" }}
+            - flutter-pub-v1-{{ arch }}-
+
+      - restore_cache:
+          keys:
+            - gradle-cache-v1-{{ arch }}-{{ checksum "android/gradle/wrapper/gradle-wrapper.properties" }}-{{ checksum "android/build.gradle.kts" }}-{{ checksum "android/app/build.gradle.kts" }}-{{ checksum "android/settings.gradle.kts" }}-{{ checksum "android/gradle.properties" }}
+            - gradle-cache-v1-{{ arch }}-
+
+      - run:
+          name: Flutter version
+          command: flutter --version
+
+      - run:
+          name: Flutter doctor
+          command: flutter doctor -v
+
+      - run:
+          name: Install dependencies
+          command: flutter pub get
+
+      - run:
+          name: Analyze code
+          command: flutter analyze
+
+      - run:
+          name: Run tests
+          command: flutter test
+
+      - run:
+          name: Prepare Android signing
+          command: |
+            set -euo pipefail
+
+            if [ -z "${ANDROID_KEYSTORE_BASE64:-}" ] || [ -z "${ANDROID_KEYSTORE_PASSWORD:-}" ] || [ -z "${ANDROID_KEY_ALIAS:-}" ] || [ -z "${ANDROID_KEY_PASSWORD:-}" ]; then
+              echo "Missing Android signing environment variables."
+              echo "Required: ANDROID_KEYSTORE_BASE64, ANDROID_KEYSTORE_PASSWORD, ANDROID_KEY_ALIAS, ANDROID_KEY_PASSWORD"
+              exit 1
+            fi
+
+            umask 077
+            mkdir -p android/app
+
+            printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > android/app/upload-keystore.jks
+
+            cat > android/key.properties <<EOF
+            storePassword=${ANDROID_KEYSTORE_PASSWORD}
+            keyPassword=${ANDROID_KEY_PASSWORD}
+            keyAlias=${ANDROID_KEY_ALIAS}
+            storeFile=upload-keystore.jks
+            EOF
+
+      - run:
+          name: Build release APK
+          command: flutter build apk --release --build-number="${CIRCLE_BUILD_NUM:-1}"
+
+      - run:
+          name: Build release AAB
+          command: flutter build appbundle --release --build-number="${CIRCLE_BUILD_NUM:-1}"
+
+      - store_artifacts:
+          path: build/app/outputs/flutter-apk/app-release.apk
+          destination: app-release.apk
+
+      - store_artifacts:
+          path: build/app/outputs/bundle/release/app-release.aab
+          destination: app-release.aab
+
+      - save_cache:
+          key: flutter-pub-v1-{{ arch }}-{{ checksum "pubspec.lock" }}-{{ checksum "pubspec.yaml" }}
+          paths:
+            - ~/.pub-cache
+
+      - save_cache:
+          key: gradle-cache-v1-{{ arch }}-{{ checksum "android/gradle/wrapper/gradle-wrapper.properties" }}-{{ checksum "android/build.gradle.kts" }}-{{ checksum "android/app/build.gradle.kts" }}-{{ checksum "android/settings.gradle.kts" }}-{{ checksum "android/gradle.properties" }}
+          paths:
+            - ~/.gradle/caches
+            - ~/.gradle/wrapper
+
+workflows:
+  android_build_workflow:
+    jobs:
+      - build_android
