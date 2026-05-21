@@ -1,7 +1,7 @@
 import 'package:flutter/animation.dart';
 
 class AppConstants {
-  static const String appName = 'Notea';
+  static const String appName = 'ThinkNote';
   static const double contentMaxWidth = 430;
   static const double minSupportedHeight = 640;
   static const double maxSupportedTextScale = 1.2;

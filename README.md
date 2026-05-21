@@ -1,6 +1,6 @@
-# Notea Flutter App
+# ThinkNote Flutter App
 
-This workspace contains the Notea Flutter client with Riverpod state management, `go_router` navigation, secure token storage, and a production-ready auth flow built from design tokens.
+This workspace contains the ThinkNote Flutter client with Riverpod state management, `go_router` navigation, secure token storage, and a production-ready auth flow built from design tokens.
 
 ## Run the app
 

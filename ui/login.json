@@ -781,7 +781,7 @@
 "content": {
 "title": "Welcome back 👋",
 "subtitlePrefix": "Sign in to continue to ",
-"subtitleBrand": "Notea",
+	"subtitleBrand": "ThinkNote",
 "subtitleSuffix": "✨"
 },
 "typography": {
@@ -1494,7 +1494,7 @@
 },
 "shadow": "softCard",
 "content": {
-"title": "New to Notea?",
+	"title": "New to ThinkNote?",
 "link": "Create an account",
 "trailingIcon": "arrow_right"
 },
@@ -1962,11 +1962,11 @@
 "passwordVisibilityToggle": "Show or hide password",
 "rememberMeCheckbox": "Remember me",
 "forgotPasswordLink": "Forgot password",
-"signInButton": "Sign in to Notea",
+	"signInButton": "Sign in to ThinkNote",
 "googleSignInButton": "Continue with Google",
 "appleSignInButton": "Continue with Apple",
 "microsoftSignInButton": "Continue with Microsoft",
-"createAccountPanel": "Create a new Notea account",
+	"createAccountPanel": "Create a new ThinkNote account",
 "bottomIllustration": "Decorative mountain illustration"
 },
 "contrast": {

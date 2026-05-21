@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/constants/route_names.dart';
+import '../../../../core/constants/app_constants.dart';
 import '../../../../core/extensions/context_extensions.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_gradients.dart';
@@ -50,10 +51,10 @@ class HomeScreen extends ConsumerWidget {
             ),
             children: [
               AppHeader(
-                title: 'Notea',
+                title: AppConstants.appName,
                 subtitle: 'Good morning. Your notes stay on this device.',
                 brandStyle: true,
-                leading: const HeaderAvatar(label: 'N'),
+                leading: const HeaderAvatar(label: 'T'),
                 trailing: HeaderActionButton(
                   icon: Icons.wifi_off_rounded,
                   onPressed: () => _showOfflineSnack(

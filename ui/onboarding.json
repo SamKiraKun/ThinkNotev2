@@ -465,7 +465,7 @@
 "gapPx": 4
 },
 "content": {
-"logoText": "Notea",
+	"logoText": "ThinkNote",
 "sparkle": "✦",
 "tagline": "Your thoughts, beautifully organized."
 },
@@ -640,7 +640,7 @@
 "widthPx": 314,
 "heightPx": 48
 },
-"content": "Notea helps you jot down thoughts, stay organized, and bring ideas to life.",
+	"content": "ThinkNote helps you jot down thoughts, stay organized, and bring ideas to life.",
 "typography": "bodyLarge",
 "colors": {
 "text": "#7C7F96"
@@ -1227,8 +1227,8 @@
 "accessibility": {
 "minimumTapTargetPx": 44,
 "semanticLabels": {
-"primaryCtaButton": "Get started with Notea",
-"secondarySignInButton": "Sign in to existing Notea account",
+	"primaryCtaButton": "Get started with ThinkNote",
+	"secondarySignInButton": "Sign in to existing ThinkNote account",
 "termsLink": "Open Terms",
 "privacyPolicyLink": "Open Privacy Policy",
 "pageIndicator": "Onboarding page 1 of 3",
@@ -1265,7 +1265,7 @@
 "footer": "Text.rich with TapGestureRecognizer links"
 },
 "assetRecommendations": {
-"heroIllustration": "assets/images/onboarding/notea_hero.png",
+	"heroIllustration": "assets/icons/ThinkNote.png",
 "fallback": "Build a Stack-based placeholder using rounded containers, circles, and simple icons if image asset is unavailable"
 },
 "state": {
