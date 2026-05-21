@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/extensions/context_extensions.dart';
+import '../../../../core/constants/route_names.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_radius.dart';
 import '../../../../core/theme/app_shadows.dart';
@@ -61,6 +62,7 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
   @override
   Widget build(BuildContext context) {
     final palette = context.palette;
+    final isKeyboardVisible = MediaQuery.of(context).viewInsets.bottom > 0;
     final editorState = ref.watch(noteEditorControllerProvider(_args));
     final editorController =
         ref.read(noteEditorControllerProvider(_args).notifier);
@@ -99,10 +101,7 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
           return;
         }
 
-        await editorController.saveNow();
-        if (context.mounted) {
-          context.pop();
-        }
+        await _saveAndClose(editorController);
       },
       child: Scaffold(
         backgroundColor: palette.pageBackground,
@@ -110,301 +109,302 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
         body: SafeArea(
           child: editorState.isLoading
               ? const Center(child: CircularProgressIndicator())
-              : Padding(
-                  padding: EdgeInsets.only(
-                    bottom: MediaQuery.of(context).viewInsets.bottom,
-                  ),
-                  child: Column(
-                    children: [
-                      Padding(
-                        padding: const EdgeInsets.fromLTRB(
-                          AppSpacing.xxl,
-                          AppSpacing.xl,
-                          AppSpacing.xxl,
-                          AppSpacing.lg,
-                        ),
-                        child: Row(
-                          children: [
-                            IconButton(
-                              onPressed: () async {
-                                await editorController.saveNow();
-                                if (context.mounted) {
-                                  context.pop();
-                                }
-                              },
-                              style: IconButton.styleFrom(
-                                backgroundColor: palette.surfacePrimary,
-                                minimumSize: const Size(48, 48),
-                              ),
-                              icon: const Icon(Icons.arrow_back_rounded),
-                            ),
-                            const SizedBox(width: AppSpacing.md),
-                            Expanded(
-                              child: InkWell(
-                                onTap: () => _showFolderSelector(
-                                  context,
-                                  ref,
-                                  notesState?.folders ?? const <FolderModel>[],
-                                  editorState.folderId,
-                                ),
-                                borderRadius:
-                                    BorderRadius.circular(AppRadius.pill),
-                                child: Container(
-                                  height: 46,
-                                  decoration: BoxDecoration(
-                                    color: palette.surfacePrimary,
-                                    borderRadius:
-                                        BorderRadius.circular(AppRadius.pill),
-                                    border: Border.all(color: palette.borderSoft),
-                                  ),
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: AppSpacing.lg),
-                                  child: Row(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      const Icon(
-                                        Icons.folder_open_rounded,
-                                        color: AppColors.brandPrimary,
-                                        size: 18,
-                                      ),
-                                      const SizedBox(width: AppSpacing.sm),
-                                      Flexible(
-                                        child: Text(
-                                          folder?.displayName ??
-                                              'Select folder',
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
-                                          style: AppTypography.bodyMedium,
-                                        ),
-                                      ),
-                                      const SizedBox(width: AppSpacing.sm),
-                                      Icon(
-                                        Icons.expand_more_rounded,
-                                        color: palette.textTertiary,
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: AppSpacing.md),
-                            FilledButton(
-                              onPressed: editorState.isSaving
-                                  ? null
-                                  : editorController.saveNow,
-                              style: FilledButton.styleFrom(
-                                backgroundColor: AppColors.brandPrimary,
-                                minimumSize: const Size(82, 48),
-                              ),
-                              child: Text(
-                                editorState.isSaving ? 'Saving' : 'Save',
-                                style: AppTypography.buttonLabel,
-                              ),
-                            ),
-                            const SizedBox(width: AppSpacing.sm),
-                            PopupMenuButton<String>(
-                              onSelected: (value) async {
-                                if (value == 'favorite') {
-                                  editorController.toggleFavorite();
-                                } else if (value == 'pin') {
-                                  editorController.togglePinned();
-                                } else if (value == 'delete') {
-                                  final confirmed = await showDialog<bool>(
-                                    context: context,
-                                    builder: (_) => const AppConfirmationDialog(
-                                      title: 'Move note to Trash?',
-                                      message:
-                                          'You can restore it later from Trash.',
-                                      confirmLabel: 'Move to trash',
-                                      isDestructive: true,
-                                    ),
-                                  );
-                                  if (confirmed == true) {
-                                    await editorController.deleteCurrentNote();
-                                    if (context.mounted) {
-                                      context.pop();
-                                    }
-                                  }
-                                }
-                              },
-                              itemBuilder: (context) => [
-                                PopupMenuItem(
-                                  value: 'pin',
-                                  child: Text(editorState.isPinned
-                                      ? 'Unpin note'
-                                      : 'Pin note'),
-                                ),
-                                PopupMenuItem(
-                                  value: 'favorite',
-                                  child: Text(
-                                    editorState.isFavorite
-                                        ? 'Remove favorite'
-                                        : 'Mark favorite',
-                                  ),
-                                ),
-                                if (editorState.noteId != null)
-                                  const PopupMenuItem(
-                                    value: 'delete',
-                                    child: Text('Delete'),
-                                  ),
-                              ],
-                            ),
-                          ],
-                        ),
+              : Column(
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(
+                        AppSpacing.xxl,
+                        AppSpacing.xl,
+                        AppSpacing.xxl,
+                        AppSpacing.lg,
                       ),
-                      Expanded(
-                        child: ListView(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: AppSpacing.xxl),
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: AppSpacing.xl,
-                                vertical: AppSpacing.md,
-                              ),
-                              decoration: BoxDecoration(
-                                color: palette.surfacePrimary,
-                                borderRadius:
-                                    BorderRadius.circular(AppRadius.formCard),
-                                border: Border.all(color: palette.borderPrimary),
-                                boxShadow: AppShadows.softCard,
-                              ),
-                              child: TextField(
-                                controller: _titleController,
-                                focusNode: _titleFocusNode,
-                                onChanged: editorController.updateTitle,
-                                decoration: const InputDecoration(
-                                  border: InputBorder.none,
-                                  hintText: 'Untitled note',
-                                  counterText: '',
-                                ),
-                                maxLength: 120,
-                                style: AppTypography.titleLarge,
-                              ),
+                      child: Row(
+                        children: [
+                          IconButton(
+                            onPressed: () async {
+                              await _saveAndClose(editorController);
+                            },
+                            style: IconButton.styleFrom(
+                              backgroundColor: palette.surfacePrimary,
+                              minimumSize: const Size(48, 48),
                             ),
-                            const SizedBox(height: AppSpacing.sm),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Wrap(
-                                  spacing: AppSpacing.sm,
-                                  runSpacing: AppSpacing.sm,
+                            icon: const Icon(Icons.arrow_back_rounded),
+                          ),
+                          const SizedBox(width: AppSpacing.md),
+                          Expanded(
+                            child: InkWell(
+                              onTap: () => _showFolderSelector(
+                                context,
+                                ref,
+                                notesState?.folders ?? const <FolderModel>[],
+                                editorState.folderId,
+                              ),
+                              borderRadius:
+                                  BorderRadius.circular(AppRadius.pill),
+                              child: Container(
+                                height: 46,
+                                decoration: BoxDecoration(
+                                  color: palette.surfacePrimary,
+                                  borderRadius:
+                                      BorderRadius.circular(AppRadius.pill),
+                                  border:
+                                      Border.all(color: palette.borderSoft),
+                                ),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: AppSpacing.lg,
+                                ),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
-                                    if (editorState.isPinned)
-                                      _StatusBadge(
-                                        icon: Icons.push_pin_rounded,
-                                        label: 'Pinned',
+                                    const Icon(
+                                      Icons.folder_open_rounded,
+                                      color: AppColors.brandPrimary,
+                                      size: 18,
+                                    ),
+                                    const SizedBox(width: AppSpacing.sm),
+                                    Flexible(
+                                      child: Text(
+                                        folder?.displayName ?? 'Select folder',
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: AppTypography.bodyMedium,
                                       ),
-                                    if (editorState.isFavorite)
-                                      _StatusBadge(
-                                        icon: Icons.star_rounded,
-                                        label: 'Favorite',
-                                      ),
-                                    if (editorState.tags.isNotEmpty)
-                                      for (final tag in editorState.tags)
-                                        _TagBadge(label: '#$tag'),
+                                    ),
+                                    const SizedBox(width: AppSpacing.sm),
+                                    Icon(
+                                      Icons.expand_more_rounded,
+                                      color: palette.textTertiary,
+                                    ),
                                   ],
                                 ),
-                                Text(
-                                  editorState.lastSavedAt == null
-                                      ? 'Not saved yet'
-                                      : 'Saved ${DateFormatter.formatRelative(editorState.lastSavedAt!)}',
-                                  style: AppTypography.bodySmall.copyWith(
-                                    color: palette.textTertiary,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: AppSpacing.md),
+                          FilledButton(
+                            onPressed: editorState.isSaving
+                                ? null
+                                : editorController.saveNow,
+                            style: FilledButton.styleFrom(
+                              backgroundColor: AppColors.brandPrimary,
+                              minimumSize: const Size(82, 48),
+                            ),
+                            child: Text(
+                              editorState.isSaving ? 'Saving' : 'Save',
+                              style: AppTypography.buttonLabel,
+                            ),
+                          ),
+                          const SizedBox(width: AppSpacing.sm),
+                          PopupMenuButton<String>(
+                            onSelected: (value) async {
+                              if (value == 'favorite') {
+                                editorController.toggleFavorite();
+                              } else if (value == 'pin') {
+                                editorController.togglePinned();
+                              } else if (value == 'delete') {
+                                final confirmed = await showDialog<bool>(
+                                  context: context,
+                                  builder: (_) => const AppConfirmationDialog(
+                                    title: 'Move note to Trash?',
+                                    message:
+                                        'You can restore it later from Trash.',
+                                    confirmLabel: 'Move to trash',
+                                    isDestructive: true,
+                                  ),
+                                );
+                                if (confirmed == true) {
+                                  await editorController.deleteCurrentNote();
+                                  if (context.mounted) {
+                                    context.pop();
+                                  }
+                                }
+                              }
+                            },
+                            itemBuilder: (context) => [
+                              PopupMenuItem(
+                                value: 'pin',
+                                child: Text(
+                                  editorState.isPinned
+                                      ? 'Unpin note'
+                                      : 'Pin note',
+                                ),
+                              ),
+                              PopupMenuItem(
+                                value: 'favorite',
+                                child: Text(
+                                  editorState.isFavorite
+                                      ? 'Remove favorite'
+                                      : 'Mark favorite',
+                                ),
+                              ),
+                              if (editorState.noteId != null)
+                                const PopupMenuItem(
+                                  value: 'delete',
+                                  child: Text('Delete'),
+                                ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                    Expanded(
+                      child: ListView(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: AppSpacing.xxl,
+                        ),
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: AppSpacing.xl,
+                              vertical: AppSpacing.md,
+                            ),
+                            decoration: BoxDecoration(
+                              color: palette.surfacePrimary,
+                              borderRadius: BorderRadius.circular(
+                                AppRadius.formCard,
+                              ),
+                              border: Border.all(color: palette.borderPrimary),
+                              boxShadow: AppShadows.softCard,
+                            ),
+                            child: TextField(
+                              controller: _titleController,
+                              focusNode: _titleFocusNode,
+                              onChanged: editorController.updateTitle,
+                              decoration: const InputDecoration(
+                                border: InputBorder.none,
+                                hintText: 'Untitled note',
+                                counterText: '',
+                              ),
+                              maxLength: 120,
+                              style: AppTypography.titleLarge,
+                            ),
+                          ),
+                          const SizedBox(height: AppSpacing.sm),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Wrap(
+                                spacing: AppSpacing.sm,
+                                runSpacing: AppSpacing.sm,
+                                children: [
+                                  if (editorState.isPinned)
+                                    _StatusBadge(
+                                      icon: Icons.push_pin_rounded,
+                                      label: 'Pinned',
+                                    ),
+                                  if (editorState.isFavorite)
+                                    _StatusBadge(
+                                      icon: Icons.star_rounded,
+                                      label: 'Favorite',
+                                    ),
+                                  if (editorState.tags.isNotEmpty)
+                                    for (final tag in editorState.tags)
+                                      _TagBadge(label: '#$tag'),
+                                ],
+                              ),
+                              Text(
+                                editorState.lastSavedAt == null
+                                    ? 'Not saved yet'
+                                    : 'Saved ${DateFormatter.formatRelative(editorState.lastSavedAt!)}',
+                                style: AppTypography.bodySmall.copyWith(
+                                  color: palette.textTertiary,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: AppSpacing.md),
+                          Container(
+                            decoration: BoxDecoration(
+                              color: palette.surfacePrimary,
+                              borderRadius: BorderRadius.circular(
+                                AppRadius.formCard,
+                              ),
+                              boxShadow: AppShadows.softCard,
+                            ),
+                            child: Column(
+                              children: [
+                                NoteEditorToolbar(
+                                  onBoldTap: () => _applyInlineWrap(
+                                    editorController,
+                                    prefix: '**',
+                                    suffix: '**',
+                                    placeholder: 'bold',
+                                  ),
+                                  onItalicTap: () => _applyInlineWrap(
+                                    editorController,
+                                    prefix: '_',
+                                    suffix: '_',
+                                    placeholder: 'italic',
+                                  ),
+                                  onUnderlineTap: () => _applyInlineWrap(
+                                    editorController,
+                                    prefix: '<u>',
+                                    suffix: '</u>',
+                                    placeholder: 'underline',
+                                  ),
+                                  onStrikeTap: () => _applyInlineWrap(
+                                    editorController,
+                                    prefix: '~~',
+                                    suffix: '~~',
+                                    placeholder: 'strike',
+                                  ),
+                                  onChecklistTap: () => _applyLinePrefix(
+                                    editorController,
+                                    '- [ ] ',
+                                  ),
+                                  onBulletTap: () => _applyLinePrefix(
+                                    editorController,
+                                    '- ',
+                                  ),
+                                  onNumberedTap: () =>
+                                      _applyNumberedList(editorController),
+                                  onHeadingTap: () => _applyLinePrefix(
+                                    editorController,
+                                    '## ',
+                                  ),
+                                  onQuoteTap: () => _applyLinePrefix(
+                                    editorController,
+                                    '> ',
+                                  ),
+                                  onTagTap: () => _showTagSelector(
+                                    context,
+                                    ref,
+                                    editorState.tags,
+                                  ),
+                                ),
+                                TextField(
+                                  controller: _bodyController,
+                                  focusNode: _bodyFocusNode,
+                                  onChanged: editorController.updateContent,
+                                  maxLines: null,
+                                  minLines: 8,
+                                  keyboardType: TextInputType.multiline,
+                                  textCapitalization:
+                                      TextCapitalization.sentences,
+                                  textAlignVertical: TextAlignVertical.top,
+                                  decoration: InputDecoration(
+                                    contentPadding:
+                                        const EdgeInsets.all(AppSpacing.lg),
+                                    border: InputBorder.none,
+                                    hintText:
+                                        'Start writing. This note saves automatically.',
+                                    hintStyle:
+                                        AppTypography.bodyLarge.copyWith(
+                                      color: palette.textPlaceholder,
+                                    ),
+                                  ),
+                                  style: AppTypography.bodyLarge.copyWith(
+                                    height: 1.6,
                                   ),
                                 ),
                               ],
                             ),
-                            const SizedBox(height: AppSpacing.md),
-                            Container(
-                              decoration: BoxDecoration(
-                                color: palette.surfacePrimary,
-                                borderRadius:
-                                    BorderRadius.circular(AppRadius.formCard),
-                                boxShadow: AppShadows.softCard,
-                              ),
-                              child: Column(
-                                children: [
-                                  NoteEditorToolbar(
-                                    onBoldTap: () => _applyInlineWrap(
-                                      editorController,
-                                      prefix: '**',
-                                      suffix: '**',
-                                      placeholder: 'bold',
-                                    ),
-                                    onItalicTap: () => _applyInlineWrap(
-                                      editorController,
-                                      prefix: '_',
-                                      suffix: '_',
-                                      placeholder: 'italic',
-                                    ),
-                                    onUnderlineTap: () => _applyInlineWrap(
-                                      editorController,
-                                      prefix: '<u>',
-                                      suffix: '</u>',
-                                      placeholder: 'underline',
-                                    ),
-                                    onStrikeTap: () => _applyInlineWrap(
-                                      editorController,
-                                      prefix: '~~',
-                                      suffix: '~~',
-                                      placeholder: 'strike',
-                                    ),
-                                    onChecklistTap: () => _applyLinePrefix(
-                                      editorController,
-                                      '- [ ] ',
-                                    ),
-                                    onBulletTap: () => _applyLinePrefix(
-                                      editorController,
-                                      '- ',
-                                    ),
-                                    onNumberedTap: () =>
-                                        _applyNumberedList(editorController),
-                                    onHeadingTap: () => _applyLinePrefix(
-                                      editorController,
-                                      '## ',
-                                    ),
-                                    onQuoteTap: () => _applyLinePrefix(
-                                      editorController,
-                                      '> ',
-                                    ),
-                                    onTagTap: () => _showTagSelector(
-                                      context,
-                                      ref,
-                                      editorState.tags,
-                                    ),
-                                  ),
-                                  TextField(
-                                    controller: _bodyController,
-                                    focusNode: _bodyFocusNode,
-                                    onChanged: editorController.updateContent,
-                                    maxLines: null,
-                                    minLines: 18,
-                                    keyboardType: TextInputType.multiline,
-                                    textCapitalization:
-                                        TextCapitalization.sentences,
-                                    decoration: InputDecoration(
-                                      contentPadding:
-                                          const EdgeInsets.all(AppSpacing.xl),
-                                      border: InputBorder.none,
-                                      hintText:
-                                          'Start writing. This note saves automatically.',
-                                      hintStyle:
-                                          AppTypography.bodyLarge.copyWith(
-                                        color: palette.textPlaceholder,
-                                      ),
-                                    ),
-                                    style: AppTypography.bodyLarge.copyWith(
-                                      height: 1.6,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            const SizedBox(height: AppSpacing.xl),
-                          ],
-                        ),
+                          ),
+                          const SizedBox(height: AppSpacing.xl),
+                        ],
                       ),
+                    ),
+                    if (!isKeyboardVisible)
                       Container(
                         padding: const EdgeInsets.symmetric(
                           horizontal: AppSpacing.xl,
@@ -440,18 +440,33 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
                             _BottomAction(
                               icon: Icons.sell_outlined,
                               label: 'Tag',
-                              onTap: () => _showTagSelector(
-                                  context, ref, editorState.tags),
+                              onTap: () =>
+                                  _showTagSelector(context, ref, editorState.tags),
                             ),
                           ],
                         ),
                       ),
-                    ],
-                  ),
+                  ],
                 ),
         ),
       ),
     );
+  }
+
+  Future<void> _saveAndClose(NoteEditorController controller) async {
+    await controller.saveNow();
+
+    if (!context.mounted) {
+      return;
+    }
+
+    final navigator = Navigator.of(context);
+    if (navigator.canPop()) {
+      context.pop();
+      return;
+    }
+
+    context.go(RouteNames.root);
   }
 
   void _applyInlineWrap(

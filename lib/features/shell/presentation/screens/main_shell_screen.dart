@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -20,37 +21,54 @@ class MainShellScreen extends ConsumerWidget {
     final activeTab = ref.watch(shellTabProvider);
     final palette = context.palette;
 
-    return ResponsiveCenteredShell(
-      usePresentationFrame: true,
-      child: Scaffold(
-        backgroundColor: palette.pageBackground,
-        body: Stack(
-          children: [
-            Positioned.fill(
-              child: IndexedStack(
-                index: activeTab.index,
-                children: const [
-                  HomeScreen(),
-                  SearchScreen(),
-                  FoldersScreen(),
-                  ProfileScreen(),
-                ],
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) {
+          return;
+        }
+
+        if (activeTab != ShellTab.home) {
+          ref.read(shellTabProvider.notifier).state = ShellTab.home;
+          return;
+        }
+
+        if (Theme.of(context).platform == TargetPlatform.android) {
+          SystemNavigator.pop();
+        }
+      },
+      child: ResponsiveCenteredShell(
+        usePresentationFrame: true,
+        child: Scaffold(
+          backgroundColor: palette.pageBackground,
+          body: Stack(
+            children: [
+              Positioned.fill(
+                child: IndexedStack(
+                  index: activeTab.index,
+                  children: const [
+                    HomeScreen(),
+                    SearchScreen(),
+                    FoldersScreen(),
+                    ProfileScreen(),
+                  ],
+                ),
               ),
-            ),
-            Positioned(
-              left: 0,
-              right: 0,
-              bottom: 0,
-              child: MainBottomNav(
-                activeTab: activeTab,
-                onTabSelected: (tab) =>
-                    ref.read(shellTabProvider.notifier).state = tab,
-                onCreateTap: () {
-                  context.push(RouteNames.editor);
-                },
+              Positioned(
+                left: 0,
+                right: 0,
+                bottom: 0,
+                child: MainBottomNav(
+                  activeTab: activeTab,
+                  onTabSelected: (tab) =>
+                      ref.read(shellTabProvider.notifier).state = tab,
+                  onCreateTap: () {
+                    context.push(RouteNames.editor);
+                  },
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
