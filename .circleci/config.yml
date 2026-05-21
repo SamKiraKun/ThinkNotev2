@@ -54,22 +54,22 @@ jobs:
           command: |
             set -euo pipefail
 
-            if [ -z "${ANDROID_KEYSTORE_BASE64:-}" ] || [ -z "${ANDROID_KEYSTORE_PASSWORD:-}" ] || [ -z "${ANDROID_KEY_ALIAS:-}" ] || [ -z "${ANDROID_KEY_PASSWORD:-}" ]; then
-              echo "Missing Android signing environment variables."
-              echo "Required: ANDROID_KEYSTORE_BASE64, ANDROID_KEYSTORE_PASSWORD, ANDROID_KEY_ALIAS, ANDROID_KEY_PASSWORD"
-              exit 1
+            if [ -n "${ANDROID_KEYSTORE_BASE64:-}" ] && [ -n "${ANDROID_KEYSTORE_PASSWORD:-}" ] && [ -n "${ANDROID_KEY_ALIAS:-}" ] && [ -n "${ANDROID_KEY_PASSWORD:-}" ]; then
+              umask 077
+              mkdir -p android/app
+
+              printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > android/app/upload-keystore.jks
+
+              printf 'storePassword=%s\nkeyPassword=%s\nkeyAlias=%s\nstoreFile=upload-keystore.jks\n' \
+                "$ANDROID_KEYSTORE_PASSWORD" \
+                "$ANDROID_KEY_PASSWORD" \
+                "$ANDROID_KEY_ALIAS" \
+                > android/key.properties
+            else
+              echo "Android signing environment variables are missing."
+              echo "Continuing with the Gradle debug signing fallback so the build can still produce artifacts."
+              echo "For production-signed release artifacts, set ANDROID_KEYSTORE_BASE64, ANDROID_KEYSTORE_PASSWORD, ANDROID_KEY_ALIAS, and ANDROID_KEY_PASSWORD in CircleCI."
             fi
-
-            umask 077
-            mkdir -p android/app
-
-            printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > android/app/upload-keystore.jks
-
-            printf 'storePassword=%s\nkeyPassword=%s\nkeyAlias=%s\nstoreFile=upload-keystore.jks\n' \
-              "$ANDROID_KEYSTORE_PASSWORD" \
-              "$ANDROID_KEY_PASSWORD" \
-              "$ANDROID_KEY_ALIAS" \
-              > android/key.properties
 
       - run:
           name: Build release APK
