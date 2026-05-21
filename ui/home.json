@@ -1,0 +1,1612 @@
+{
+"specVersion": "1.0.0",
+"screen": {
+"name": "NotesHomeDashboard",
+"route": "/home",
+"platform": "mobile",
+"orientation": "portrait",
+"sourceImage": {
+"widthPx": 941,
+"heightPx": 1672,
+"aspectRatio": "9:16"
+},
+"designCanvas": {
+"widthPx": 430,
+"heightPx": 764,
+"unit": "logical_px",
+"safeArea": {
+"topPx": 24,
+"bottomPx": 24,
+"leftPx": 0,
+"rightPx": 0
+}
+},
+"visualStyle": {
+"mood": [
+"premium",
+"minimal",
+"Gen Z",
+"soft",
+"smooth",
+"pastel",
+"glassmorphism-light",
+"neumorphic-card"
+],
+"theme": "light",
+"density": "comfortable",
+"cornerStyle": "large-rounded",
+"shadowStyle": "soft-elevated"
+}
+},
+"colorTokens": {
+"background": {
+"app": "#F7F6FB",
+"surface": "#FFFFFF",
+"surfaceSoft": "#FBFAFF",
+"surfaceMuted": "#F2F1F8",
+"surfaceLavender": "#F1ECFF",
+"overlayWhite": "#FFFFFFD9"
+},
+"text": {
+"primary": "#101126",
+"secondary": "#4E5168",
+"tertiary": "#7C7F96",
+"placeholder": "#9DA0B5",
+"inverse": "#FFFFFF",
+"accent": "#6F63FF",
+"danger": "#EF4444"
+},
+"brand": {
+"primary": "#6F63FF",
+"primaryDark": "#5547E8",
+"primaryLight": "#9A8CFF",
+"secondary": "#5C8DFF",
+"lavender": "#A88BFF",
+"purple": "#8E5CFF",
+"blue": "#4F8DFF"
+},
+"gradient": {
+"primaryCta": {
+"type": "linear",
+"angleDeg": 135,
+"stops": [
+{
+"color": "#4F8DFF",
+"position": 0
+},
+{
+"color": "#6F63FF",
+"position": 0.52
+},
+{
+"color": "#9A5CFF",
+"position": 1
+}
+]
+},
+"pinnedCard": {
+"type": "linear",
+"angleDeg": 135,
+"stops": [
+{
+"color": "#F2ECFF",
+"position": 0
+},
+{
+"color": "#FBE9F5",
+"position": 0.46
+},
+{
+"color": "#E9F1FF",
+"position": 1
+}
+]
+},
+"avatarRing": {
+"type": "linear",
+"angleDeg": 135,
+"stops": [
+{
+"color": "#E7D8FF",
+"position": 0
+},
+{
+"color": "#D9B6F4",
+"position": 1
+}
+]
+}
+},
+"category": {
+"studyBg": "#EAF5FF",
+"studyText": "#2F7BFF",
+"ideasBg": "#FFF4D8",
+"ideasText": "#D99100",
+"personalBg": "#FFEAF4",
+"personalText": "#B73375",
+"workBg": "#EAF4FF",
+"workText": "#2B78D6",
+"journalBg": "#EAFBF1",
+"journalText": "#188754"
+},
+"icon": {
+"primary": "#101126",
+"secondary": "#62657A",
+"muted": "#8E91A6",
+"accent": "#6F63FF",
+"active": "#6F63FF",
+"inactive": "#5E6175"
+},
+"border": {
+"default": "#E8E7F0",
+"soft": "#F0EFF6",
+"active": "#6F63FF",
+"focus": "#8E7CFF",
+"disabled": "#EFEFF4"
+},
+"shadow": {
+"soft": "#10112614",
+"medium": "#1011261F",
+"lavenderGlow": "#6F63FF33"
+},
+"status": {
+"success": "#22C55E",
+"warning": "#F59E0B",
+"info": "#3B82F6",
+"error": "#EF4444"
+}
+},
+"typography": {
+"fontFamily": {
+"primary": "Inter",
+"fallback": [
+"SF Pro Display",
+"SF Pro Text",
+"Roboto",
+"system-ui",
+"sans-serif"
+]
+},
+"scale": {
+"displayLarge": {
+"fontSizePx": 32,
+"fontWeight": 800,
+"lineHeightPx": 38,
+"letterSpacingPx": -0.8
+},
+"brandLogo": {
+"fontSizePx": 30,
+"fontWeight": 800,
+"lineHeightPx": 34,
+"letterSpacingPx": -0.7
+},
+"titleLarge": {
+"fontSizePx": 22,
+"fontWeight": 800,
+"lineHeightPx": 28,
+"letterSpacingPx": -0.4
+},
+"titleMedium": {
+"fontSizePx": 17,
+"fontWeight": 700,
+"lineHeightPx": 22,
+"letterSpacingPx": -0.2
+},
+"titleSmall": {
+"fontSizePx": 15,
+"fontWeight": 700,
+"lineHeightPx": 20,
+"letterSpacingPx": -0.1
+},
+"bodyLarge": {
+"fontSizePx": 16,
+"fontWeight": 500,
+"lineHeightPx": 24,
+"letterSpacingPx": -0.1
+},
+"bodyMedium": {
+"fontSizePx": 14,
+"fontWeight": 500,
+"lineHeightPx": 20,
+"letterSpacingPx": 0
+},
+"bodySmall": {
+"fontSizePx": 12,
+"fontWeight": 500,
+"lineHeightPx": 16,
+"letterSpacingPx": 0
+},
+"labelLarge": {
+"fontSizePx": 14,
+"fontWeight": 700,
+"lineHeightPx": 18,
+"letterSpacingPx": 0
+},
+"labelMedium": {
+"fontSizePx": 12,
+"fontWeight": 700,
+"lineHeightPx": 16,
+"letterSpacingPx": 0.1
+},
+"labelSmall": {
+"fontSizePx": 10,
+"fontWeight": 700,
+"lineHeightPx": 13,
+"letterSpacingPx": 0.4
+},
+"navLabel": {
+"fontSizePx": 12,
+"fontWeight": 600,
+"lineHeightPx": 16,
+"letterSpacingPx": -0.1
+}
+},
+"usage": {
+"brandName": "brandLogo",
+"greeting": "bodyMedium",
+"searchPlaceholder": "bodyLarge",
+"chipLabel": "bodyMedium",
+"sectionTitle": "titleMedium",
+"sectionAction": "bodyMedium",
+"pinnedEyebrow": "labelMedium",
+"pinnedTitle": "titleLarge",
+"pinnedDescription": "bodyMedium",
+"noteCardTitle": "titleSmall",
+"noteCardDescription": "bodyMedium",
+"noteMeta": "bodySmall",
+"bottomNavLabel": "navLabel"
+}
+},
+"spacing": {
+"scale": {
+"none": 0,
+"xxs": 2,
+"xs": 4,
+"sm": 8,
+"md": 12,
+"lg": 16,
+"xl": 20,
+"xxl": 24,
+"xxxl": 32,
+"xxxxl": 40
+},
+"screen": {
+"horizontalPaddingPx": 24,
+"topContentPaddingPx": 28,
+"bottomNavReservedSpacePx": 108,
+"sectionGapPx": 24,
+"contentGapPx": 16
+},
+"component": {
+"headerAvatarToTextGapPx": 14,
+"headerToSearchGapPx": 24,
+"searchToChipsGapPx": 16,
+"chipsGapPx": 10,
+"chipsToPinnedCardGapPx": 18,
+"pinnedCardToRecentHeaderGapPx": 24,
+"recentHeaderToListGapPx": 12,
+"noteCardGapPx": 10,
+"bottomNavItemGapPx": 4
+}
+},
+"radius": {
+"xsPx": 8,
+"smPx": 12,
+"mdPx": 16,
+"lgPx": 20,
+"xlPx": 24,
+"xxlPx": 28,
+"pillPx": 999,
+"circle": "50%"
+},
+"shadows": {
+"none": {
+"x": 0,
+"y": 0,
+"blur": 0,
+"spread": 0,
+"color": "#00000000"
+},
+"softCard": {
+"x": 0,
+"y": 8,
+"blur": 24,
+"spread": 0,
+"color": "#10112612"
+},
+"floatingCard": {
+"x": 0,
+"y": 12,
+"blur": 36,
+"spread": 0,
+"color": "#10112618"
+},
+"fabGlow": {
+"x": 0,
+"y": 12,
+"blur": 28,
+"spread": 0,
+"color": "#6F63FF40"
+},
+"bottomNav": {
+"x": 0,
+"y": -10,
+"blur": 30,
+"spread": 0,
+"color": "#10112612"
+}
+},
+"componentInventory": [
+{
+"id": "status_bar",
+"type": "systemStatusBar",
+"description": "iOS-style status bar with time, cellular, wifi, and battery indicators.",
+"position": {
+"xPx": 24,
+"yPx": 14
+},
+"size": {
+"widthPx": 382,
+"heightPx": 24
+},
+"typography": {
+"time": "labelLarge"
+},
+"colors": {
+"text": "#000000",
+"icons": "#000000"
+},
+"spacing": {
+"horizontalPaddingPx": 0
+}
+},
+{
+"id": "home_header",
+"type": "header",
+"description": "User greeting header with avatar, brand name, greeting text, and notification action.",
+"position": {
+"xPx": 24,
+"yPx": 56
+},
+"size": {
+"widthPx": 382,
+"heightPx": 58
+},
+"layout": {
+"direction": "row",
+"alignment": "center",
+"gapPx": 14
+},
+"children": [
+"avatar",
+"brand_text_group",
+"notification_button"
+]
+},
+{
+"id": "avatar",
+"type": "imageAvatar",
+"description": "Circular user avatar.",
+"size": {
+"widthPx": 52,
+"heightPx": 52
+},
+"radiusPx": 26,
+"colors": {
+"background": "#E7D8FF",
+"border": "#FFFFFF"
+},
+"border": {
+"widthPx": 2,
+"color": "#FFFFFF"
+},
+"shadow": "softCard",
+"states": {
+"default": {
+"opacity": 1,
+"scale": 1
+},
+"active": {
+"opacity": 1,
+"scale": 0.96
+},
+"disabled": {
+"opacity": 0.45,
+"scale": 1
+}
+}
+},
+{
+"id": "brand_text_group",
+"type": "textGroup",
+"description": "Brand name and greeting.",
+"size": {
+"widthPx": 230,
+"heightPx": 52
+},
+"layout": {
+"direction": "column",
+"gapPx": 2
+},
+"content": {
+"title": "Notea✦",
+"subtitle": "Good morning, Riya 👋"
+},
+"typography": {
+"title": "brandLogo",
+"subtitle": "bodyMedium"
+},
+"colors": {
+"title": "#6F63FF",
+"subtitle": "#4E5168"
+}
+},
+{
+"id": "notification_button",
+"type": "iconButton",
+"description": "Circular notification button with unread dot.",
+"size": {
+"widthPx": 48,
+"heightPx": 48
+},
+"radiusPx": 24,
+"colors": {
+"background": "#FFFFFF",
+"icon": "#101126",
+"badge": "#6F63FF"
+},
+"shadow": "softCard",
+"icon": {
+"name": "bell",
+"sizePx": 22,
+"strokeWidthPx": 2
+},
+"badge": {
+"enabled": true,
+"sizePx": 7,
+"position": {
+"topPx": 8,
+"rightPx": 10
+}
+},
+"states": {
+"default": {
+"background": "#FFFFFF",
+"icon": "#101126",
+"scale": 1,
+"opacity": 1
+},
+"hover": {
+"background": "#F7F6FB",
+"icon": "#6F63FF",
+"scale": 1
+},
+"focus": {
+"background": "#FFFFFF",
+"borderColor": "#8E7CFF",
+"borderWidthPx": 2
+},
+"active": {
+"background": "#F1ECFF",
+"icon": "#6F63FF",
+"scale": 0.94
+},
+"disabled": {
+"background": "#F2F1F8",
+"icon": "#B7B8C8",
+"opacity": 0.5
+}
+}
+},
+{
+"id": "search_bar",
+"type": "searchInput",
+"description": "Rounded search bar with leading search icon and trailing filter button.",
+"position": {
+"xPx": 24,
+"yPx": 132
+},
+"size": {
+"widthPx": 382,
+"heightPx": 54
+},
+"radiusPx": 27,
+"padding": {
+"leftPx": 16,
+"rightPx": 10,
+"topPx": 0,
+"bottomPx": 0
+},
+"layout": {
+"direction": "row",
+"alignment": "center",
+"gapPx": 12
+},
+"colors": {
+"background": "#FFFFFF",
+"placeholder": "#9DA0B5",
+"text": "#101126",
+"leadingIcon": "#6C7085",
+"trailingIconBackground": "#F1ECFF",
+"trailingIcon": "#6F63FF",
+"border": "#F0EFF6"
+},
+"border": {
+"widthPx": 1,
+"color": "#F0EFF6"
+},
+"shadow": "softCard",
+"typography": {
+"placeholder": "bodyLarge",
+"input": "bodyLarge"
+},
+"states": {
+"default": {
+"background": "#FFFFFF",
+"borderColor": "#F0EFF6",
+"placeholderColor": "#9DA0B5"
+},
+"hover": {
+"background": "#FFFFFF",
+"borderColor": "#E3E0F2",
+"placeholderColor": "#8C8FA4"
+},
+"focus": {
+"background": "#FFFFFF",
+"borderColor": "#8E7CFF",
+"borderWidthPx": 2,
+"shadow": {
+"x": 0,
+"y": 0,
+"blur": 0,
+"spread": 4,
+"color": "#6F63FF1A"
+}
+},
+"active": {
+"background": "#FFFFFF",
+"borderColor": "#6F63FF"
+},
+"disabled": {
+"background": "#F2F1F8",
+"borderColor": "#EFEFF4",
+"placeholderColor": "#B7B8C8",
+"opacity": 0.6
+}
+},
+"variants": {
+"default": {
+"heightPx": 54,
+"radiusPx": 27,
+"hasFilterButton": true
+},
+"compact": {
+"heightPx": 44,
+"radiusPx": 22,
+"hasFilterButton": false
+},
+"expanded": {
+"heightPx": 58,
+"radiusPx": 29,
+"hasFilterButton": true
+}
+}
+},
+{
+"id": "category_filter_row",
+"type": "horizontalChipList",
+"description": "Scrollable category chips used to filter notes.",
+"position": {
+"xPx": 24,
+"yPx": 204
+},
+"size": {
+"widthPx": 430,
+"heightPx": 36
+},
+"layout": {
+"direction": "row",
+"gapPx": 10,
+"scrollDirection": "horizontal",
+"clipOverflow": true
+},
+"items": [
+{
+"label": "All",
+"variant": "selected"
+},
+{
+"label": "Study 📚",
+"variant": "default"
+},
+{
+"label": "Personal 💜",
+"variant": "default"
+},
+{
+"label": "Ideas 💡",
+"variant": "default"
+},
+{
+"label": "Work 💼",
+"variant": "default"
+},
+{
+"label": "Journal ✍️",
+"variant": "default"
+}
+]
+},
+{
+"id": "category_chip",
+"type": "chip",
+"description": "Reusable pill category chip.",
+"size": {
+"minWidthPx": 44,
+"heightPx": 34
+},
+"padding": {
+"leftPx": 16,
+"rightPx": 16,
+"topPx": 8,
+"bottomPx": 8
+},
+"radiusPx": 17,
+"typography": "bodyMedium",
+"shadow": "softCard",
+"states": {
+"default": {
+"background": "#FFFFFF",
+"text": "#2F3145",
+"borderColor": "#E8E7F0",
+"borderWidthPx": 1,
+"opacity": 1
+},
+"hover": {
+"background": "#F7F6FB",
+"text": "#101126",
+"borderColor": "#DDD9F4"
+},
+"focus": {
+"background": "#FFFFFF",
+"text": "#101126",
+"borderColor": "#8E7CFF",
+"borderWidthPx": 2
+},
+"active": {
+"background": "#F1ECFF",
+"text": "#6F63FF",
+"borderColor": "#CFC8FF",
+"scale": 0.98
+},
+"selected": {
+"background": "#6F63FF",
+"text": "#FFFFFF",
+"borderColor": "#6F63FF",
+"shadow": {
+"x": 0,
+"y": 8,
+"blur": 18,
+"spread": 0,
+"color": "#6F63FF33"
+}
+},
+"disabled": {
+"background": "#F2F1F8",
+"text": "#B7B8C8",
+"borderColor": "#EFEFF4",
+"opacity": 0.55
+}
+},
+"variants": {
+"selected": {
+"background": "#6F63FF",
+"text": "#FFFFFF",
+"iconColor": "#FFFFFF"
+},
+"neutral": {
+"background": "#FFFFFF",
+"text": "#2F3145",
+"borderColor": "#E8E7F0"
+},
+"study": {
+"background": "#EAF5FF",
+"text": "#2F7BFF"
+},
+"personal": {
+"background": "#FFEAF4",
+"text": "#B73375"
+},
+"ideas": {
+"background": "#FFF4D8",
+"text": "#D99100"
+},
+"work": {
+"background": "#EAF4FF",
+"text": "#2B78D6"
+}
+}
+},
+{
+"id": "pinned_note_card",
+"type": "featureCard",
+"description": "Large featured pinned note card with gradient background, note metadata, and illustration.",
+"position": {
+"xPx": 24,
+"yPx": 260
+},
+"size": {
+"widthPx": 382,
+"heightPx": 136
+},
+"radiusPx": 22,
+"padding": {
+"leftPx": 16,
+"rightPx": 14,
+"topPx": 16,
+"bottomPx": 14
+},
+"background": "gradient.pinnedCard",
+"shadow": "floatingCard",
+"content": {
+"eyebrow": "PINNED NOTE",
+"title": "Dream Life Plan ✨",
+"description": "A clear plan for the life I want to build and the person I want to become.",
+"category": "Personal 💜",
+"date": "May 18, 2025"
+},
+"layout": {
+"direction": "row",
+"textAreaWidthPx": 220,
+"illustrationAreaWidthPx": 150
+},
+"typography": {
+"eyebrow": "labelMedium",
+"title": "titleLarge",
+"description": "bodyMedium",
+"meta": "bodySmall"
+},
+"colors": {
+"eyebrow": "#6F63FF",
+"title": "#101126",
+"description": "#4E5168",
+"meta": "#62657A",
+"overflowButtonBackground": "#FFFFFF99",
+"overflowIcon": "#101126"
+},
+"children": [
+"pinned_icon",
+"pinned_overflow_button",
+"pinned_category_pill",
+"pinned_illustration"
+],
+"states": {
+"default": {
+"opacity": 1,
+"scale": 1,
+"shadow": "floatingCard"
+},
+"hover": {
+"scale": 1.01,
+"shadow": {
+"x": 0,
+"y": 14,
+"blur": 40,
+"spread": 0,
+"color": "#1011261A"
+}
+},
+"focus": {
+"borderColor": "#8E7CFF",
+"borderWidthPx": 2
+},
+"active": {
+"scale": 0.985,
+"opacity": 0.98
+},
+"disabled": {
+"opacity": 0.5,
+"shadow": "none"
+}
+},
+"variants": {
+"featured": {
+"heightPx": 136,
+"hasIllustration": true,
+"hasEyebrow": true
+},
+"compact": {
+"heightPx": 96,
+"hasIllustration": false,
+"hasEyebrow": false
+},
+"imageHeavy": {
+"heightPx": 180,
+"hasIllustration": true,
+"imagePosition": "bottomRight"
+}
+}
+},
+{
+"id": "section_recent_notes_header",
+"type": "sectionHeader",
+"description": "Recent notes section title with view-all action.",
+"position": {
+"xPx": 24,
+"yPx": 420
+},
+"size": {
+"widthPx": 382,
+"heightPx": 28
+},
+"layout": {
+"direction": "row",
+"alignment": "center",
+"mainAxisAlignment": "space-between"
+},
+"content": {
+"title": "Recent Notes",
+"action": "View all"
+},
+"typography": {
+"title": "titleMedium",
+"action": "bodyMedium"
+},
+"colors": {
+"title": "#101126",
+"action": "#6F63FF",
+"chevron": "#6F63FF"
+},
+"states": {
+"default": {
+"actionOpacity": 1
+},
+"hover": {
+"actionColor": "#5547E8"
+},
+"focus": {
+"actionColor": "#5547E8",
+"outlineColor": "#8E7CFF"
+},
+"active": {
+"actionColor": "#4338CA",
+"scale": 0.98
+},
+"disabled": {
+"actionColor": "#B7B8C8",
+"actionOpacity": 0.5
+}
+}
+},
+{
+"id": "recent_notes_list",
+"type": "verticalList",
+"description": "Scrollable list of recent note preview cards.",
+"position": {
+"xPx": 24,
+"yPx": 462
+},
+"size": {
+"widthPx": 382,
+"heightPx": 248
+},
+"layout": {
+"direction": "column",
+"gapPx": 10
+},
+"items": [
+"note_card_math_formulas",
+"note_card_startup_ideas",
+"note_card_grateful_today",
+"note_card_client_meeting"
+]
+},
+{
+"id": "note_preview_card",
+"type": "card",
+"description": "Reusable note preview list item.",
+"size": {
+"widthPx": 382,
+"heightPx": 68
+},
+"radiusPx": 18,
+"padding": {
+"leftPx": 8,
+"rightPx": 14,
+"topPx": 8,
+"bottomPx": 8
+},
+"layout": {
+"direction": "row",
+"alignment": "center",
+"gapPx": 14
+},
+"colors": {
+"background": "#FFFFFF",
+"border": "#EDECF4",
+"title": "#101126",
+"description": "#4E5168",
+"meta": "#7C7F96",
+"icon": "#101126",
+"overflow": "#62657A"
+},
+"border": {
+"widthPx": 1,
+"color": "#EDECF4"
+},
+"shadow": "softCard",
+"typography": {
+"title": "titleSmall",
+"description": "bodySmall",
+"meta": "bodySmall",
+"tag": "bodySmall"
+},
+"children": [
+"thumbnail_icon_box",
+"note_text_group",
+"note_tag_row",
+"note_pin_button",
+"note_overflow_button"
+],
+"states": {
+"default": {
+"background": "#FFFFFF",
+"borderColor": "#EDECF4",
+"scale": 1,
+"opacity": 1
+},
+"hover": {
+"background": "#FBFAFF",
+"borderColor": "#DDD9F4",
+"scale": 1.005
+},
+"focus": {
+"background": "#FFFFFF",
+"borderColor": "#8E7CFF",
+"borderWidthPx": 2
+},
+"active": {
+"background": "#F8F6FF",
+"scale": 0.985
+},
+"disabled": {
+"background": "#F2F1F8",
+"opacity": 0.5,
+"shadow": "none"
+}
+},
+"variants": {
+"default": {
+"heightPx": 68,
+"hasThumbnail": true,
+"hasDescription": true,
+"hasMeta": true
+},
+"compact": {
+"heightPx": 56,
+"hasThumbnail": false,
+"hasDescription": false,
+"hasMeta": true
+},
+"pinned": {
+"heightPx": 68,
+"hasPinIcon": true,
+"pinIconColor": "#6F63FF"
+},
+"withAttachment": {
+"heightPx": 72,
+"hasAttachmentIcon": true
+},
+"grid": {
+"widthPx": 176,
+"heightPx": 156,
+"layout": "vertical"
+}
+}
+},
+{
+"id": "note_card_math_formulas",
+"type": "notePreviewCardInstance",
+"variant": "pinned",
+"content": {
+"title": "Math Formulas Quick Sheet",
+"description": "All the important formulas in one place.",
+"category": "Study 📚",
+"timestamp": "2h ago"
+},
+"thumbnail": {
+"background": "#DFF1FF",
+"icon": "notebook",
+"iconColor": "#14335E"
+}
+},
+{
+"id": "note_card_startup_ideas",
+"type": "notePreviewCardInstance",
+"variant": "default",
+"content": {
+"title": "Startup Ideas Dump",
+"description": "Random ideas that could turn into something big.",
+"category": "Ideas 💡",
+"timestamp": "Yesterday"
+},
+"thumbnail": {
+"background": "#FFF2C7",
+"icon": "lightbulb",
+"iconColor": "#1F1512"
+}
+},
+{
+"id": "note_card_grateful_today",
+"type": "notePreviewCardInstance",
+"variant": "default",
+"content": {
+"title": "Grateful For Today 💕",
+"description": "Little things that made my day a lot better.",
+"category": "Personal 💜",
+"timestamp": "2d ago"
+},
+"thumbnail": {
+"background": "#FFE1ED",
+"icon": "heart",
+"iconColor": "#1F1512"
+}
+},
+{
+"id": "note_card_client_meeting",
+"type": "notePreviewCardInstance",
+"variant": "withAttachment",
+"content": {
+"title": "Client Meeting Notes",
+"description": "Notes from the UX sync call with the design team.",
+"category": "Work 💼",
+"timestamp": "3d ago"
+},
+"thumbnail": {
+"background": "#EAE7FF",
+"icon": "laptop",
+"iconColor": "#1F1512"
+}
+},
+{
+"id": "thumbnail_icon_box",
+"type": "iconContainer",
+"description": "Rounded pastel square used inside note cards.",
+"size": {
+"widthPx": 56,
+"heightPx": 56
+},
+"radiusPx": 14,
+"padding": {
+"leftPx": 12,
+"rightPx": 12,
+"topPx": 12,
+"bottomPx": 12
+},
+"icon": {
+"sizePx": 30,
+"strokeWidthPx": 2
+},
+"variants": {
+"study": {
+"background": "#DFF1FF",
+"iconColor": "#14335E"
+},
+"ideas": {
+"background": "#FFF2C7",
+"iconColor": "#1F1512"
+},
+"personal": {
+"background": "#FFE1ED",
+"iconColor": "#1F1512"
+},
+"work": {
+"background": "#EAE7FF",
+"iconColor": "#1F1512"
+}
+}
+},
+{
+"id": "bottom_navigation",
+"type": "bottomNavigationBar",
+"description": "Floating rounded bottom navigation with center FAB cutout.",
+"position": {
+"xPx": 0,
+"yPx": 692
+},
+"size": {
+"widthPx": 430,
+"heightPx": 72
+},
+"radius": {
+"topLeftPx": 32,
+"topRightPx": 32,
+"bottomLeftPx": 0,
+"bottomRightPx": 0
+},
+"padding": {
+"leftPx": 24,
+"rightPx": 24,
+"topPx": 12,
+"bottomPx": 10
+},
+"colors": {
+"background": "#FFFFFFE6",
+"active": "#6F63FF",
+"inactive": "#5E6175",
+"labelActive": "#6F63FF",
+"labelInactive": "#4E5168"
+},
+"shadow": "bottomNav",
+"blur": {
+"enabled": true,
+"radiusPx": 18
+},
+"items": [
+{
+"id": "nav_home",
+"label": "Home",
+"icon": "home",
+"active": true
+},
+{
+"id": "nav_search",
+"label": "Search",
+"icon": "search",
+"active": false
+},
+{
+"id": "nav_create",
+"label": null,
+"icon": "plus",
+"active": false,
+"usesFab": true
+},
+{
+"id": "nav_folders",
+"label": "Folders",
+"icon": "folder",
+"active": false
+},
+{
+"id": "nav_profile",
+"label": "Profile",
+"icon": "user",
+"active": false
+}
+],
+"states": {
+"default": {
+"background": "#FFFFFFE6",
+"opacity": 1
+},
+"disabled": {
+"opacity": 0.6
+}
+}
+},
+{
+"id": "bottom_nav_item",
+"type": "navigationItem",
+"description": "Reusable bottom navigation item.",
+"size": {
+"widthPx": 64,
+"heightPx": 48
+},
+"layout": {
+"direction": "column",
+"alignment": "center",
+"gapPx": 4
+},
+"icon": {
+"sizePx": 24,
+"strokeWidthPx": 2
+},
+"typography": "navLabel",
+"states": {
+"default": {
+"iconColor": "#5E6175",
+"labelColor": "#4E5168",
+"background": "#00000000",
+"scale": 1
+},
+"hover": {
+"iconColor": "#6F63FF",
+"labelColor": "#6F63FF",
+"background": "#F1ECFF"
+},
+"focus": {
+"iconColor": "#6F63FF",
+"labelColor": "#6F63FF",
+"outlineColor": "#8E7CFF",
+"outlineWidthPx": 2
+},
+"active": {
+"iconColor": "#6F63FF",
+"labelColor": "#6F63FF",
+"scale": 0.95
+},
+"selected": {
+"iconColor": "#6F63FF",
+"labelColor": "#6F63FF",
+"indicatorBackground": "#F1ECFF"
+},
+"disabled": {
+"iconColor": "#B7B8C8",
+"labelColor": "#B7B8C8",
+"opacity": 0.5
+}
+},
+"variants": {
+"default": {
+"showLabel": true,
+"showIndicator": false
+},
+"selected": {
+"showLabel": true,
+"showIndicator": true,
+"indicatorSizePx": 36,
+"indicatorRadiusPx": 18
+},
+"iconOnly": {
+"showLabel": false,
+"showIndicator": false
+}
+}
+},
+{
+"id": "create_note_fab",
+"type": "floatingActionButton",
+"description": "Large centered gradient button for creating a new note.",
+"position": {
+"xPx": 185,
+"yPx": 674
+},
+"size": {
+"widthPx": 62,
+"heightPx": 62
+},
+"radiusPx": 31,
+"background": "gradient.primaryCta",
+"icon": {
+"name": "plus",
+"sizePx": 34,
+"strokeWidthPx": 2.4,
+"color": "#FFFFFF"
+},
+"border": {
+"widthPx": 6,
+"color": "#FFFFFF"
+},
+"shadow": "fabGlow",
+"states": {
+"default": {
+"scale": 1,
+"opacity": 1,
+"background": "gradient.primaryCta"
+},
+"hover": {
+"scale": 1.04,
+"shadow": {
+"x": 0,
+"y": 16,
+"blur": 36,
+"spread": 0,
+"color": "#6F63FF4D"
+}
+},
+"focus": {
+"scale": 1,
+"outlineColor": "#8E7CFF",
+"outlineWidthPx": 3,
+"outlineOffsetPx": 3
+},
+"active": {
+"scale": 0.94,
+"shadow": {
+"x": 0,
+"y": 8,
+"blur": 20,
+"spread": 0,
+"color": "#6F63FF33"
+}
+},
+"disabled": {
+"background": "#D9D9E6",
+"iconColor": "#FFFFFF",
+"opacity": 0.55,
+"shadow": "none"
+}
+},
+"variants": {
+"centerDocked": {
+"widthPx": 62,
+"heightPx": 62,
+"position": "bottomCenter",
+"hasWhiteBorder": true
+},
+"small": {
+"widthPx": 48,
+"heightPx": 48,
+"iconSizePx": 26
+},
+"extended": {
+"widthPx": 148,
+"heightPx": 52,
+"label": "New Note",
+"iconSizePx": 24
+}
+}
+}
+],
+"layoutRules": {
+"screenPadding": {
+"horizontalPx": 24,
+"topPx": 56,
+"bottomPx": 108
+},
+"header": {
+"heightPx": 58,
+"avatarSizePx": 52,
+"notificationButtonSizePx": 48,
+"gapPx": 14,
+"brandTextMaxLines": 1,
+"greetingMaxLines": 1
+},
+"searchBar": {
+"marginTopPx": 24,
+"heightPx": 54,
+"fullWidthMinusScreenPadding": true
+},
+"chipRow": {
+"marginTopPx": 16,
+"heightPx": 36,
+"horizontalScroll": true,
+"itemGapPx": 10,
+"leftInsetPx": 24,
+"rightInsetPx": 24
+},
+"pinnedCard": {
+"marginTopPx": 18,
+"heightPx": 136,
+"minHeightPx": 128,
+"maxHeightPx": 160,
+"imageAnchoring": "rightBottom",
+"textMaxWidthPx": 220
+},
+"recentNotes": {
+"marginTopPx": 24,
+"headerHeightPx": 28,
+"listMarginTopPx": 12,
+"cardHeightPx": 68,
+"cardGapPx": 10,
+"visibleCardCount": 3.5
+},
+"bottomNavigation": {
+"heightPx": 72,
+"position": "fixedBottom",
+"fabOverlapPx": 28,
+"contentShouldNotScrollBehind": true
+}
+},
+"interactiveStates": {
+"global": {
+"tapScale": 0.96,
+"transitionDurationMs": 180,
+"transitionCurve": "easeOutCubic",
+"focusRing": {
+"color": "#8E7CFF",
+"widthPx": 2,
+"offsetPx": 2
+},
+"disabledOpacity": 0.5
+},
+"cards": {
+"default": {
+"scale": 1,
+"shadow": "softCard"
+},
+"hover": {
+"scale": 1.01,
+"shadow": "floatingCard"
+},
+"focus": {
+"borderColor": "#8E7CFF",
+"borderWidthPx": 2
+},
+"active": {
+"scale": 0.985
+},
+"disabled": {
+"opacity": 0.5,
+"shadow": "none"
+}
+},
+"buttons": {
+"default": {
+"opacity": 1,
+"scale": 1
+},
+"hover": {
+"brightness": 1.03,
+"scale": 1.02
+},
+"focus": {
+"outlineColor": "#8E7CFF",
+"outlineWidthPx": 2
+},
+"active": {
+"scale": 0.94,
+"brightness": 0.96
+},
+"disabled": {
+"opacity": 0.5,
+"pointerEvents": "none"
+}
+},
+"inputs": {
+"default": {
+"borderColor": "#F0EFF6",
+"background": "#FFFFFF"
+},
+"hover": {
+"borderColor": "#E3E0F2",
+"background": "#FFFFFF"
+},
+"focus": {
+"borderColor": "#8E7CFF",
+"borderWidthPx": 2,
+"shadowColor": "#6F63FF1A"
+},
+"active": {
+"borderColor": "#6F63FF"
+},
+"disabled": {
+"background": "#F2F1F8",
+"borderColor": "#EFEFF4",
+"opacity": 0.6
+}
+},
+"chips": {
+"default": {
+"background": "#FFFFFF",
+"text": "#2F3145",
+"borderColor": "#E8E7F0"
+},
+"hover": {
+"background": "#F7F6FB",
+"text": "#101126"
+},
+"focus": {
+"borderColor": "#8E7CFF",
+"borderWidthPx": 2
+},
+"active": {
+"scale": 0.96,
+"background": "#F1ECFF"
+},
+"selected": {
+"background": "#6F63FF",
+"text": "#FFFFFF"
+},
+"disabled": {
+"background": "#F2F1F8",
+"text": "#B7B8C8",
+"opacity": 0.55
+}
+}
+},
+"componentVariants": {
+"noteCard": [
+"default",
+"pinned",
+"withAttachment",
+"compact",
+"grid"
+],
+"chip": [
+"neutral",
+"selected",
+"study",
+"personal",
+"ideas",
+"work",
+"journal"
+],
+"iconButton": [
+"circle",
+"softSquare",
+"ghost",
+"filled",
+"notificationWithBadge"
+],
+"searchBar": [
+"default",
+"compact",
+"expanded",
+"withFilter",
+"withoutFilter"
+],
+"bottomNavItem": [
+"default",
+"selected",
+"iconOnly"
+],
+"floatingActionButton": [
+"centerDocked",
+"small",
+"extended"
+],
+"premiumCard": [
+"plainWhite",
+"softGradient",
+"imageFeature",
+"glassOverlay"
+]
+},
+"accessibility": {
+"minimumTapTargetPx": 44,
+"textContrast": {
+"primaryOnSurface": "AAA",
+"secondaryOnSurface": "AA",
+"whiteOnPrimary": "AA"
+},
+"semanticLabels": {
+"avatar": "Open profile",
+"notificationButton": "Open notifications",
+"searchBar": "Search your notes",
+"filterButton": "Open note filters",
+"categoryChip": "Filter notes by category",
+"pinnedNoteCard": "Open pinned note Dream Life Plan",
+"viewAllRecentNotes": "View all recent notes",
+"createNoteFab": "Create new note",
+"bottomNavHome": "Home tab",
+"bottomNavSearch": "Search tab",
+"bottomNavFolders": "Folders tab",
+"bottomNavProfile": "Profile tab"
+},
+"reducedMotion": {
+"disableScaleAnimations": true,
+"transitionDurationMs": 0,
+"replaceGradientMotionWithStatic": true
+}
+},
+"implementationHints": {
+"recommendedFlutterWidgets": {
+"screen": "Scaffold",
+"scroll": "CustomScrollView or SingleChildScrollView",
+"header": "Row",
+"searchBar": "TextField wrapped in Container",
+"chips": "ListView.separated horizontal",
+"pinnedCard": "Container with BoxDecoration gradient and Stack",
+"recentList": "ListView.separated shrinkWrap",
+"bottomNavigation": "Stack with Positioned bottom bar and center FAB",
+"cards": "InkWell or GestureDetector with AnimatedScale"
+},
+"stateManagement": {
+"selectedCategory": "String or enum",
+"recentNotes": "List<NotePreview>",
+"pinnedNote": "NotePreview?",
+"activeBottomTab": "BottomTab.home",
+"searchQuery": "String"
+},
+"responsiveBehavior": {
+"smallWidthUnder360Px": {
+"screenHorizontalPaddingPx": 18,
+"brandLogoFontSizePx": 26,
+"pinnedCardTextAreaWidthPx": 190,
+"noteCardThumbnailSizePx": 50
+},
+"normalWidth360To430Px": {
+"screenHorizontalPaddingPx": 24,
+"brandLogoFontSizePx": 30,
+"noteCardThumbnailSizePx": 56
+},
+"largeWidthOver430Px": {
+"maxContentWidthPx": 430,
+"centerContent": true,
+"screenHorizontalPaddingPx": 24
+}
+}
+}
+}

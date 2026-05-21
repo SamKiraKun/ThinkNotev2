@@ -1,0 +1,2035 @@
+{
+"specVersion": "1.0.0",
+"screen": {
+"name": "SignInScreen",
+"route": "/auth/sign-in",
+"platform": "mobile",
+"orientation": "portrait",
+"sourceImage": {
+"widthPx": 941,
+"heightPx": 1672,
+"aspectRatio": "9:16"
+},
+"referenceCanvas": {
+"widthPx": 430,
+"heightPx": 764,
+"unit": "logical_px",
+"safeArea": {
+"topPx": 24,
+"bottomPx": 24,
+"leftPx": 0,
+"rightPx": 0
+}
+},
+"visualStyle": {
+"theme": "light",
+"mood": [
+"premium",
+"minimal",
+"Gen Z",
+"soft pastel",
+"smooth",
+"dreamy",
+"friendly authentication",
+"glassmorphism-light"
+],
+"density": "comfortable",
+"cornerStyle": "large-rounded",
+"shadowStyle": "soft-elevated",
+"illustrationStyle": "soft 3D pastel"
+}
+},
+"colorTokens": {
+"background": {
+"app": "#F7F6FB",
+"screen": "#FFFFFF",
+"screenSoft": "#FBFAFF",
+"surface": "#FFFFFF",
+"surfaceSoft": "#FBFAFF",
+"surfaceMuted": "#F4F2FA",
+"surfaceLavender": "#F1ECFF",
+"glassWhite": "#FFFFFFE6",
+"cloudSoft": "#F0ECFF"
+},
+"text": {
+"primary": "#101126",
+"secondary": "#5D6077",
+"tertiary": "#7C7F96",
+"muted": "#9DA0B5",
+"placeholder": "#A2A5B8",
+"inverse": "#FFFFFF",
+"link": "#6F63FF",
+"accent": "#6F63FF",
+"danger": "#EF4444"
+},
+"brand": {
+"primary": "#6F63FF",
+"primaryDark": "#5547E8",
+"primaryLight": "#9A8CFF",
+"secondaryBlue": "#4F8DFF",
+"lavender": "#B69BFF",
+"purple": "#8E5CFF",
+"pink": "#F3A7D8",
+"yellow": "#FFD76B"
+},
+"gradients": {
+"primaryButton": {
+"type": "linear",
+"angleDeg": 135,
+"stops": [
+{
+"color": "#4F8DFF",
+"position": 0
+},
+{
+"color": "#6F63FF",
+"position": 0.52
+},
+{
+"color": "#9A5CFF",
+"position": 1
+}
+]
+},
+"appIcon": {
+"type": "linear",
+"angleDeg": 145,
+"stops": [
+{
+"color": "#E6D7FF",
+"position": 0
+},
+{
+"color": "#BBA0FF",
+"position": 0.55
+},
+{
+"color": "#8D75EF",
+"position": 1
+}
+]
+},
+"bottomMountain": {
+"type": "linear",
+"angleDeg": 145,
+"stops": [
+{
+"color": "#F6D9FF",
+"position": 0
+},
+{
+"color": "#BBA0FF",
+"position": 0.48
+},
+{
+"color": "#7C6DF0",
+"position": 1
+}
+]
+},
+"createAccountPanel": {
+"type": "linear",
+"angleDeg": 135,
+"stops": [
+{
+"color": "#FFFFFF",
+"position": 0
+},
+{
+"color": "#F6F2FF",
+"position": 0.56
+},
+{
+"color": "#EEF3FF",
+"position": 1
+}
+]
+}
+},
+"form": {
+"cardBackground": "#FFFFFF",
+"fieldIconBackground": "#F4F2FF",
+"fieldIcon": "#737793",
+"fieldText": "#101126",
+"fieldPlaceholder": "#9DA0B5",
+"divider": "#E9E8F0",
+"checkboxActive": "#6F63FF",
+"checkboxIcon": "#FFFFFF"
+},
+"button": {
+"primaryBackground": "#6F63FF",
+"primaryText": "#FFFFFF",
+"socialBackground": "#FFFFFF",
+"socialText": "#5D6077",
+"socialBorder": "#F0EFF6",
+"disabledBackground": "#E7E6EF",
+"disabledText": "#A9ABBA"
+},
+"socialBrands": {
+"googleBlue": "#4285F4",
+"googleRed": "#EA4335",
+"googleYellow": "#FBBC05",
+"googleGreen": "#34A853",
+"apple": "#000000",
+"microsoftRed": "#F25022",
+"microsoftGreen": "#7FBA00",
+"microsoftBlue": "#00A4EF",
+"microsoftYellow": "#FFB900"
+},
+"decorative": {
+"sparklePurple": "#7D74FF",
+"dotLavender": "#B9AEFF",
+"cloud": "#EEE9FF",
+"mountainPurple": "#A88BFF",
+"flagPurple": "#8E5CFF",
+"notificationDot": "#6F63FF"
+},
+"border": {
+"default": "#E8E7F0",
+"soft": "#F0EFF6",
+"inputDivider": "#E9E8F0",
+"focus": "#8E7CFF",
+"disabled": "#EFEFF4"
+},
+"shadow": {
+"soft": "#10112614",
+"medium": "#1011261F",
+"purpleGlow": "#6F63FF33",
+"formGlow": "#10112612",
+"illustrationGlow": "#9A8CFF2E"
+},
+"system": {
+"statusBarIcon": "#000000",
+"success": "#22C55E",
+"warning": "#F59E0B",
+"error": "#EF4444"
+}
+},
+"typography": {
+"fontFamily": {
+"primary": "Inter",
+"fallback": [
+"SF Pro Display",
+"SF Pro Text",
+"Roboto",
+"system-ui",
+"sans-serif"
+]
+},
+"scale": {
+"statusTime": {
+"fontSizePx": 14,
+"fontWeight": 700,
+"lineHeightPx": 18,
+"letterSpacingPx": -0.2
+},
+"headline": {
+"fontSizePx": 28,
+"fontWeight": 800,
+"lineHeightPx": 34,
+"letterSpacingPx": -0.8
+},
+"subtitle": {
+"fontSizePx": 16,
+"fontWeight": 500,
+"lineHeightPx": 24,
+"letterSpacingPx": -0.1
+},
+"subtitleAccent": {
+"fontSizePx": 16,
+"fontWeight": 600,
+"lineHeightPx": 24,
+"letterSpacingPx": -0.1
+},
+"inputText": {
+"fontSizePx": 16,
+"fontWeight": 500,
+"lineHeightPx": 22,
+"letterSpacingPx": -0.1
+},
+"inputPlaceholder": {
+"fontSizePx": 16,
+"fontWeight": 500,
+"lineHeightPx": 22,
+"letterSpacingPx": -0.1
+},
+"bodyMedium": {
+"fontSizePx": 14,
+"fontWeight": 500,
+"lineHeightPx": 20,
+"letterSpacingPx": 0
+},
+"linkMedium": {
+"fontSizePx": 14,
+"fontWeight": 600,
+"lineHeightPx": 20,
+"letterSpacingPx": 0
+},
+"buttonLabel": {
+"fontSizePx": 16,
+"fontWeight": 700,
+"lineHeightPx": 22,
+"letterSpacingPx": -0.1
+},
+"socialButtonLabel": {
+"fontSizePx": 14,
+"fontWeight": 500,
+"lineHeightPx": 20,
+"letterSpacingPx": 0
+},
+"dividerLabel": {
+"fontSizePx": 13,
+"fontWeight": 500,
+"lineHeightPx": 18,
+"letterSpacingPx": 0
+},
+"createAccountTitle": {
+"fontSizePx": 14,
+"fontWeight": 600,
+"lineHeightPx": 20,
+"letterSpacingPx": 0
+},
+"createAccountLink": {
+"fontSizePx": 15,
+"fontWeight": 700,
+"lineHeightPx": 22,
+"letterSpacingPx": -0.1
+}
+},
+"usage": {
+"statusTime": "statusTime",
+"title": "headline",
+"subtitle": "subtitle",
+"subtitleBrand": "subtitleAccent",
+"emailPlaceholder": "inputPlaceholder",
+"passwordPlaceholder": "inputPlaceholder",
+"rememberMe": "bodyMedium",
+"forgotPassword": "linkMedium",
+"primaryButton": "buttonLabel",
+"divider": "dividerLabel",
+"socialButton": "socialButtonLabel",
+"createAccountTitle": "createAccountTitle",
+"createAccountLink": "createAccountLink"
+}
+},
+"spacing": {
+"scale": {
+"none": 0,
+"xxs": 2,
+"xs": 4,
+"sm": 8,
+"md": 12,
+"lg": 16,
+"xl": 20,
+"xxl": 24,
+"xxxl": 32,
+"xxxxl": 40,
+"huge": 56
+},
+"screen": {
+"horizontalPaddingPx": 24,
+"topPaddingPx": 26,
+"bottomPaddingPx": 24,
+"contentMaxWidthPx": 430,
+"contentHorizontalInsetPx": 24
+},
+"layout": {
+"safeAreaToTopActionsPx": 38,
+"topActionsToAppIconPx": 42,
+"appIconToHeadlinePx": 28,
+"headlineToSubtitlePx": 10,
+"subtitleToFormCardPx": 36,
+"formCardToPrimaryButtonPx": 18,
+"primaryButtonToDividerPx": 26,
+"dividerToSocialButtonsPx": 16,
+"socialButtonsToCreateAccountPx": 26,
+"createAccountToBottomIllustrationPx": 18
+},
+"components": {
+"topActionButtonSizePx": 48,
+"topActionButtonIconSizePx": 22,
+"appIconCardSizePx": 92,
+"appIconInnerSizePx": 54,
+"formCardHorizontalPaddingPx": 16,
+"formCardVerticalPaddingPx": 16,
+"inputRowHeightPx": 54,
+"inputIconBoxSizePx": 30,
+"inputIconSizePx": 18,
+"inputDividerHorizontalInsetPx": 0,
+"rememberRowHeightPx": 34,
+"checkboxSizePx": 22,
+"primaryButtonHeightPx": 54,
+"socialButtonHeightPx": 66,
+"socialButtonGapPx": 10,
+"createAccountPanelHeightPx": 68,
+"dividerLineGapPx": 14
+}
+},
+"radius": {
+"xsPx": 8,
+"smPx": 12,
+"mdPx": 16,
+"lgPx": 20,
+"xlPx": 24,
+"xxlPx": 28,
+"buttonPx": 16,
+"formCardPx": 22,
+"socialButtonPx": 18,
+"topActionPx": 24,
+"appIconCardPx": 24,
+"inputIconBoxPx": 10,
+"createAccountPanelPx": 24,
+"pillPx": 999,
+"circle": "50%",
+"phoneFramePx": 34
+},
+"shadows": {
+"none": {
+"x": 0,
+"y": 0,
+"blur": 0,
+"spread": 0,
+"color": "#00000000"
+},
+"softCard": {
+"x": 0,
+"y": 8,
+"blur": 24,
+"spread": 0,
+"color": "#10112614"
+},
+"formCard": {
+"x": 0,
+"y": 14,
+"blur": 36,
+"spread": 0,
+"color": "#10112612"
+},
+"buttonGlow": {
+"x": 0,
+"y": 12,
+"blur": 28,
+"spread": 0,
+"color": "#6F63FF33"
+},
+"socialButton": {
+"x": 0,
+"y": 10,
+"blur": 26,
+"spread": 0,
+"color": "#10112610"
+},
+"illustrationGlow": {
+"x": 0,
+"y": 18,
+"blur": 44,
+"spread": 0,
+"color": "#9A8CFF2E"
+},
+"phoneFrame": {
+"x": 0,
+"y": 10,
+"blur": 34,
+"spread": 0,
+"color": "#10112612"
+}
+},
+"componentInventory": [
+{
+"id": "status_bar",
+"type": "systemStatusBar",
+"description": "iOS-style status bar with time, signal, wifi, and battery indicators.",
+"position": {
+"xPx": 24,
+"yPx": 14
+},
+"size": {
+"widthPx": 382,
+"heightPx": 24
+},
+"typography": {
+"time": "statusTime"
+},
+"colors": {
+"time": "#000000",
+"icons": "#000000"
+},
+"states": {
+"default": {
+"opacity": 1
+}
+},
+"variants": {
+"light": {
+"timeColor": "#000000",
+"iconColor": "#000000"
+},
+"dark": {
+"timeColor": "#FFFFFF",
+"iconColor": "#FFFFFF"
+}
+}
+},
+{
+"id": "screen_container",
+"type": "container",
+"description": "Primary sign-in screen surface.",
+"position": {
+"xPx": 0,
+"yPx": 0
+},
+"size": {
+"widthPx": 430,
+"heightPx": 764
+},
+"padding": {
+"leftPx": 24,
+"rightPx": 24,
+"topPx": 26,
+"bottomPx": 24
+},
+"colors": {
+"background": "#FFFFFF"
+},
+"radiusPx": 34,
+"shadow": "phoneFrame",
+"variants": {
+"standaloneMobile": {
+"radiusPx": 0,
+"shadow": "none"
+},
+"presentationFrame": {
+"radiusPx": 34,
+"shadow": "phoneFrame"
+}
+}
+},
+{
+"id": "top_action_bar",
+"type": "actionBar",
+"description": "Top actions with back button on the left and notification button on the right.",
+"position": {
+"xPx": 24,
+"yPx": 62
+},
+"size": {
+"widthPx": 382,
+"heightPx": 48
+},
+"layout": {
+"direction": "row",
+"alignment": "center",
+"mainAxisAlignment": "space-between"
+},
+"children": [
+"back_button",
+"notification_button"
+]
+},
+{
+"id": "back_button",
+"type": "iconButton",
+"description": "Circular back navigation button.",
+"size": {
+"widthPx": 48,
+"heightPx": 48
+},
+"radiusPx": 24,
+"colors": {
+"background": "#FFFFFF",
+"icon": "#101126"
+},
+"icon": {
+"name": "chevron_left",
+"sizePx": 22,
+"strokeWidthPx": 2.2
+},
+"shadow": "softCard",
+"states": {
+"default": {
+"background": "#FFFFFF",
+"icon": "#101126",
+"opacity": 1,
+"scale": 1
+},
+"hover": {
+"background": "#FBFAFF",
+"icon": "#6F63FF",
+"scale": 1.02
+},
+"focus": {
+"background": "#FFFFFF",
+"icon": "#6F63FF",
+"borderColor": "#8E7CFF",
+"borderWidthPx": 2
+},
+"active": {
+"background": "#F1ECFF",
+"icon": "#6F63FF",
+"scale": 0.94
+},
+"disabled": {
+"background": "#F4F2FA",
+"icon": "#A9ABBA",
+"opacity": 0.55
+}
+},
+"variants": {
+"circle": {
+"radiusPx": 24,
+"hasShadow": true
+},
+"ghost": {
+"background": "#00000000",
+"hasShadow": false
+}
+}
+},
+{
+"id": "notification_button",
+"type": "iconButton",
+"description": "Circular notification button with unread dot.",
+"size": {
+"widthPx": 48,
+"heightPx": 48
+},
+"radiusPx": 24,
+"colors": {
+"background": "#FFFFFF",
+"icon": "#101126",
+"badge": "#6F63FF"
+},
+"icon": {
+"name": "bell",
+"sizePx": 22,
+"strokeWidthPx": 2
+},
+"badge": {
+"enabled": true,
+"sizePx": 7,
+"position": {
+"topPx": 8,
+"rightPx": 10
+}
+},
+"shadow": "softCard",
+"states": {
+"default": {
+"background": "#FFFFFF",
+"icon": "#101126",
+"opacity": 1,
+"scale": 1
+},
+"hover": {
+"background": "#FBFAFF",
+"icon": "#6F63FF",
+"scale": 1.02
+},
+"focus": {
+"background": "#FFFFFF",
+"icon": "#6F63FF",
+"borderColor": "#8E7CFF",
+"borderWidthPx": 2
+},
+"active": {
+"background": "#F1ECFF",
+"icon": "#6F63FF",
+"scale": 0.94
+},
+"disabled": {
+"background": "#F4F2FA",
+"icon": "#A9ABBA",
+"opacity": 0.55
+}
+},
+"variants": {
+"withBadge": {
+"showBadge": true
+},
+"withoutBadge": {
+"showBadge": false
+}
+}
+},
+{
+"id": "decorative_background_elements",
+"type": "decorativeLayer",
+"description": "Soft floating sparkle, lavender dot, and cloud elements behind the auth content.",
+"position": {
+"xPx": 0,
+"yPx": 100
+},
+"size": {
+"widthPx": 430,
+"heightPx": 180
+},
+"items": [
+{
+"id": "sparkle_left",
+"type": "sparkle",
+"position": {
+"xPx": 179,
+"yPx": 108
+},
+"sizePx": 18,
+"color": "#7D74FF"
+},
+{
+"id": "dot_left",
+"type": "circle",
+"position": {
+"xPx": 155,
+"yPx": 146
+},
+"sizePx": 6,
+"color": "#B9AEFF"
+},
+{
+"id": "cloud_right",
+"type": "cloud",
+"position": {
+"xPx": 324,
+"yPx": 165
+},
+"size": {
+"widthPx": 86,
+"heightPx": 34
+},
+"color": "#EEE9FF",
+"opacity": 0.72
+}
+],
+"accessibility": {
+"excludeFromSemantics": true
+}
+},
+{
+"id": "app_icon_card",
+"type": "brandIcon",
+"description": "Centered white rounded app icon card containing a lavender notebook glyph.",
+"position": {
+"xPx": 169,
+"yPx": 126
+},
+"size": {
+"widthPx": 92,
+"heightPx": 92
+},
+"radiusPx": 24,
+"colors": {
+"background": "#FFFFFF",
+"iconGradientStart": "#E6D7FF",
+"iconGradientEnd": "#8D75EF",
+"iconStroke": "#6F63FF"
+},
+"shadow": "softCard",
+"icon": {
+"name": "notebook",
+"sizePx": 54,
+"strokeWidthPx": 2.6
+},
+"states": {
+"default": {
+"opacity": 1,
+"scale": 1
+},
+"hover": {
+"scale": 1.01
+},
+"active": {
+"scale": 0.98
+},
+"disabled": {
+"opacity": 0.5
+}
+},
+"variants": {
+"large": {
+"widthPx": 92,
+"heightPx": 92,
+"iconSizePx": 54
+},
+"compact": {
+"widthPx": 76,
+"heightPx": 76,
+"iconSizePx": 44
+},
+"header": {
+"widthPx": 44,
+"heightPx": 44,
+"iconSizePx": 28
+}
+}
+},
+{
+"id": "welcome_text_group",
+"type": "textGroup",
+"description": "Welcome heading and sign-in subtitle.",
+"position": {
+"xPx": 24,
+"yPx": 244
+},
+"size": {
+"widthPx": 382,
+"heightPx": 74
+},
+"layout": {
+"direction": "column",
+"alignment": "center",
+"gapPx": 10
+},
+"content": {
+"title": "Welcome back 👋",
+"subtitlePrefix": "Sign in to continue to ",
+"subtitleBrand": "Notea",
+"subtitleSuffix": "✨"
+},
+"typography": {
+"title": "headline",
+"subtitle": "subtitle",
+"subtitleBrand": "subtitleAccent"
+},
+"colors": {
+"title": "#101126",
+"subtitle": "#5D6077",
+"subtitleBrand": "#6F63FF"
+},
+"states": {
+"default": {
+"opacity": 1
+},
+"disabled": {
+"opacity": 0.5
+}
+},
+"variants": {
+"centered": {
+"alignment": "center"
+},
+"compact": {
+"titleFontSizePx": 24,
+"subtitleFontSizePx": 14
+}
+}
+},
+{
+"id": "sign_in_form_card",
+"type": "formCard",
+"description": "Rounded white sign-in form card with email, password, remember me, and forgot password.",
+"position": {
+"xPx": 24,
+"yPx": 346
+},
+"size": {
+"widthPx": 382,
+"heightPx": 158
+},
+"radiusPx": 22,
+"padding": {
+"leftPx": 16,
+"rightPx": 16,
+"topPx": 16,
+"bottomPx": 14
+},
+"colors": {
+"background": "#FFFFFF",
+"border": "#F0EFF6"
+},
+"border": {
+"widthPx": 1,
+"color": "#F0EFF6"
+},
+"shadow": "formCard",
+"children": [
+"email_input_row",
+"password_input_row",
+"remember_forgot_row"
+],
+"states": {
+"default": {
+"background": "#FFFFFF",
+"borderColor": "#F0EFF6",
+"opacity": 1
+},
+"focusWithin": {
+"borderColor": "#DCD8F2",
+"shadow": {
+"x": 0,
+"y": 16,
+"blur": 40,
+"spread": 0,
+"color": "#10112614"
+}
+},
+"disabled": {
+"background": "#F4F2FA",
+"opacity": 0.6,
+"shadow": "none"
+}
+},
+"variants": {
+"default": {
+"heightPx": 158,
+"showRememberRow": true
+},
+"compact": {
+"heightPx": 124,
+"showRememberRow": false
+},
+"withError": {
+"borderColor": "#EF4444",
+"showErrorText": true
+}
+}
+},
+{
+"id": "email_input_row",
+"type": "textInput",
+"description": "Email address input row.",
+"size": {
+"widthPx": 350,
+"heightPx": 54
+},
+"layout": {
+"direction": "row",
+"alignment": "center",
+"gapPx": 12
+},
+"content": {
+"placeholder": "Email address"
+},
+"iconBox": {
+"sizePx": 30,
+"radiusPx": 10,
+"background": "#F4F2FF",
+"icon": {
+"name": "mail",
+"sizePx": 18,
+"color": "#737793",
+"strokeWidthPx": 2
+}
+},
+"typography": {
+"input": "inputText",
+"placeholder": "inputPlaceholder"
+},
+"colors": {
+"text": "#101126",
+"placeholder": "#9DA0B5",
+"cursor": "#6F63FF",
+"divider": "#E9E8F0"
+},
+"keyboardType": "emailAddress",
+"states": {
+"default": {
+"placeholderColor": "#9DA0B5",
+"iconColor": "#737793",
+"dividerColor": "#E9E8F0"
+},
+"hover": {
+"placeholderColor": "#7C7F96",
+"iconColor": "#6F63FF"
+},
+"focus": {
+"placeholderColor": "#7C7F96",
+"iconColor": "#6F63FF",
+"dividerColor": "#8E7CFF"
+},
+"active": {
+"iconColor": "#6F63FF",
+"dividerColor": "#6F63FF"
+},
+"error": {
+"iconColor": "#EF4444",
+"dividerColor": "#EF4444"
+},
+"disabled": {
+"placeholderColor": "#A9ABBA",
+"iconColor": "#A9ABBA",
+"dividerColor": "#EFEFF4",
+"opacity": 0.55
+}
+},
+"variants": {
+"email": {
+"keyboardType": "emailAddress",
+"leadingIcon": "mail"
+},
+"compact": {
+"heightPx": 48,
+"iconBoxSizePx": 28
+}
+}
+},
+{
+"id": "password_input_row",
+"type": "passwordInput",
+"description": "Password input row with visibility toggle.",
+"size": {
+"widthPx": 350,
+"heightPx": 54
+},
+"layout": {
+"direction": "row",
+"alignment": "center",
+"gapPx": 12
+},
+"content": {
+"placeholder": "Password"
+},
+"iconBox": {
+"sizePx": 30,
+"radiusPx": 10,
+"background": "#F4F2FF",
+"icon": {
+"name": "lock",
+"sizePx": 18,
+"color": "#737793",
+"strokeWidthPx": 2
+}
+},
+"trailingIcon": {
+"name": "eye",
+"sizePx": 22,
+"color": "#737793",
+"tapTargetPx": 44
+},
+"typography": {
+"input": "inputText",
+"placeholder": "inputPlaceholder"
+},
+"colors": {
+"text": "#101126",
+"placeholder": "#9DA0B5",
+"cursor": "#6F63FF",
+"divider": "#E9E8F0"
+},
+"keyboardType": "visiblePassword",
+"obscureText": true,
+"states": {
+"default": {
+"placeholderColor": "#9DA0B5",
+"iconColor": "#737793",
+"trailingIconColor": "#737793",
+"dividerColor": "#E9E8F0"
+},
+"hover": {
+"placeholderColor": "#7C7F96",
+"iconColor": "#6F63FF",
+"trailingIconColor": "#6F63FF"
+},
+"focus": {
+"placeholderColor": "#7C7F96",
+"iconColor": "#6F63FF",
+"trailingIconColor": "#6F63FF",
+"dividerColor": "#8E7CFF"
+},
+"active": {
+"iconColor": "#6F63FF",
+"dividerColor": "#6F63FF"
+},
+"error": {
+"iconColor": "#EF4444",
+"dividerColor": "#EF4444"
+},
+"disabled": {
+"placeholderColor": "#A9ABBA",
+"iconColor": "#A9ABBA",
+"trailingIconColor": "#A9ABBA",
+"dividerColor": "#EFEFF4",
+"opacity": 0.55
+}
+},
+"variants": {
+"hidden": {
+"obscureText": true,
+"trailingIcon": "eye"
+},
+"visible": {
+"obscureText": false,
+"trailingIcon": "eye_off"
+},
+"compact": {
+"heightPx": 48,
+"iconBoxSizePx": 28
+}
+}
+},
+{
+"id": "remember_forgot_row",
+"type": "formUtilityRow",
+"description": "Remember me checkbox and forgot password link.",
+"size": {
+"widthPx": 350,
+"heightPx": 34
+},
+"layout": {
+"direction": "row",
+"alignment": "center",
+"mainAxisAlignment": "space-between"
+},
+"children": [
+"remember_me_checkbox",
+"forgot_password_link"
+],
+"colors": {
+"text": "#5D6077",
+"link": "#6F63FF"
+}
+},
+{
+"id": "remember_me_checkbox",
+"type": "checkbox",
+"description": "Selected remember me checkbox with label.",
+"size": {
+"widthPx": 128,
+"heightPx": 34
+},
+"checkbox": {
+"sizePx": 22,
+"radiusPx": 11,
+"icon": "check",
+"iconSizePx": 14
+},
+"content": {
+"label": "Remember me"
+},
+"typography": "bodyMedium",
+"colors": {
+"checkedBackground": "#6F63FF",
+"checkedIcon": "#FFFFFF",
+"uncheckedBackground": "#FFFFFF",
+"uncheckedBorder": "#DCD8F2",
+"label": "#5D6077"
+},
+"states": {
+"default": {
+"checked": true,
+"opacity": 1
+},
+"hover": {
+"checkedBackground": "#5547E8",
+"label": "#101126"
+},
+"focus": {
+"borderColor": "#8E7CFF",
+"borderWidthPx": 2
+},
+"active": {
+"scale": 0.96
+},
+"disabled": {
+"checkedBackground": "#E7E6EF",
+"checkedIcon": "#A9ABBA",
+"label": "#A9ABBA",
+"opacity": 0.55
+}
+},
+"variants": {
+"checked": {
+"checked": true
+},
+"unchecked": {
+"checked": false
+}
+}
+},
+{
+"id": "forgot_password_link",
+"type": "textButton",
+"description": "Forgot password action link.",
+"size": {
+"widthPx": 128,
+"heightPx": 34
+},
+"content": {
+"label": "Forgot password?"
+},
+"typography": "linkMedium",
+"colors": {
+"text": "#6F63FF"
+},
+"states": {
+"default": {
+"text": "#6F63FF",
+"decoration": "none",
+"opacity": 1
+},
+"hover": {
+"text": "#5547E8",
+"decoration": "underline"
+},
+"focus": {
+"text": "#5547E8",
+"outlineColor": "#8E7CFF",
+"outlineWidthPx": 2
+},
+"active": {
+"text": "#4338CA",
+"scale": 0.98
+},
+"disabled": {
+"text": "#A9ABBA",
+"opacity": 0.55
+}
+},
+"variants": {
+"inline": {
+"background": "#00000000"
+},
+"pill": {
+"background": "#F1ECFF",
+"radiusPx": 999
+}
+}
+},
+{
+"id": "primary_sign_in_button",
+"type": "button",
+"description": "Primary gradient sign-in action.",
+"position": {
+"xPx": 24,
+"yPx": 522
+},
+"size": {
+"widthPx": 382,
+"heightPx": 54
+},
+"radiusPx": 16,
+"padding": {
+"leftPx": 20,
+"rightPx": 20,
+"topPx": 16,
+"bottomPx": 16
+},
+"content": {
+"label": "Sign In"
+},
+"typography": "buttonLabel",
+"background": "gradients.primaryButton",
+"colors": {
+"text": "#FFFFFF",
+"icon": "#FFFFFF"
+},
+"shadow": "buttonGlow",
+"states": {
+"default": {
+"background": "gradients.primaryButton",
+"text": "#FFFFFF",
+"opacity": 1,
+"scale": 1
+},
+"hover": {
+"background": "gradients.primaryButton",
+"scale": 1.02,
+"shadow": {
+"x": 0,
+"y": 14,
+"blur": 34,
+"spread": 0,
+"color": "#6F63FF40"
+}
+},
+"focus": {
+"outlineColor": "#8E7CFF",
+"outlineWidthPx": 3,
+"outlineOffsetPx": 3
+},
+"active": {
+"scale": 0.96,
+"shadow": {
+"x": 0,
+"y": 8,
+"blur": 20,
+"spread": 0,
+"color": "#6F63FF2E"
+}
+},
+"loading": {
+"background": "gradients.primaryButton",
+"showSpinner": true,
+"spinnerColor": "#FFFFFF",
+"opacity": 0.85,
+"pointerEvents": "none"
+},
+"disabled": {
+"background": "#E7E6EF",
+"text": "#A9ABBA",
+"opacity": 0.65,
+"shadow": "none",
+"pointerEvents": "none"
+}
+},
+"variants": {
+"primaryGradient": {
+"background": "gradients.primaryButton",
+"textColor": "#FFFFFF"
+},
+"primarySolid": {
+"background": "#6F63FF",
+"textColor": "#FFFFFF"
+},
+"compact": {
+"heightPx": 48,
+"radiusPx": 14
+}
+}
+},
+{
+"id": "social_divider",
+"type": "dividerWithLabel",
+"description": "Horizontal divider with centered label.",
+"position": {
+"xPx": 28,
+"yPx": 608
+},
+"size": {
+"widthPx": 374,
+"heightPx": 18
+},
+"content": {
+"label": "or continue with"
+},
+"typography": "dividerLabel",
+"colors": {
+"text": "#5D6077",
+"line": "#E9E8F0"
+},
+"layout": {
+"direction": "row",
+"alignment": "center",
+"lineGapPx": 14
+},
+"states": {
+"default": {
+"opacity": 1
+},
+"disabled": {
+"opacity": 0.45
+}
+},
+"variants": {
+"centered": {
+"labelPosition": "center"
+},
+"hidden": {
+"visible": false
+}
+}
+},
+{
+"id": "social_auth_row",
+"type": "socialAuthRow",
+"description": "Three social authentication buttons.",
+"position": {
+"xPx": 24,
+"yPx": 648
+},
+"size": {
+"widthPx": 382,
+"heightPx": 66
+},
+"layout": {
+"direction": "row",
+"alignment": "center",
+"gapPx": 10
+},
+"children": [
+"google_auth_button",
+"apple_auth_button",
+"microsoft_auth_button"
+]
+},
+{
+"id": "social_auth_button",
+"type": "button",
+"description": "Reusable social authentication button.",
+"size": {
+"widthPx": 120,
+"heightPx": 66
+},
+"radiusPx": 18,
+"padding": {
+"leftPx": 10,
+"rightPx": 10,
+"topPx": 10,
+"bottomPx": 10
+},
+"layout": {
+"direction": "column",
+"alignment": "center",
+"gapPx": 6
+},
+"colors": {
+"background": "#FFFFFF",
+"text": "#5D6077",
+"border": "#F0EFF6"
+},
+"border": {
+"widthPx": 1,
+"color": "#F0EFF6"
+},
+"shadow": "socialButton",
+"typography": "socialButtonLabel",
+"states": {
+"default": {
+"background": "#FFFFFF",
+"text": "#5D6077",
+"borderColor": "#F0EFF6",
+"scale": 1,
+"opacity": 1
+},
+"hover": {
+"background": "#FBFAFF",
+"text": "#101126",
+"borderColor": "#E1DEF4",
+"scale": 1.01
+},
+"focus": {
+"background": "#FFFFFF",
+"text": "#101126",
+"borderColor": "#8E7CFF",
+"borderWidthPx": 2
+},
+"active": {
+"background": "#F1ECFF",
+"text": "#101126",
+"scale": 0.96
+},
+"loading": {
+"opacity": 0.7,
+"showSpinner": true,
+"pointerEvents": "none"
+},
+"disabled": {
+"background": "#F4F2FA",
+"text": "#A9ABBA",
+"borderColor": "#EFEFF4",
+"opacity": 0.55,
+"shadow": "none"
+}
+},
+"variants": {
+"google": {
+"label": "Google",
+"icon": "google",
+"iconSizePx": 24
+},
+"apple": {
+"label": "Apple",
+"icon": "apple",
+"iconSizePx": 25
+},
+"microsoft": {
+"label": "Microsoft",
+"icon": "microsoft",
+"iconSizePx": 24
+},
+"iconOnly": {
+"showLabel": false,
+"widthPx": 66
+}
+}
+},
+{
+"id": "google_auth_button",
+"type": "socialAuthButtonInstance",
+"variant": "google",
+"content": {
+"label": "Google"
+},
+"icon": {
+"name": "google",
+"sizePx": 24
+}
+},
+{
+"id": "apple_auth_button",
+"type": "socialAuthButtonInstance",
+"variant": "apple",
+"content": {
+"label": "Apple"
+},
+"icon": {
+"name": "apple",
+"sizePx": 25,
+"color": "#000000"
+}
+},
+{
+"id": "microsoft_auth_button",
+"type": "socialAuthButtonInstance",
+"variant": "microsoft",
+"content": {
+"label": "Microsoft"
+},
+"icon": {
+"name": "microsoft",
+"sizePx": 24
+}
+},
+{
+"id": "create_account_panel",
+"type": "ctaPanel",
+"description": "Rounded panel prompting new users to create an account.",
+"position": {
+"xPx": 24,
+"yPx": 752
+},
+"size": {
+"widthPx": 382,
+"heightPx": 68
+},
+"radiusPx": 24,
+"padding": {
+"leftPx": 18,
+"rightPx": 18,
+"topPx": 14,
+"bottomPx": 14
+},
+"background": "gradients.createAccountPanel",
+"border": {
+"widthPx": 1,
+"color": "#FFFFFF"
+},
+"shadow": "softCard",
+"content": {
+"title": "New to Notea?",
+"link": "Create an account",
+"trailingIcon": "arrow_right"
+},
+"typography": {
+"title": "createAccountTitle",
+"link": "createAccountLink"
+},
+"colors": {
+"title": "#101126",
+"link": "#6F63FF",
+"icon": "#6F63FF"
+},
+"layout": {
+"direction": "column",
+"alignment": "center",
+"gapPx": 4
+},
+"states": {
+"default": {
+"opacity": 1,
+"scale": 1
+},
+"hover": {
+"scale": 1.01,
+"link": "#5547E8"
+},
+"focus": {
+"borderColor": "#8E7CFF",
+"borderWidthPx": 2
+},
+"active": {
+"scale": 0.97,
+"background": "#F1ECFF"
+},
+"disabled": {
+"opacity": 0.55,
+"shadow": "none"
+}
+},
+"variants": {
+"default": {
+"heightPx": 68,
+"showTitle": true,
+"showIcon": true
+},
+"compact": {
+"heightPx": 52,
+"showTitle": false,
+"showIcon": true
+}
+}
+},
+{
+"id": "bottom_mountain_illustration",
+"type": "decorativeIllustration",
+"description": "Bottom-right pastel mountain and clouds illustration with purple flag.",
+"position": {
+"xPx": 90,
+"yPx": 790
+},
+"size": {
+"widthPx": 340,
+"heightPx": 106
+},
+"colors": {
+"mountainGradient": "gradients.bottomMountain",
+"cloud": "#EEE9FF",
+"flag": "#8E5CFF"
+},
+"shadow": "illustrationGlow",
+"accessibility": {
+"excludeFromSemantics": true
+},
+"states": {
+"default": {
+"opacity": 1
+},
+"disabled": {
+"opacity": 0.45
+}
+},
+"variants": {
+"full": {
+"showMountain": true,
+"showClouds": true,
+"showFlag": true
+},
+"compact": {
+"showMountain": true,
+"showClouds": true,
+"showFlag": false
+},
+"hidden": {
+"visible": false
+}
+}
+}
+],
+"layoutRules": {
+"screen": {
+"backgroundColor": "#FFFFFF",
+"contentAlignment": "center",
+"horizontalPaddingPx": 24,
+"safeAreaRequired": true,
+"scrollableOnSmallHeights": true,
+"minSupportedHeightPx": 640,
+"avoidBottomOverflow": true
+},
+"verticalOrder": [
+"top_action_bar",
+"decorative_background_elements",
+"app_icon_card",
+"welcome_text_group",
+"sign_in_form_card",
+"primary_sign_in_button",
+"social_divider",
+"social_auth_row",
+"create_account_panel",
+"bottom_mountain_illustration"
+],
+"topActionBar": {
+"topMarginFromSafeAreaPx": 38,
+"heightPx": 48,
+"buttonSizePx": 48,
+"mainAxisAlignment": "space-between"
+},
+"appIcon": {
+"topMarginFromTopActionsPx": 42,
+"widthPx": 92,
+"heightPx": 92,
+"centerHorizontally": true
+},
+"welcomeText": {
+"topMarginFromAppIconPx": 28,
+"centerHorizontally": true,
+"titleMaxLines": 1,
+"subtitleMaxLines": 1,
+"gapPx": 10
+},
+"formCard": {
+"topMarginFromSubtitlePx": 36,
+"width": "fullMinusHorizontalPadding",
+"heightPx": 158,
+"radiusPx": 22,
+"inputRowHeightPx": 54,
+"rememberRowHeightPx": 34
+},
+"primaryButton": {
+"topMarginFromFormPx": 18,
+"width": "fullMinusHorizontalPadding",
+"heightPx": 54,
+"radiusPx": 16
+},
+"divider": {
+"topMarginFromPrimaryButtonPx": 26,
+"lineGapPx": 14,
+"centerLabel": true
+},
+"socialButtons": {
+"topMarginFromDividerPx": 16,
+"heightPx": 66,
+"gapPx": 10,
+"equalWidth": true
+},
+"createAccountPanel": {
+"topMarginFromSocialButtonsPx": 26,
+"heightPx": 68,
+"radiusPx": 24,
+"centerHorizontally": true
+},
+"bottomIllustration": {
+"anchoring": "bottomRight",
+"overlapAllowedBehindCreateAccount": true,
+"excludeFromLayoutHeightOnSmallScreens": false
+}
+},
+"interactiveStates": {
+"global": {
+"transitionDurationMs": 180,
+"transitionCurve": "easeOutCubic",
+"tapScale": 0.96,
+"hoverScale": 1.02,
+"disabledOpacity": 0.55,
+"minimumTapTargetPx": 44,
+"focusRing": {
+"color": "#8E7CFF",
+"widthPx": 2,
+"offsetPx": 3
+}
+},
+"button": {
+"default": {
+"scale": 1,
+"opacity": 1
+},
+"hover": {
+"scale": 1.02,
+"brightness": 1.03
+},
+"focus": {
+"outlineColor": "#8E7CFF",
+"outlineWidthPx": 2,
+"outlineOffsetPx": 3
+},
+"active": {
+"scale": 0.96,
+"brightness": 0.96
+},
+"loading": {
+"opacity": 0.8,
+"pointerEvents": "none",
+"showSpinner": true
+},
+"disabled": {
+"opacity": 0.55,
+"pointerEvents": "none"
+}
+},
+"input": {
+"default": {
+"dividerColor": "#E9E8F0",
+"iconColor": "#737793",
+"placeholderColor": "#9DA0B5"
+},
+"hover": {
+"dividerColor": "#DCD8F2",
+"iconColor": "#6F63FF",
+"placeholderColor": "#7C7F96"
+},
+"focus": {
+"dividerColor": "#8E7CFF",
+"iconColor": "#6F63FF",
+"cursorColor": "#6F63FF"
+},
+"active": {
+"dividerColor": "#6F63FF",
+"iconColor": "#6F63FF"
+},
+"error": {
+"dividerColor": "#EF4444",
+"iconColor": "#EF4444"
+},
+"disabled": {
+"dividerColor": "#EFEFF4",
+"iconColor": "#A9ABBA",
+"placeholderColor": "#A9ABBA",
+"opacity": 0.55
+}
+},
+"textLink": {
+"default": {
+"color": "#6F63FF",
+"decoration": "none"
+},
+"hover": {
+"color": "#5547E8",
+"decoration": "underline"
+},
+"focus": {
+"color": "#5547E8",
+"outlineColor": "#8E7CFF"
+},
+"active": {
+"color": "#4338CA"
+},
+"disabled": {
+"color": "#A9ABBA",
+"opacity": 0.55
+}
+},
+"card": {
+"default": {
+"scale": 1,
+"opacity": 1,
+"shadow": "softCard"
+},
+"hover": {
+"scale": 1.01,
+"shadow": "formCard"
+},
+"focus": {
+"borderColor": "#8E7CFF",
+"borderWidthPx": 2
+},
+"active": {
+"scale": 0.97
+},
+"disabled": {
+"opacity": 0.55,
+"shadow": "none"
+}
+},
+"checkbox": {
+"default": {
+"checked": true,
+"background": "#6F63FF",
+"icon": "#FFFFFF"
+},
+"hover": {
+"background": "#5547E8"
+},
+"focus": {
+"outlineColor": "#8E7CFF",
+"outlineWidthPx": 2
+},
+"active": {
+"scale": 0.96
+},
+"disabled": {
+"background": "#E7E6EF",
+"icon": "#A9ABBA",
+"opacity": 0.55
+}
+}
+},
+"componentVariants": {
+"authLayout": [
+"defaultCentered",
+"compactHeight",
+"smallPhone",
+"largePhoneCentered",
+"tabletPhoneFrame"
+],
+"topActionButton": [
+"circle",
+"ghost",
+"withBadge",
+"withoutBadge"
+],
+"appIconCard": [
+"large",
+"compact",
+"header"
+],
+"formCard": [
+"default",
+"compact",
+"withError",
+"disabled"
+],
+"textInput": [
+"email",
+"passwordHidden",
+"passwordVisible",
+"error",
+"disabled",
+"compact"
+],
+"checkbox": [
+"checked",
+"unchecked",
+"disabled"
+],
+"button": [
+"primaryGradient",
+"primarySolid",
+"social",
+"compact",
+"loading",
+"disabled"
+],
+"socialAuthButton": [
+"google",
+"apple",
+"microsoft",
+"iconOnly"
+],
+"divider": [
+"centered",
+"hidden"
+],
+"createAccountPanel": [
+"default",
+"compact",
+"hidden"
+],
+"bottomIllustration": [
+"full",
+"compact",
+"hidden"
+]
+},
+"responsiveBehavior": {
+"smallPhoneWidthUnder360Px": {
+"screenHorizontalPaddingPx": 18,
+"topActionButtonSizePx": 44,
+"appIconCardSizePx": 76,
+"appIconInnerSizePx": 44,
+"headlineFontSizePx": 24,
+"headlineLineHeightPx": 30,
+"subtitleFontSizePx": 14,
+"formCardHeightPx": 150,
+"inputRowHeightPx": 50,
+"primaryButtonHeightPx": 50,
+"socialButtonHeightPx": 58,
+"socialButtonGapPx": 8,
+"socialButtonLabelFontSizePx": 12,
+"createAccountPanelHeightPx": 60,
+"verticalGapCompressionPercent": 16,
+"bottomIllustrationVariant": "compact"
+},
+"normalPhoneWidth360To430Px": {
+"screenHorizontalPaddingPx": 24,
+"topActionButtonSizePx": 48,
+"appIconCardSizePx": 92,
+"headlineFontSizePx": 28,
+"subtitleFontSizePx": 16,
+"formCardHeightPx": 158,
+"primaryButtonHeightPx": 54,
+"socialButtonHeightPx": 66,
+"createAccountPanelHeightPx": 68,
+"bottomIllustrationVariant": "full"
+},
+"largePhoneWidth431To600Px": {
+"maxContentWidthPx": 430,
+"centerContent": true,
+"screenHorizontalPaddingPx": 24,
+"formWidthPx": 382,
+"buttonWidthPx": 382,
+"socialRowWidthPx": 382,
+"createAccountPanelWidthPx": 382,
+"doNotStretchCards": true
+},
+"tabletOrWebWidthOver600Px": {
+"maxContentWidthPx": 430,
+"centerContent": true,
+"usePresentationFrameOptional": true,
+"backgroundColor": "#F7F6FB",
+"maintainMobileLayout": true,
+"doNotStretchIllustrations": true,
+"buttonWidthPx": 382
+},
+"shortHeightUnder760Px": {
+"makeScreenScrollable": true,
+"reduceTopActionsToAppIconGapPx": 24,
+"reduceAppIconToHeadlineGapPx": 20,
+"reduceSubtitleToFormGapPx": 24,
+"reducePrimaryButtonToDividerGapPx": 18,
+"bottomIllustrationVariant": "compact",
+"createAccountCanMoveBelowFold": true
+},
+"veryShortHeightUnder680Px": {
+"makeScreenScrollable": true,
+"appIconCardSizePx": 70,
+"hideDecorativeBackgroundElements": true,
+"bottomIllustrationVariant": "hidden",
+"socialButtonsCanStack": false,
+"verticalGapCompressionPercent": 24
+},
+"textScaleUpTo1_2": {
+"allowFormCardHeightGrowth": true,
+"allowButtonHeightGrowth": true,
+"allowSubtitleWrapTo2Lines": true,
+"makeScreenScrollableIfNeeded": true,
+"doNotClipInputText": true
+}
+},
+"accessibility": {
+"minimumTapTargetPx": 44,
+"semanticLabels": {
+"backButton": "Go back",
+"notificationButton": "Open notifications",
+"emailInput": "Email address",
+"passwordInput": "Password",
+"passwordVisibilityToggle": "Show or hide password",
+"rememberMeCheckbox": "Remember me",
+"forgotPasswordLink": "Forgot password",
+"signInButton": "Sign in to Notea",
+"googleSignInButton": "Continue with Google",
+"appleSignInButton": "Continue with Apple",
+"microsoftSignInButton": "Continue with Microsoft",
+"createAccountPanel": "Create a new Notea account",
+"bottomIllustration": "Decorative mountain illustration"
+},
+"contrast": {
+"primaryTextOnWhite": "AAA",
+"secondaryTextOnWhite": "AA",
+"whiteTextOnPrimaryButton": "AA",
+"linkTextOnWhite": "AA"
+},
+"reducedMotion": {
+"disableScaleAnimations": true,
+"transitionDurationMs": 0,
+"keepStaticGradient": true
+},
+"screenReader": {
+"hideDecorativeSparkles": true,
+"hideDecorativeClouds": true,
+"hideBottomIllustration": true,
+"announceFormFieldsInOrder": true,
+"announceButtonsInOrder": true
+}
+},
+"implementationHints": {
+"recommendedFlutterWidgets": {
+"screen": "Scaffold",
+"safeArea": "SafeArea",
+"scrollContainer": "SingleChildScrollView",
+"mainLayout": "Stack with centered Column",
+"topActionBar": "Row with IconButton wrappers",
+"appIcon": "Container with BoxDecoration and custom notebook icon",
+"formCard": "Container with Column",
+"inputs": "TextFormField with custom InputDecoration",
+"checkbox": "Checkbox or custom GestureDetector + AnimatedContainer",
+"primaryButton": "AnimatedScale + InkWell + Container gradient",
+"divider": "Row with Expanded Dividers and Text",
+"socialButtons": "Row of Expanded custom buttons",
+"createAccountPanel": "InkWell Container",
+"bottomIllustration": "Image.asset or custom Stack illustration"
+},
+"assetRecommendations": {
+"bottomMountain": "assets/images/auth/sign_in_mountain.png",
+"fallback": "Build a Stack-based placeholder using gradients, triangles/custom painter mountain shapes, cloud circles, and flag shape if image asset is unavailable"
+},
+"state": {
+"email": "String",
+"password": "String",
+"rememberMe": "bool",
+"isPasswordVisible": "bool",
+"isSubmitting": "bool",
+"emailError": "String?",
+"passwordError": "String?"
+},
+"navigation": {
+"backButton": "Navigator.pop or route to /onboarding",
+"notificationButton": "/notifications",
+"forgotPassword": "/auth/forgot-password",
+"signInSuccess": "/home",
+"createAccount": "/auth/create-account",
+"socialAuthSuccess": "/home"
+},
+"validation": {
+"email": "required, valid email format",
+"password": "required, minimum 6 characters",
+"submitDisabledWhen": "isSubmitting or invalid required fields"
+}
+}
+}

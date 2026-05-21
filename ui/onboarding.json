@@ -1,0 +1,1283 @@
+{
+"specVersion": "1.0.0",
+"screen": {
+"name": "OnboardingWelcomeScreen",
+"route": "/onboarding",
+"platform": "mobile",
+"orientation": "portrait",
+"sourceImage": {
+"widthPx": 941,
+"heightPx": 1672,
+"aspectRatio": "9:16"
+},
+"referenceCanvas": {
+"widthPx": 430,
+"heightPx": 764,
+"unit": "logical_px",
+"safeArea": {
+"topPx": 24,
+"bottomPx": 24,
+"leftPx": 0,
+"rightPx": 0
+}
+},
+"visualStyle": {
+"theme": "light",
+"mood": [
+"premium",
+"minimal",
+"Gen Z",
+"smooth",
+"soft pastel",
+"dreamy",
+"clean productivity",
+"friendly onboarding"
+],
+"density": "comfortable",
+"cornerStyle": "large rounded",
+"shadowStyle": "soft elevated",
+"illustrationStyle": "soft 3D pastel"
+}
+},
+"colorTokens": {
+"background": {
+"app": "#F7F6FB",
+"screen": "#FFFFFF",
+"surface": "#FFFFFF",
+"surfaceSoft": "#FBFAFF",
+"surfaceMuted": "#F4F2FA",
+"surfaceLavender": "#F1ECFF",
+"cloudSoft": "#F0ECFF"
+},
+"text": {
+"primary": "#101126",
+"secondary": "#5D6077",
+"tertiary": "#7C7F96",
+"muted": "#9DA0B5",
+"placeholder": "#A2A5B8",
+"inverse": "#FFFFFF",
+"link": "#6F63FF",
+"accent": "#6F63FF"
+},
+"brand": {
+"primary": "#6F63FF",
+"primaryDark": "#5547E8",
+"primaryLight": "#9A8CFF",
+"secondaryBlue": "#4F8DFF",
+"lavender": "#B69BFF",
+"purple": "#8E5CFF",
+"pink": "#F3A7D8",
+"yellow": "#FFD76B"
+},
+"gradients": {
+"brandText": {
+"type": "linear",
+"angleDeg": 135,
+"stops": [
+{
+"color": "#5C8DFF",
+"position": 0
+},
+{
+"color": "#6F63FF",
+"position": 0.5
+},
+{
+"color": "#9A5CFF",
+"position": 1
+}
+]
+},
+"primaryButton": {
+"type": "linear",
+"angleDeg": 135,
+"stops": [
+{
+"color": "#5B7CFF",
+"position": 0
+},
+{
+"color": "#6F63FF",
+"position": 0.52
+},
+{
+"color": "#9A5CFF",
+"position": 1
+}
+]
+},
+"headlineAccent": {
+"type": "linear",
+"angleDeg": 135,
+"stops": [
+{
+"color": "#5C8DFF",
+"position": 0
+},
+{
+"color": "#6F63FF",
+"position": 0.45
+},
+{
+"color": "#9A5CFF",
+"position": 1
+}
+]
+},
+"heroNotebook": {
+"type": "linear",
+"angleDeg": 145,
+"stops": [
+{
+"color": "#E6D7FF",
+"position": 0
+},
+{
+"color": "#BBA0FF",
+"position": 0.5
+},
+{
+"color": "#8D75EF",
+"position": 1
+}
+]
+},
+"heroPen": {
+"type": "linear",
+"angleDeg": 145,
+"stops": [
+{
+"color": "#DCD2FF",
+"position": 0
+},
+{
+"color": "#9B86F6",
+"position": 1
+}
+]
+}
+},
+"button": {
+"primaryBackground": "#6F63FF",
+"primaryText": "#FFFFFF",
+"secondaryBackground": "#FFFFFF",
+"secondaryText": "#6F63FF",
+"secondaryBorder": "#DCD8F2",
+"disabledBackground": "#E7E6EF",
+"disabledText": "#A9ABBA"
+},
+"indicator": {
+"active": "#6F63FF",
+"inactive": "#DADBE5"
+},
+"decorative": {
+"sparklePurple": "#9A8CFF",
+"sparklePink": "#F3A7D8",
+"lightbulbYellow": "#FFD76B",
+"underlineYellow": "#F7C95B",
+"noteCard": "#F5F0FF",
+"heartPurple": "#8E5CFF",
+"cloud": "#EEE9FF"
+},
+"border": {
+"default": "#E8E7F0",
+"soft": "#F0EFF6",
+"buttonSecondary": "#DCD8F2",
+"focus": "#8E7CFF",
+"disabled": "#EFEFF4"
+},
+"shadow": {
+"soft": "#10112614",
+"medium": "#1011261F",
+"purpleGlow": "#6F63FF33",
+"illustrationGlow": "#9A8CFF2E"
+},
+"system": {
+"statusBarIcon": "#000000",
+"success": "#22C55E",
+"warning": "#F59E0B",
+"error": "#EF4444"
+}
+},
+"typography": {
+"fontFamily": {
+"primary": "Inter",
+"fallback": [
+"SF Pro Display",
+"SF Pro Text",
+"Roboto",
+"system-ui",
+"sans-serif"
+]
+},
+"scale": {
+"statusTime": {
+"fontSizePx": 14,
+"fontWeight": 700,
+"lineHeightPx": 18,
+"letterSpacingPx": -0.2
+},
+"brandLogo": {
+"fontSizePx": 46,
+"fontWeight": 800,
+"lineHeightPx": 54,
+"letterSpacingPx": -1.4
+},
+"tagline": {
+"fontSizePx": 15,
+"fontWeight": 500,
+"lineHeightPx": 22,
+"letterSpacingPx": -0.1
+},
+"headlinePrimary": {
+"fontSizePx": 30,
+"fontWeight": 800,
+"lineHeightPx": 36,
+"letterSpacingPx": -0.8
+},
+"headlineAccent": {
+"fontSizePx": 30,
+"fontWeight": 800,
+"lineHeightPx": 36,
+"letterSpacingPx": -0.8
+},
+"bodyLarge": {
+"fontSizePx": 16,
+"fontWeight": 500,
+"lineHeightPx": 24,
+"letterSpacingPx": -0.1
+},
+"bodyMedium": {
+"fontSizePx": 14,
+"fontWeight": 500,
+"lineHeightPx": 20,
+"letterSpacingPx": 0
+},
+"buttonLabel": {
+"fontSizePx": 16,
+"fontWeight": 700,
+"lineHeightPx": 22,
+"letterSpacingPx": -0.1
+},
+"footer": {
+"fontSizePx": 11,
+"fontWeight": 500,
+"lineHeightPx": 16,
+"letterSpacingPx": 0
+},
+"footerLink": {
+"fontSizePx": 11,
+"fontWeight": 600,
+"lineHeightPx": 16,
+"letterSpacingPx": 0
+}
+},
+"usage": {
+"statusTime": "statusTime",
+"logo": "brandLogo",
+"subtitle": "tagline",
+"headlineLine1": "headlinePrimary",
+"headlineLine2": "headlineAccent",
+"description": "bodyLarge",
+"primaryButton": "buttonLabel",
+"secondaryButton": "buttonLabel",
+"legalText": "footer",
+"legalLink": "footerLink"
+}
+},
+"spacing": {
+"scale": {
+"none": 0,
+"xxs": 2,
+"xs": 4,
+"sm": 8,
+"md": 12,
+"lg": 16,
+"xl": 20,
+"xxl": 24,
+"xxxl": 32,
+"xxxxl": 40,
+"huge": 56
+},
+"screen": {
+"horizontalPaddingPx": 24,
+"topPaddingPx": 26,
+"bottomPaddingPx": 24,
+"contentMaxWidthPx": 430,
+"contentHorizontalInsetPx": 24
+},
+"layout": {
+"statusBarToLogoGapPx": 62,
+"logoToTaglineGapPx": 4,
+"taglineToHeroGapPx": 42,
+"heroToHeadlineGapPx": 22,
+"headlineLineGapPx": 2,
+"headlineToDescriptionGapPx": 12,
+"descriptionToIndicatorGapPx": 24,
+"indicatorToPrimaryButtonGapPx": 24,
+"primaryToSecondaryButtonGapPx": 12,
+"secondaryButtonToFooterGapPx": 18,
+"footerBottomMarginPx": 20
+},
+"components": {
+"buttonHorizontalPaddingPx": 20,
+"buttonVerticalPaddingPx": 16,
+"buttonHeightPx": 54,
+"buttonGapPx": 12,
+"indicatorDotGapPx": 8,
+"heroDecorationGapPx": 14
+}
+},
+"radius": {
+"xsPx": 8,
+"smPx": 12,
+"mdPx": 16,
+"lgPx": 20,
+"xlPx": 24,
+"xxlPx": 28,
+"buttonPx": 16,
+"pillPx": 999,
+"circle": "50%",
+"phoneFramePx": 34
+},
+"shadows": {
+"none": {
+"x": 0,
+"y": 0,
+"blur": 0,
+"spread": 0,
+"color": "#00000000"
+},
+"softCard": {
+"x": 0,
+"y": 8,
+"blur": 24,
+"spread": 0,
+"color": "#10112614"
+},
+"buttonGlow": {
+"x": 0,
+"y": 12,
+"blur": 28,
+"spread": 0,
+"color": "#6F63FF33"
+},
+"heroGlow": {
+"x": 0,
+"y": 18,
+"blur": 44,
+"spread": 0,
+"color": "#9A8CFF2E"
+},
+"phoneFrame": {
+"x": 0,
+"y": 10,
+"blur": 34,
+"spread": 0,
+"color": "#10112612"
+}
+},
+"componentInventory": [
+{
+"id": "status_bar",
+"type": "systemStatusBar",
+"description": "iOS-style status bar with time, signal, wifi, and battery indicators.",
+"position": {
+"xPx": 24,
+"yPx": 14
+},
+"size": {
+"widthPx": 382,
+"heightPx": 24
+},
+"typography": {
+"time": "statusTime"
+},
+"colors": {
+"time": "#000000",
+"icons": "#000000"
+},
+"states": {
+"default": {
+"opacity": 1
+}
+},
+"variants": {
+"light": {
+"timeColor": "#000000",
+"iconColor": "#000000"
+},
+"dark": {
+"timeColor": "#FFFFFF",
+"iconColor": "#FFFFFF"
+}
+}
+},
+{
+"id": "screen_container",
+"type": "container",
+"description": "Primary onboarding screen surface.",
+"position": {
+"xPx": 0,
+"yPx": 0
+},
+"size": {
+"widthPx": 430,
+"heightPx": 764
+},
+"padding": {
+"leftPx": 24,
+"rightPx": 24,
+"topPx": 26,
+"bottomPx": 24
+},
+"colors": {
+"background": "#FFFFFF"
+},
+"radiusPx": 34,
+"shadow": "phoneFrame",
+"variants": {
+"standaloneMobile": {
+"radiusPx": 0,
+"shadow": "none"
+},
+"presentationFrame": {
+"radiusPx": 34,
+"shadow": "phoneFrame"
+}
+}
+},
+{
+"id": "brand_logo_group",
+"type": "textGroup",
+"description": "Centered app logo and tagline.",
+"position": {
+"xPx": 24,
+"yPx": 92
+},
+"size": {
+"widthPx": 382,
+"heightPx": 78
+},
+"layout": {
+"direction": "column",
+"alignment": "center",
+"gapPx": 4
+},
+"content": {
+"logoText": "Notea",
+"sparkle": "✦",
+"tagline": "Your thoughts, beautifully organized."
+},
+"typography": {
+"logo": "brandLogo",
+"tagline": "tagline"
+},
+"colors": {
+"logo": "#6F63FF",
+"sparkle": "#8E5CFF",
+"tagline": "#7C7F96"
+},
+"states": {
+"default": {
+"opacity": 1,
+"scale": 1
+},
+"disabled": {
+"opacity": 0.5
+}
+},
+"variants": {
+"centeredLarge": {
+"logoFontSizePx": 46,
+"alignment": "center"
+},
+"centeredCompact": {
+"logoFontSizePx": 36,
+"alignment": "center"
+},
+"headerSmall": {
+"logoFontSizePx": 30,
+"alignment": "left"
+}
+}
+},
+{
+"id": "hero_illustration",
+"type": "illustration",
+"description": "Large soft 3D notebook, pen, clouds, lightbulb, note cards, and decorative sparkles.",
+"position": {
+"xPx": 52,
+"yPx": 202
+},
+"size": {
+"widthPx": 326,
+"heightPx": 238
+},
+"layout": {
+"alignment": "center",
+"mainObject": "notebook",
+"supportingObjects": [
+"pen",
+"clouds",
+"lightbulb",
+"checklistCard",
+"heartNoteCard",
+"sparkles"
+]
+},
+"colors": {
+"notebookPrimary": "#BBA0FF",
+"notebookDark": "#8D75EF",
+"notebookHighlight": "#E6D7FF",
+"penPrimary": "#9B86F6",
+"penHighlight": "#DCD2FF",
+"cloud": "#EEE9FF",
+"lightbulb": "#FFD76B",
+"heart": "#8E5CFF",
+"sparklePurple": "#9A8CFF",
+"sparklePink": "#F3A7D8"
+},
+"shadow": "heroGlow",
+"states": {
+"default": {
+"opacity": 1,
+"scale": 1
+},
+"hover": {
+"scale": 1.01
+},
+"active": {
+"scale": 0.995
+},
+"disabled": {
+"opacity": 0.45
+}
+},
+"variants": {
+"full": {
+"showNotebook": true,
+"showPen": true,
+"showClouds": true,
+"showFloatingCards": true,
+"showLightbulb": true
+},
+"compact": {
+"showNotebook": true,
+"showPen": true,
+"showClouds": true,
+"showFloatingCards": false,
+"showLightbulb": false
+},
+"minimal": {
+"showNotebook": true,
+"showPen": false,
+"showClouds": true,
+"showFloatingCards": false,
+"showLightbulb": false
+}
+}
+},
+{
+"id": "headline_group",
+"type": "textGroup",
+"description": "Two-line onboarding headline with primary dark line and accent gradient line.",
+"position": {
+"xPx": 24,
+"yPx": 464
+},
+"size": {
+"widthPx": 382,
+"heightPx": 76
+},
+"layout": {
+"direction": "column",
+"alignment": "center",
+"gapPx": 2
+},
+"content": {
+"line1": "Capture ideas.",
+"line2": "Create your future.",
+"underline": true
+},
+"typography": {
+"line1": "headlinePrimary",
+"line2": "headlineAccent"
+},
+"colors": {
+"line1": "#101126",
+"line2": "#6F63FF",
+"underline": "#F7C95B"
+},
+"states": {
+"default": {
+"opacity": 1
+},
+"disabled": {
+"opacity": 0.5
+}
+},
+"variants": {
+"twoLineCentered": {
+"alignment": "center",
+"showUnderline": true
+},
+"singleLineCompact": {
+"alignment": "center",
+"showUnderline": false
+}
+}
+},
+{
+"id": "description_text",
+"type": "text",
+"description": "Short onboarding value proposition.",
+"position": {
+"xPx": 58,
+"yPx": 552
+},
+"size": {
+"widthPx": 314,
+"heightPx": 48
+},
+"content": "Notea helps you jot down thoughts, stay organized, and bring ideas to life.",
+"typography": "bodyLarge",
+"colors": {
+"text": "#7C7F96"
+},
+"textAlign": "center",
+"maxLines": 2,
+"states": {
+"default": {
+"opacity": 1
+},
+"disabled": {
+"opacity": 0.5
+}
+},
+"variants": {
+"centeredTwoLine": {
+"textAlign": "center",
+"maxLines": 2
+},
+"compactOneLine": {
+"textAlign": "center",
+"maxLines": 1
+}
+}
+},
+{
+"id": "page_indicator",
+"type": "pageIndicator",
+"description": "Three-dot onboarding pagination indicator.",
+"position": {
+"xPx": 196,
+"yPx": 624
+},
+"size": {
+"widthPx": 38,
+"heightPx": 8
+},
+"itemCount": 3,
+"activeIndex": 0,
+"dot": {
+"activeSizePx": 8,
+"inactiveSizePx": 8,
+"gapPx": 8,
+"radiusPx": 4
+},
+"colors": {
+"active": "#6F63FF",
+"inactive": "#DADBE5"
+},
+"states": {
+"default": {
+"opacity": 1
+},
+"disabled": {
+"opacity": 0.4
+}
+},
+"variants": {
+"dots": {
+"shape": "circle",
+"activeExpands": false
+},
+"pillActive": {
+"shape": "pill",
+"activeWidthPx": 18
+}
+}
+},
+{
+"id": "primary_cta_button",
+"type": "button",
+"description": "Primary onboarding action button.",
+"position": {
+"xPx": 24,
+"yPx": 656
+},
+"size": {
+"widthPx": 382,
+"heightPx": 54
+},
+"radiusPx": 16,
+"padding": {
+"leftPx": 20,
+"rightPx": 20,
+"topPx": 16,
+"bottomPx": 16
+},
+"content": {
+"label": "Get Started",
+"trailingIcon": "sparkle"
+},
+"typography": "buttonLabel",
+"colors": {
+"background": "#6F63FF",
+"text": "#FFFFFF",
+"icon": "#FFFFFF"
+},
+"background": "gradients.primaryButton",
+"shadow": "buttonGlow",
+"states": {
+"default": {
+"background": "gradients.primaryButton",
+"text": "#FFFFFF",
+"scale": 1,
+"opacity": 1
+},
+"hover": {
+"background": "gradients.primaryButton",
+"scale": 1.02,
+"shadow": {
+"x": 0,
+"y": 14,
+"blur": 34,
+"spread": 0,
+"color": "#6F63FF40"
+}
+},
+"focus": {
+"background": "gradients.primaryButton",
+"outlineColor": "#8E7CFF",
+"outlineWidthPx": 3,
+"outlineOffsetPx": 3
+},
+"active": {
+"background": "gradients.primaryButton",
+"scale": 0.96,
+"shadow": {
+"x": 0,
+"y": 8,
+"blur": 20,
+"spread": 0,
+"color": "#6F63FF2E"
+}
+},
+"disabled": {
+"background": "#E7E6EF",
+"text": "#A9ABBA",
+"icon": "#A9ABBA",
+"opacity": 0.65,
+"shadow": "none"
+}
+},
+"variants": {
+"primaryGradient": {
+"background": "gradients.primaryButton",
+"textColor": "#FFFFFF",
+"borderWidthPx": 0
+},
+"primarySolid": {
+"background": "#6F63FF",
+"textColor": "#FFFFFF",
+"borderWidthPx": 0
+},
+"primaryCompact": {
+"heightPx": 48,
+"radiusPx": 14,
+"fontSizePx": 15
+}
+}
+},
+{
+"id": "secondary_sign_in_button",
+"type": "button",
+"description": "Secondary outlined sign-in action.",
+"position": {
+"xPx": 24,
+"yPx": 722
+},
+"size": {
+"widthPx": 382,
+"heightPx": 54
+},
+"radiusPx": 16,
+"padding": {
+"leftPx": 20,
+"rightPx": 20,
+"topPx": 16,
+"bottomPx": 16
+},
+"content": {
+"label": "Sign In"
+},
+"typography": "buttonLabel",
+"colors": {
+"background": "#FFFFFF",
+"text": "#6F63FF",
+"border": "#DCD8F2"
+},
+"border": {
+"widthPx": 1.5,
+"color": "#DCD8F2"
+},
+"states": {
+"default": {
+"background": "#FFFFFF",
+"text": "#6F63FF",
+"borderColor": "#DCD8F2",
+"scale": 1,
+"opacity": 1
+},
+"hover": {
+"background": "#FBFAFF",
+"text": "#5547E8",
+"borderColor": "#CFC8FF",
+"scale": 1.01
+},
+"focus": {
+"background": "#FFFFFF",
+"text": "#5547E8",
+"borderColor": "#8E7CFF",
+"borderWidthPx": 2
+},
+"active": {
+"background": "#F1ECFF",
+"text": "#5547E8",
+"borderColor": "#CFC8FF",
+"scale": 0.97
+},
+"disabled": {
+"background": "#F4F2FA",
+"text": "#A9ABBA",
+"borderColor": "#EFEFF4",
+"opacity": 0.65
+}
+},
+"variants": {
+"secondaryOutlined": {
+"background": "#FFFFFF",
+"textColor": "#6F63FF",
+"borderWidthPx": 1.5
+},
+"secondaryGhost": {
+"background": "#00000000",
+"textColor": "#6F63FF",
+"borderWidthPx": 0
+},
+"secondaryCompact": {
+"heightPx": 48,
+"radiusPx": 14,
+"fontSizePx": 15
+}
+}
+},
+{
+"id": "legal_footer",
+"type": "richText",
+"description": "Terms and privacy policy footer copy.",
+"position": {
+"xPx": 44,
+"yPx": 792
+},
+"size": {
+"widthPx": 342,
+"heightPx": 18
+},
+"content": [
+{
+"text": "By continuing, you agree to our ",
+"style": "footer"
+},
+{
+"text": "Terms",
+"style": "footerLink",
+"action": "openTerms"
+},
+{
+"text": " and ",
+"style": "footer"
+},
+{
+"text": "Privacy Policy.",
+"style": "footerLink",
+"action": "openPrivacyPolicy"
+}
+],
+"typography": {
+"default": "footer",
+"link": "footerLink"
+},
+"colors": {
+"text": "#7C7F96",
+"link": "#6F63FF"
+},
+"textAlign": "center",
+"states": {
+"default": {
+"opacity": 1
+},
+"hover": {
+"linkColor": "#5547E8"
+},
+"focus": {
+"linkColor": "#5547E8",
+"outlineColor": "#8E7CFF"
+},
+"active": {
+"linkColor": "#4338CA"
+},
+"disabled": {
+"opacity": 0.5
+}
+},
+"variants": {
+"inlineCentered": {
+"textAlign": "center",
+"wrap": true
+},
+"stackedLinks": {
+"textAlign": "center",
+"wrap": true,
+"linksOnSecondLine": true
+}
+}
+}
+],
+"layoutRules": {
+"screen": {
+"backgroundColor": "#FFFFFF",
+"contentAlignment": "center",
+"horizontalPaddingPx": 24,
+"safeAreaRequired": true,
+"scrollableOnSmallHeights": true,
+"minSupportedHeightPx": 640,
+"avoidBottomOverflow": true
+},
+"verticalOrder": [
+"status_bar",
+"brand_logo_group",
+"hero_illustration",
+"headline_group",
+"description_text",
+"page_indicator",
+"primary_cta_button",
+"secondary_sign_in_button",
+"legal_footer"
+],
+"brandLogo": {
+"topMarginFromSafeAreaPx": 62,
+"centerHorizontally": true,
+"logoMaxLines": 1,
+"taglineMaxLines": 1
+},
+"hero": {
+"topMarginPx": 42,
+"widthRatio": 0.76,
+"maxWidthPx": 326,
+"heightPx": 238,
+"centerHorizontally": true,
+"allowScaleDown": true
+},
+"headline": {
+"topMarginFromHeroPx": 22,
+"centerHorizontally": true,
+"maxLinesPerText": 1,
+"underlineAttachedToSecondLine": true
+},
+"description": {
+"topMarginPx": 12,
+"maxWidthPx": 314,
+"maxLines": 2,
+"textAlign": "center"
+},
+"indicator": {
+"topMarginPx": 24,
+"centerHorizontally": true
+},
+"actions": {
+"topMarginFromIndicatorPx": 24,
+"buttonWidth": "fullMinusHorizontalPadding",
+"buttonHeightPx": 54,
+"buttonGapPx": 12
+},
+"footer": {
+"topMarginFromSecondaryButtonPx": 18,
+"bottomMarginPx": 20,
+"centerHorizontally": true,
+"wrapOnSmallWidth": true
+}
+},
+"interactiveStates": {
+"global": {
+"transitionDurationMs": 180,
+"transitionCurve": "easeOutCubic",
+"tapScale": 0.96,
+"hoverScale": 1.02,
+"disabledOpacity": 0.55,
+"minimumTapTargetPx": 44,
+"focusRing": {
+"color": "#8E7CFF",
+"widthPx": 2,
+"offsetPx": 3
+}
+},
+"button": {
+"default": {
+"scale": 1,
+"opacity": 1
+},
+"hover": {
+"scale": 1.02,
+"brightness": 1.03
+},
+"focus": {
+"outlineColor": "#8E7CFF",
+"outlineWidthPx": 2,
+"outlineOffsetPx": 3
+},
+"active": {
+"scale": 0.96,
+"brightness": 0.96
+},
+"disabled": {
+"opacity": 0.55,
+"pointerEvents": "none"
+}
+},
+"textLink": {
+"default": {
+"color": "#6F63FF",
+"decoration": "none"
+},
+"hover": {
+"color": "#5547E8",
+"decoration": "underline"
+},
+"focus": {
+"color": "#5547E8",
+"outlineColor": "#8E7CFF"
+},
+"active": {
+"color": "#4338CA"
+},
+"disabled": {
+"color": "#A9ABBA",
+"opacity": 0.55
+}
+},
+"pageIndicatorDot": {
+"default": {
+"inactiveColor": "#DADBE5",
+"activeColor": "#6F63FF"
+},
+"hover": {
+"inactiveColor": "#CFCFE0",
+"activeColor": "#5547E8"
+},
+"focus": {
+"outlineColor": "#8E7CFF",
+"outlineWidthPx": 2
+},
+"active": {
+"scale": 0.9
+},
+"disabled": {
+"opacity": 0.45
+}
+},
+"heroIllustration": {
+"default": {
+"scale": 1,
+"opacity": 1
+},
+"hover": {
+"scale": 1.01
+},
+"focus": {
+"outlineColor": "#8E7CFF",
+"outlineWidthPx": 2
+},
+"active": {
+"scale": 0.995
+},
+"disabled": {
+"opacity": 0.45
+}
+}
+},
+"componentVariants": {
+"onboardingLayout": [
+"defaultCentered",
+"compactHeight",
+"smallPhone",
+"largePhoneCentered",
+"tabletPhoneFrame"
+],
+"brandLogo": [
+"centeredLarge",
+"centeredCompact",
+"headerSmall"
+],
+"heroIllustration": [
+"full",
+"compact",
+"minimal",
+"assetImage",
+"flutterVectorPlaceholder"
+],
+"headline": [
+"twoLineCentered",
+"singleLineCompact",
+"withUnderline",
+"withoutUnderline"
+],
+"button": [
+"primaryGradient",
+"primarySolid",
+"secondaryOutlined",
+"secondaryGhost",
+"compact"
+],
+"pageIndicator": [
+"dots",
+"pillActive",
+"hidden"
+],
+"legalFooter": [
+"inlineCentered",
+"stackedLinks",
+"hidden"
+]
+},
+"responsiveBehavior": {
+"smallPhoneWidthUnder360Px": {
+"screenHorizontalPaddingPx": 18,
+"brandLogoFontSizePx": 38,
+"taglineFontSizePx": 14,
+"heroWidthPx": 280,
+"heroHeightPx": 204,
+"headlineFontSizePx": 26,
+"headlineLineHeightPx": 32,
+"descriptionFontSizePx": 14,
+"buttonHeightPx": 50,
+"buttonRadiusPx": 14,
+"legalFooterFontSizePx": 10,
+"verticalGapCompressionPercent": 15,
+"heroVariant": "compact"
+},
+"normalPhoneWidth360To430Px": {
+"screenHorizontalPaddingPx": 24,
+"brandLogoFontSizePx": 46,
+"taglineFontSizePx": 15,
+"heroWidthPx": 326,
+"heroHeightPx": 238,
+"headlineFontSizePx": 30,
+"headlineLineHeightPx": 36,
+"descriptionFontSizePx": 16,
+"buttonHeightPx": 54,
+"buttonRadiusPx": 16,
+"heroVariant": "full"
+},
+"largePhoneWidth431To600Px": {
+"maxContentWidthPx": 430,
+"centerContent": true,
+"screenHorizontalPaddingPx": 24,
+"brandLogoFontSizePx": 46,
+"heroWidthPx": 326,
+"heroHeightPx": 238,
+"buttonWidthPx": 382,
+"heroVariant": "full"
+},
+"tabletOrWebWidthOver600Px": {
+"maxContentWidthPx": 430,
+"centerContent": true,
+"usePresentationFrameOptional": true,
+"backgroundColor": "#F7F6FB",
+"maintainMobileLayout": true,
+"doNotStretchHero": true,
+"buttonWidthPx": 382
+},
+"shortHeightUnder700Px": {
+"makeScreenScrollable": true,
+"reduceLogoTopGapPx": 36,
+"reduceHeroToHeadlineGapPx": 14,
+"heroVariant": "compact",
+"footerCanMoveBelowFold": true
+},
+"textScaleUpTo1_2": {
+"allowButtonHeightGrowth": true,
+"allowHeadlineWrap": false,
+"allowDescriptionWrapTo3Lines": true,
+"makeScreenScrollableIfNeeded": true
+}
+},
+"accessibility": {
+"minimumTapTargetPx": 44,
+"semanticLabels": {
+"primaryCtaButton": "Get started with Notea",
+"secondarySignInButton": "Sign in to existing Notea account",
+"termsLink": "Open Terms",
+"privacyPolicyLink": "Open Privacy Policy",
+"pageIndicator": "Onboarding page 1 of 3",
+"heroIllustration": "Decorative notebook and pen illustration"
+},
+"contrast": {
+"primaryTextOnWhite": "AAA",
+"secondaryTextOnWhite": "AA",
+"whiteTextOnPrimaryButton": "AA",
+"linkTextOnWhite": "AA"
+},
+"reducedMotion": {
+"disableScaleAnimations": true,
+"transitionDurationMs": 0,
+"keepStaticGradient": true
+},
+"screenReader": {
+"hideDecorativeSparkles": true,
+"hideDecorativeClouds": true,
+"announceButtonsInOrder": true
+}
+},
+"implementationHints": {
+"recommendedFlutterWidgets": {
+"screen": "Scaffold",
+"safeArea": "SafeArea",
+"scrollContainer": "SingleChildScrollView",
+"mainLayout": "Column",
+"logo": "RichText or Row with Text and sparkle",
+"hero": "Image.asset or custom Stack illustration",
+"headline": "RichText plus decorative underline CustomPaint",
+"buttons": "AnimatedScale + InkWell or ElevatedButton custom style",
+"pageIndicator": "Row of AnimatedContainer dots",
+"footer": "Text.rich with TapGestureRecognizer links"
+},
+"assetRecommendations": {
+"heroIllustration": "assets/images/onboarding/notea_hero.png",
+"fallback": "Build a Stack-based placeholder using rounded containers, circles, and simple icons if image asset is unavailable"
+},
+"state": {
+"currentOnboardingPage": "int",
+"isPrimaryButtonLoading": "bool",
+"isSecondaryButtonEnabled": "bool"
+},
+"navigation": {
+"primaryCta": "/auth/create-account or /home depending on auth flow",
+"secondarySignIn": "/auth/sign-in",
+"terms": "/legal/terms",
+"privacyPolicy": "/legal/privacy"
+}
+}
+}
