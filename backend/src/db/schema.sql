@@ -1,7 +1,7 @@
 CREATE TABLE IF NOT EXISTS users (
   id TEXT PRIMARY KEY,
-  email TEXT UNIQUE NOT NULL,
-  password_hash TEXT NOT NULL,
+  email TEXT UNIQUE,
+  password_hash TEXT,
   name TEXT,
   avatar_url TEXT,
   created_at TEXT NOT NULL,
@@ -63,3 +63,13 @@ CREATE INDEX IF NOT EXISTS notes_user_updated_idx ON notes (user_id, updated_at)
 CREATE INDEX IF NOT EXISTS notes_user_pinned_idx ON notes (user_id, is_pinned);
 CREATE INDEX IF NOT EXISTS notes_user_category_idx ON notes (user_id, category);
 CREATE INDEX IF NOT EXISTS notes_user_deleted_idx ON notes (user_id, is_deleted);
+CREATE INDEX IF NOT EXISTS notes_user_archived_idx ON notes (user_id, is_archived);
+
+CREATE TABLE IF NOT EXISTS sync_state (
+  user_id TEXT NOT NULL,
+  key TEXT NOT NULL,
+  value TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  PRIMARY KEY (user_id, key),
+  FOREIGN KEY (user_id) REFERENCES users(id)
+);

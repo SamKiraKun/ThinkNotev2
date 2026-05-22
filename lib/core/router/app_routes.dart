@@ -1,7 +1,12 @@
 import 'package:go_router/go_router.dart';
 
+import '../../features/notes/presentation/screens/archived_notes_screen.dart';
 import '../../features/notes/presentation/screens/note_editor_screen.dart';
 import '../../features/notes/presentation/screens/trash_screen.dart';
+import '../../features/profile/presentation/screens/import_export_screen.dart';
+import '../../features/profile/presentation/screens/lock_notes_screen.dart';
+import '../../features/profile/presentation/screens/notification_settings_screen.dart';
+import '../../features/profile/presentation/screens/theme_settings_screen.dart';
 import '../../features/shell/presentation/screens/main_shell_screen.dart';
 import '../constants/route_names.dart';
 
@@ -25,6 +30,26 @@ List<RouteBase> buildAppRoutes() {
     GoRoute(
       path: RouteNames.trash,
       builder: (context, state) => const TrashScreen(),
+    ),
+    GoRoute(
+      path: RouteNames.archive,
+      builder: (context, state) => const ArchivedNotesScreen(),
+    ),
+    GoRoute(
+      path: RouteNames.themeSettings,
+      builder: (context, state) => const ThemeSettingsScreen(),
+    ),
+    GoRoute(
+      path: RouteNames.importExport,
+      builder: (context, state) => const ImportExportScreen(),
+    ),
+    GoRoute(
+      path: RouteNames.lockNotes,
+      builder: (context, state) => const LockNotesScreen(),
+    ),
+    GoRoute(
+      path: RouteNames.notificationSettings,
+      builder: (context, state) => const NotificationSettingsScreen(),
     ),
   ];
 }

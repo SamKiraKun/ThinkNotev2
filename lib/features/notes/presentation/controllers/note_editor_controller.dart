@@ -24,6 +24,7 @@ class NoteEditorState {
     required this.tags,
     required this.isPinned,
     required this.isFavorite,
+    required this.isArchived,
     required this.isLoading,
     required this.isSaving,
     required this.hasChanges,
@@ -40,6 +41,7 @@ class NoteEditorState {
       tags: const <String>[],
       isPinned: false,
       isFavorite: false,
+      isArchived: false,
       isLoading: true,
       isSaving: false,
       hasChanges: false,
@@ -54,6 +56,7 @@ class NoteEditorState {
   final List<String> tags;
   final bool isPinned;
   final bool isFavorite;
+  final bool isArchived;
   final bool isLoading;
   final bool isSaving;
   final bool hasChanges;
@@ -72,6 +75,7 @@ class NoteEditorState {
     List<String>? tags,
     bool? isPinned,
     bool? isFavorite,
+    bool? isArchived,
     bool? isLoading,
     bool? isSaving,
     bool? hasChanges,
@@ -89,6 +93,7 @@ class NoteEditorState {
       tags: tags ?? this.tags,
       isPinned: isPinned ?? this.isPinned,
       isFavorite: isFavorite ?? this.isFavorite,
+      isArchived: isArchived ?? this.isArchived,
       isLoading: isLoading ?? this.isLoading,
       isSaving: isSaving ?? this.isSaving,
       hasChanges: hasChanges ?? this.hasChanges,
@@ -141,6 +146,7 @@ class NoteEditorController extends StateNotifier<NoteEditorState> {
       tags: existing.tags,
       isPinned: existing.isPinned,
       isFavorite: existing.isFavorite,
+      isArchived: existing.isArchived,
       isLoading: false,
       isSaving: false,
       hasChanges: false,
@@ -192,6 +198,26 @@ class NoteEditorController extends StateNotifier<NoteEditorState> {
       errorMessage: null,
     );
     _scheduleSave();
+  }
+
+  Future<void> archiveCurrentNote() async {
+    final noteId = state.noteId;
+    if (noteId == null) {
+      return;
+    }
+    await _repository.archiveNote(noteId);
+    state = state.copyWith(isArchived: true, isPinned: false);
+    _ref.invalidate(notesControllerProvider);
+  }
+
+  Future<void> unarchiveCurrentNote() async {
+    final noteId = state.noteId;
+    if (noteId == null) {
+      return;
+    }
+    await _repository.unarchiveNote(noteId);
+    state = state.copyWith(isArchived: false);
+    _ref.invalidate(notesControllerProvider);
   }
 
   void replaceTags(List<String> tags) {
@@ -271,6 +297,7 @@ class NoteEditorController extends StateNotifier<NoteEditorState> {
         tags: saved.tags,
         isPinned: saved.isPinned,
         isFavorite: saved.isFavorite,
+        isArchived: saved.isArchived,
         isSaving: false,
         hasChanges: false,
         lastSavedAt: saved.updatedAt,

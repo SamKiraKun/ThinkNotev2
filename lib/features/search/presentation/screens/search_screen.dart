@@ -77,9 +77,11 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                 brandStyle: true,
                 leading: const HeaderAvatar(label: 'T'),
                 trailing: HeaderActionButton(
-                  icon: Icons.wifi_off_rounded,
+                  icon: Icons.cloud_sync_outlined,
                   onPressed: () => _showSnack(
-                      context, 'No online alerts. Everything is local.'),
+                    context,
+                    'Search stays local for speed, even when sync is enabled.',
+                  ),
                 ),
               ),
               const SizedBox(height: AppSpacing.headerToSearch),

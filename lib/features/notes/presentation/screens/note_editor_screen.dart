@@ -201,6 +201,13 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
                                 editorController.toggleFavorite();
                               } else if (value == 'pin') {
                                 editorController.togglePinned();
+                              } else if (value == 'archive') {
+                                await editorController.archiveCurrentNote();
+                                if (context.mounted) {
+                                  context.pop();
+                                }
+                              } else if (value == 'unarchive') {
+                                await editorController.unarchiveCurrentNote();
                               } else if (value == 'delete') {
                                 final confirmed = await showDialog<bool>(
                                   context: context,
@@ -237,6 +244,17 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
                                       : 'Mark favorite',
                                 ),
                               ),
+                              if (editorState.noteId != null)
+                                PopupMenuItem(
+                                  value: editorState.isArchived
+                                      ? 'unarchive'
+                                      : 'archive',
+                                  child: Text(
+                                    editorState.isArchived
+                                        ? 'Move to notes'
+                                        : 'Archive',
+                                  ),
+                                ),
                               if (editorState.noteId != null)
                                 const PopupMenuItem(
                                   value: 'delete',
@@ -296,6 +314,11 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
                                     _StatusBadge(
                                       icon: Icons.star_rounded,
                                       label: 'Favorite',
+                                    ),
+                                  if (editorState.isArchived)
+                                    _StatusBadge(
+                                      icon: Icons.archive_rounded,
+                                      label: 'Archived',
                                     ),
                                   if (editorState.tags.isNotEmpty)
                                     for (final tag in editorState.tags)

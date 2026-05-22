@@ -3,4 +3,10 @@ class StorageKeys {
   static const String accessToken = 'access_token';
   static const String refreshToken = 'refresh_token';
   static const String notesStore = 'notes_store';
+  static const String hasMigratedNotesStoreToDatabase =
+      'has_migrated_notes_store_to_database';
+  static const String lockPinHash = 'lock_pin_hash';
+  static const String lockPinSalt = 'lock_pin_salt';
+  static const String notificationsEnabled = 'notifications_enabled';
+  static const String defaultReminderMinutes = 'default_reminder_minutes';
 }

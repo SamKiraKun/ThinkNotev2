@@ -37,13 +37,12 @@ class ProfileScreen extends ConsumerWidget {
             children: [
               AppHeader(
                 title: 'Settings',
-                subtitle:
-                    'Manage local preferences for your offline workspace.',
+                subtitle: 'Manage offline-first preferences and sync readiness.',
                 trailing: HeaderActionButton(
-                  icon: Icons.wifi_off_rounded,
+                  icon: Icons.cloud_sync_outlined,
                   onPressed: () => _showSnack(
                     context,
-                    'There are no account or cloud notifications in offline mode.',
+                    'Cloud sync is prepared in code and requires Firebase/Turso configuration.',
                   ),
                 ),
               ),
@@ -81,7 +80,7 @@ class ProfileScreen extends ConsumerWidget {
                               style: AppTypography.titleMedium),
                           const SizedBox(height: AppSpacing.xs),
                           Text(
-                            'All notes stay on this device. No signup, sync, or tracking.',
+                            'Notes work offline first and are ready for authenticated cloud sync.',
                             style: AppTypography.bodyMedium.copyWith(
                               color: palette.textSecondary,
                             ),
@@ -107,7 +106,7 @@ class ProfileScreen extends ConsumerWidget {
                         color: palette.textSecondary,
                       ),
                     ),
-                    onTap: () => _showThemeDialog(context, ref, preferences),
+                    onTap: () => context.push(RouteNames.themeSettings),
                   ),
                   _SettingsTile(
                     icon: Icons.sort_rounded,
@@ -133,6 +132,18 @@ class ProfileScreen extends ConsumerWidget {
                     ),
                     onTap: () => _showPreviewDialog(context, ref, preferences),
                   ),
+                  _SettingsTile(
+                    icon: Icons.notifications_none_rounded,
+                    title: 'Notifications',
+                    subtitle: 'Manage local reminder preferences',
+                    onTap: () => context.push(RouteNames.notificationSettings),
+                  ),
+                  _SettingsTile(
+                    icon: Icons.lock_outline_rounded,
+                    title: 'Lock notes',
+                    subtitle: 'Set a local passcode hash for protected access',
+                    onTap: () => context.push(RouteNames.lockNotes),
+                  ),
                 ],
               ),
               const SizedBox(height: AppSpacing.xxl),
@@ -141,6 +152,13 @@ class ProfileScreen extends ConsumerWidget {
               _SettingsGroup(
                 children: [
                   _SettingsTile(
+                    icon: Icons.archive_outlined,
+                    title: 'Archive',
+                    subtitle:
+                        '${notesState.archivedNotes.length} archived notes',
+                    onTap: () => context.push(RouteNames.archive),
+                  ),
+                  _SettingsTile(
                     icon: Icons.delete_outline_rounded,
                     title: 'Trash',
                     subtitle:
@@ -148,11 +166,17 @@ class ProfileScreen extends ConsumerWidget {
                     onTap: () => context.push(RouteNames.trash),
                   ),
                   _SettingsTile(
-                    icon: Icons.cloud_off_rounded,
-                    title: 'Storage',
-                    subtitle: 'Offline only. Notes are persisted locally.',
+                    icon: Icons.import_export_rounded,
+                    title: 'Import and export',
+                    subtitle: 'Copy or restore a validated JSON backup',
+                    onTap: () => context.push(RouteNames.importExport),
+                  ),
+                  _SettingsTile(
+                    icon: Icons.cloud_queue_rounded,
+                    title: 'Sync storage',
+                    subtitle: 'Local SQLite database with pending sync metadata',
                     trailing: Text(
-                      'Device',
+                      'Offline-first',
                       style: AppTypography.bodyMedium.copyWith(
                         color: palette.textSecondary,
                       ),
@@ -175,16 +199,16 @@ class ProfileScreen extends ConsumerWidget {
               _SettingsGroup(
                 children: const [
                   _StaticTile(
-                    icon: Icons.lock_outline_rounded,
-                    title: 'No account required',
+                    icon: Icons.cloud_done_outlined,
+                    title: 'Offline-first sync model',
                     subtitle:
-                        'You can start writing immediately with no login.',
+                        'Create and edit locally first; sync runs after authenticated cloud setup.',
                   ),
                   _StaticTile(
                     icon: Icons.wifi_off_rounded,
                     title: 'Offline-first',
                     subtitle:
-                        'Search, sorting, folders, and trash all work without internet.',
+                        'Search, sorting, folders, archive, and trash work without internet.',
                   ),
                 ],
               ),
@@ -282,50 +306,6 @@ class ProfileScreen extends ConsumerWidget {
     if (selected != null) {
       await ref.read(notesControllerProvider.notifier).updatePreferences(
             preferences.copyWith(previewLines: selected),
-          );
-    }
-  }
-
-  Future<void> _showThemeDialog(
-    BuildContext context,
-    WidgetRef ref,
-    AppPreferencesModel preferences,
-  ) async {
-    final selected = await showModalBottomSheet<AppThemePreference>(
-      context: context,
-      showDragHandle: true,
-      builder: (context) {
-        return SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.all(AppSpacing.xxl),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('Theme mode', style: AppTypography.titleMedium),
-                const SizedBox(height: AppSpacing.lg),
-                for (final option in AppThemePreference.values)
-                  ListTile(
-                    contentPadding: EdgeInsets.zero,
-                    title: Text(option.label),
-                    trailing: preferences.themePreference == option
-                        ? const Icon(
-                            Icons.check_rounded,
-                            color: AppColors.brandPrimary,
-                          )
-                        : null,
-                    onTap: () => Navigator.of(context).pop(option),
-                  ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-
-    if (selected != null) {
-      await ref.read(notesControllerProvider.notifier).updatePreferences(
-            preferences.copyWith(themePreference: selected),
           );
     }
   }

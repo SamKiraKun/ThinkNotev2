@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:thinknote/core/database/app_database.dart';
 import 'package:thinknote/features/notes/data/datasources/notes_local_datasource.dart';
 import 'package:thinknote/features/notes/data/models/app_preferences_model.dart';
 import 'package:thinknote/features/notes/data/repositories/notes_repository_impl.dart';
@@ -10,11 +11,19 @@ void main() {
 
   group('NotesRepositoryImpl', () {
     late NotesRepository repository;
+    late AppDatabase database;
 
     setUp(() async {
       SharedPreferences.setMockInitialValues(<String, Object>{});
       final preferences = await SharedPreferences.getInstance();
-      repository = NotesRepositoryImpl(NotesLocalDataSource(preferences));
+      database = AppDatabase.memory();
+      repository = NotesRepositoryImpl(
+        NotesLocalDataSource(preferences, database),
+      );
+    });
+
+    tearDown(() async {
+      await database.close();
     });
 
     test('creates and persists a meaningful note', () async {
@@ -57,6 +66,32 @@ void main() {
       await repository.deleteNote(created.id);
       store = await repository.loadStore();
       expect(store.notes, isEmpty);
+    });
+
+    test('archives and unarchives notes separately from trash', () async {
+      final created = await repository.saveNote(
+        const NoteDraft(
+          title: 'Reference',
+          content: 'Keep this out of the active list.',
+        ),
+      );
+
+      expect(created, isNotNull);
+
+      await repository.archiveNote(created!.id);
+      var store = await repository.loadStore();
+      expect(store.notes.single.isArchived, isTrue);
+      expect(store.notes.single.isDeleted, isFalse);
+
+      await repository.unarchiveNote(created.id);
+      store = await repository.loadStore();
+      expect(store.notes.single.isArchived, isFalse);
+
+      await repository.archiveNote(created.id);
+      await repository.moveToTrash(created.id);
+      store = await repository.loadStore();
+      expect(store.notes.single.isArchived, isFalse);
+      expect(store.notes.single.isDeleted, isTrue);
     });
 
     test('updates stored preferences', () async {

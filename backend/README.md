@@ -6,9 +6,11 @@ Node.js Backend using TursoDB (libSQL).
 
 1. Copy `.env.example` to `.env`
 2. Update `TURSO_DATABASE_URL` and `TURSO_AUTH_TOKEN` (optional for local file DB).
-3. Run `npm install`
-4. Run `npm run db:push` to initialize the database scheme.
-5. Run `npm run dev` to start the development server.
+3. Add Firebase Admin credentials using either `FIREBASE_SERVICE_ACCOUNT_JSON`
+   or `FIREBASE_PROJECT_ID`, `FIREBASE_CLIENT_EMAIL`, and `FIREBASE_PRIVATE_KEY`.
+4. Run `npm install`
+5. Run `npm run db:push` to initialize the database scheme.
+6. Run `npm run dev` to start the development server.
 
 ## API Endpoints
 
@@ -18,3 +20,11 @@ Node.js Backend using TursoDB (libSQL).
 - `PATCH /notes/:id`: Update a note
 - `DELETE /notes/:id`: Soft delete a note
 - `PATCH /notes/:id/pin`: Pin/unpin a note
+- `PATCH /notes/:id/favorite`: Favorite/unfavorite a note
+- `PATCH /notes/:id/archive`: Archive a note
+- `PATCH /notes/:id/unarchive`: Unarchive a note
+- `PATCH /notes/:id/restore`: Restore a trashed note
+- `GET /sync/pull?since=...`: Pull authenticated user changes
+- `POST /sync/push`: Push local note mutations
+
+All `/notes` and `/sync` endpoints require `Authorization: Bearer <Firebase ID token>`.

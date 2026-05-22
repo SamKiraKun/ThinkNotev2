@@ -25,16 +25,7 @@ async function pushSchema() {
       await db.execute(statement);
     }
     
-    // Seed a mock user
-    const mockUserId = 'mock-user-id';
-    const now = new Date().toISOString();
-    await db.execute({
-        sql: `INSERT OR IGNORE INTO users (id, email, password_hash, name, created_at, updated_at)
-              VALUES (?, ?, ?, ?, ?, ?)`,
-        args: [mockUserId, 'mock@example.com', 'hash', 'Riya', now, now]
-    });
-    
-    console.log("Schema pushed & seeded mock user successfully!");
+    console.log("Schema pushed successfully!");
   } catch (error) {
     console.error("Failed to push schema:", error);
   }

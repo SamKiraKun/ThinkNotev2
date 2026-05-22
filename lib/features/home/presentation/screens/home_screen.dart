@@ -52,14 +52,14 @@ class HomeScreen extends ConsumerWidget {
             children: [
               AppHeader(
                 title: AppConstants.appName,
-                subtitle: 'Good morning. Your notes stay on this device.',
+                subtitle: 'Good morning. Your notes work offline and sync when configured.',
                 brandStyle: true,
                 leading: const HeaderAvatar(label: 'T'),
                 trailing: HeaderActionButton(
-                  icon: Icons.wifi_off_rounded,
+                  icon: Icons.cloud_sync_outlined,
                   onPressed: () => _showOfflineSnack(
                     context,
-                    'Notifications are off in offline mode.',
+                    'Cloud sync requires Firebase/Turso environment setup.',
                   ),
                 ),
               ),

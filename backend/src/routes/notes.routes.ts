@@ -1,217 +1,277 @@
-import { Router } from "express";
+import { randomUUID } from "crypto";
+import { Request, Response, Router } from "express";
+
 import { db } from "../db/turso_client";
-import { v4 as uuidv4 } from "uuid";
+import { errorResponse, noteFromRow, successResponse } from "../utils/api_response";
 
 const router = Router();
 
-// Helper to format responses
-const successResponse = (data: any, message: string | null = null) => ({
-  success: true,
-  data,
-  message
-});
-
-const errorResponse = (message: string) => ({
-  success: false,
-  data: null,
-  message
-});
-
-// GET /notes
 router.get("/", async (req, res) => {
   try {
-    const userId = (req as any).user_id; // from mock middleware
+    const userId = req.user_id;
+    const includeArchived = req.query.include_archived === "true";
+    const includeDeleted = req.query.include_deleted === "true";
+
     const result = await db.execute({
-      sql: "SELECT * FROM notes WHERE user_id = ? AND is_deleted = 0 ORDER BY is_pinned DESC, updated_at DESC",
-      args: [userId]
+      sql: `
+        SELECT * FROM notes
+        WHERE user_id = ?
+          AND (? = 1 OR is_deleted = 0)
+          AND (? = 1 OR is_archived = 0)
+        ORDER BY is_pinned DESC, updated_at DESC
+      `,
+      args: [userId, includeDeleted ? 1 : 0, includeArchived ? 1 : 0],
     });
-    
-    // Map SQLite results (0/1) back to booleans for the frontend
-    const notes = result.rows.map(r => ({
-      ...r,
-      is_pinned: r.is_pinned === 1,
-      is_favorite: r.is_favorite === 1,
-      is_archived: r.is_archived === 1,
-      is_deleted: r.is_deleted === 1
-    }));
-    
-    res.json(successResponse(notes));
+
+    res.json(
+      successResponse(
+        result.rows.map((row) => noteFromRow(row as Record<string, unknown>)),
+      ),
+    );
   } catch (error) {
     console.error(error);
     res.status(500).json(errorResponse("Failed to fetch notes"));
   }
 });
 
-// GET /notes/:id
 router.get("/:id", async (req, res) => {
   try {
-    const userId = (req as any).user_id;
-    const { id } = req.params;
     const result = await db.execute({
-      sql: "SELECT * FROM notes WHERE id = ? AND user_id = ? AND is_deleted = 0",
-      args: [id, userId]
+      sql: "SELECT * FROM notes WHERE id = ? AND user_id = ?",
+      args: [req.params.id, req.user_id],
     });
-    
+
     if (result.rows.length === 0) {
       return res.status(404).json(errorResponse("Note not found"));
     }
-    
-    const r = result.rows[0];
-    const note = {
-      ...r,
-      is_pinned: r.is_pinned === 1,
-      is_favorite: r.is_favorite === 1,
-      is_archived: r.is_archived === 1,
-      is_deleted: r.is_deleted === 1
-    };
-    
-    res.json(successResponse(note));
+
+    return res.json(
+      successResponse(noteFromRow(result.rows[0] as Record<string, unknown>)),
+    );
   } catch (error) {
     console.error(error);
-    res.status(500).json(errorResponse("Failed to fetch note"));
+    return res.status(500).json(errorResponse("Failed to fetch note"));
   }
 });
 
-// POST /notes
 router.post("/", async (req, res) => {
   try {
-    const userId = (req as any).user_id;
-    const { title, content, excerpt, category, color_key, emoji } = req.body;
-    
-    if (!title) {
-        return res.status(400).json(errorResponse("Title is required"));
+    const { title, content, excerpt, category, folder_id, color_key, emoji } =
+      req.body ?? {};
+    const normalizedTitle = typeof title === "string" ? title.trim() : "";
+    const normalizedContent = typeof content === "string" ? content : "";
+
+    if (!normalizedTitle && !normalizedContent.trim()) {
+      return res
+        .status(400)
+        .json(errorResponse("Title or content is required"));
     }
-    
-    const id = uuidv4();
+
+    const id = randomUUID();
     const now = new Date().toISOString();
-    
+
     await db.execute({
-      sql: `INSERT INTO notes (
-        id, user_id, title, content, excerpt, category, color_key, emoji, created_at, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      sql: `
+        INSERT INTO notes (
+          id, user_id, title, content, excerpt, category, folder_id, color_key,
+          emoji, created_at, updated_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `,
       args: [
-        id, userId, title,
-        content || "",
-        excerpt || "",
-        category || "Personal",
-        color_key || "personal",
-        emoji || "💜",
-        now, now
-      ]
+        id,
+        req.user_id,
+        normalizedTitle,
+        normalizedContent,
+        excerpt ?? normalizedContent.slice(0, 160),
+        category ?? "Personal",
+        folder_id ?? null,
+        color_key ?? "personal",
+        emoji ?? "",
+        now,
+        now,
+      ],
     });
-    
-    const created = await db.execute({ sql: "SELECT * FROM notes WHERE id = ?", args: [id] });
-    
-    const r = created.rows[0];
-    res.status(201).json(successResponse({
-      ...r,
-      is_pinned: r.is_pinned === 1,
-      is_favorite: r.is_favorite === 1,
-      is_archived: r.is_archived === 1,
-      is_deleted: r.is_deleted === 1
-    }));
+
+    const created = await db.execute({
+      sql: "SELECT * FROM notes WHERE id = ? AND user_id = ?",
+      args: [id, req.user_id],
+    });
+
+    return res.status(201).json(
+      successResponse(noteFromRow(created.rows[0] as Record<string, unknown>)),
+    );
   } catch (error) {
     console.error(error);
-    res.status(500).json(errorResponse("Failed to create note"));
+    return res.status(500).json(errorResponse("Failed to create note"));
   }
 });
 
-// PATCH /notes/:id
 router.patch("/:id", async (req, res) => {
   try {
-    const userId = (req as any).user_id;
-    const { id } = req.params;
-    
-    const existing = await db.execute({ sql: "SELECT * FROM notes WHERE id = ? AND user_id = ? AND is_deleted = 0", args: [id, userId] });
+    const existing = await db.execute({
+      sql: "SELECT * FROM notes WHERE id = ? AND user_id = ?",
+      args: [req.params.id, req.user_id],
+    });
     if (existing.rows.length === 0) {
       return res.status(404).json(errorResponse("Note not found"));
     }
-    
-    const { title, content, excerpt, category, color_key, emoji, is_pinned, is_favorite, is_archived } = req.body;
+
+    const current = existing.rows[0] as Record<string, unknown>;
+    const {
+      title,
+      content,
+      excerpt,
+      category,
+      folder_id,
+      color_key,
+      emoji,
+      is_pinned,
+      is_favorite,
+      is_archived,
+      is_deleted,
+      deleted_at,
+    } = req.body ?? {};
     const now = new Date().toISOString();
-    
-    const current = existing.rows[0] as any;
-    
+
     await db.execute({
-      sql: `UPDATE notes SET 
-        title = ?, content = ?, excerpt = ?, category = ?, color_key = ?, emoji = ?, 
-        is_pinned = ?, is_favorite = ?, is_archived = ?, updated_at = ?
-        WHERE id = ? AND user_id = ?`,
+      sql: `
+        UPDATE notes SET
+          title = ?, content = ?, excerpt = ?, category = ?, folder_id = ?,
+          color_key = ?, emoji = ?, is_pinned = ?, is_favorite = ?,
+          is_archived = ?, is_deleted = ?, deleted_at = ?, updated_at = ?
+        WHERE id = ? AND user_id = ?
+      `,
       args: [
         title !== undefined ? title : current.title,
         content !== undefined ? content : current.content,
         excerpt !== undefined ? excerpt : current.excerpt,
         category !== undefined ? category : current.category,
+        folder_id !== undefined ? folder_id : current.folder_id,
         color_key !== undefined ? color_key : current.color_key,
         emoji !== undefined ? emoji : current.emoji,
         is_pinned !== undefined ? (is_pinned ? 1 : 0) : current.is_pinned,
-        is_favorite !== undefined ? (is_favorite ? 1 : 0) : current.is_favorite,
-        is_archived !== undefined ? (is_archived ? 1 : 0) : current.is_archived,
+        is_favorite !== undefined
+          ? (is_favorite ? 1 : 0)
+          : current.is_favorite,
+        is_archived !== undefined
+          ? (is_archived ? 1 : 0)
+          : current.is_archived,
+        is_deleted !== undefined ? (is_deleted ? 1 : 0) : current.is_deleted,
+        deleted_at !== undefined ? deleted_at : current.deleted_at,
         now,
-        id, userId
-      ]
+        req.params.id,
+        req.user_id,
+      ],
     });
-    
-    const updatedResult = await db.execute({ sql: "SELECT * FROM notes WHERE id = ?", args: [id] });
-    const r = updatedResult.rows[0];
-    res.json(successResponse({
-        ...r,
-        is_pinned: r.is_pinned === 1,
-        is_favorite: r.is_favorite === 1,
-        is_archived: r.is_archived === 1,
-        is_deleted: r.is_deleted === 1
-      }));
+
+    const updated = await db.execute({
+      sql: "SELECT * FROM notes WHERE id = ? AND user_id = ?",
+      args: [req.params.id, req.user_id],
+    });
+
+    return res.json(
+      successResponse(noteFromRow(updated.rows[0] as Record<string, unknown>)),
+    );
   } catch (error) {
     console.error(error);
-    res.status(500).json(errorResponse("Failed to update note"));
+    return res.status(500).json(errorResponse("Failed to update note"));
   }
 });
 
-// DELETE /notes/:id (soft delete)
 router.delete("/:id", async (req, res) => {
   try {
-    const userId = (req as any).user_id;
-    const { id } = req.params;
     const now = new Date().toISOString();
-    
     await db.execute({
-      sql: "UPDATE notes SET is_deleted = 1, deleted_at = ? WHERE id = ? AND user_id = ?",
-      args: [now, id, userId]
+      sql: `
+        UPDATE notes
+        SET is_deleted = 1, is_archived = 0, is_pinned = 0,
+            deleted_at = ?, updated_at = ?
+        WHERE id = ? AND user_id = ?
+      `,
+      args: [now, now, req.params.id, req.user_id],
     });
-    
-    res.json(successResponse(null, "Note deleted successfully"));
+
+    return res.json(successResponse(null, "Note moved to Trash"));
   } catch (error) {
     console.error(error);
-    res.status(500).json(errorResponse("Failed to delete note"));
+    return res.status(500).json(errorResponse("Failed to delete note"));
   }
 });
 
-// PATCH /notes/:id/pin
-router.patch("/:id/pin", async (req, res) => {
-    try {
-        const userId = (req as any).user_id;
-        const { id } = req.params;
-        const { is_pinned } = req.body;
-        const now = new Date().toISOString();
-
-        await db.execute({
-            sql: "UPDATE notes SET is_pinned = ?, updated_at = ? WHERE id = ? AND user_id = ?",
-            args: [is_pinned ? 1 : 0, now, id, userId]
-        });
-
-        const updatedResult = await db.execute({ sql: "SELECT * FROM notes WHERE id = ?", args: [id] });
-        const r = updatedResult.rows[0];
-        res.json(successResponse({
-            ...r,
-            is_pinned: r.is_pinned === 1,
-            is_favorite: r.is_favorite === 1,
-            is_archived: r.is_archived === 1,
-            is_deleted: r.is_deleted === 1
-        }));
-    } catch (error) {
-        console.error(error);
-        res.status(500).json(errorResponse("Failed to update pin state"));
-    }
+router.patch("/:id/restore", async (req, res) => {
+  return updateBooleanState(req, res, {
+    is_deleted: 0,
+    deleted_at: null,
+  });
 });
+
+router.patch("/:id/archive", async (req, res) => {
+  return updateBooleanState(req, res, {
+    is_archived: 1,
+    is_deleted: 0,
+    is_pinned: 0,
+    deleted_at: null,
+  });
+});
+
+router.patch("/:id/unarchive", async (req, res) => {
+  return updateBooleanState(req, res, {
+    is_archived: 0,
+  });
+});
+
+router.patch("/:id/pin", async (req, res) => {
+  return updateBooleanState(req, res, {
+    is_pinned: req.body?.is_pinned ? 1 : 0,
+  });
+});
+
+router.patch("/:id/favorite", async (req, res) => {
+  return updateBooleanState(req, res, {
+    is_favorite: req.body?.is_favorite ? 1 : 0,
+  });
+});
+
+async function updateBooleanState(
+  req: Request,
+  res: Response,
+  fields: Record<string, string | number | null>,
+) {
+  try {
+    const now = new Date().toISOString();
+    const noteId = String(req.params.id);
+    const assignments = [
+      ...Object.keys(fields).map((key) => `${key} = ?`),
+      "updated_at = ?",
+    ].join(", ");
+    const args: Array<string | number | null> = [
+      ...Object.values(fields),
+      now,
+      noteId,
+      req.user_id,
+    ];
+
+    await db.execute({
+      sql: `UPDATE notes SET ${assignments} WHERE id = ? AND user_id = ?`,
+      args,
+    });
+
+    const updated = await db.execute({
+      sql: "SELECT * FROM notes WHERE id = ? AND user_id = ?",
+      args: [noteId, req.user_id],
+    });
+
+    if (updated.rows.length === 0) {
+      return res.status(404).json(errorResponse("Note not found"));
+    }
+
+    return res.json(
+      successResponse(noteFromRow(updated.rows[0] as Record<string, unknown>)),
+    );
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json(errorResponse("Failed to update note state"));
+  }
+}
 
 export default router;

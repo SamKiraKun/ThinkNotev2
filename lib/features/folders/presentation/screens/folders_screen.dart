@@ -43,9 +43,11 @@ class FoldersScreen extends ConsumerWidget {
                 title: 'Folders',
                 subtitle: 'Organize notes into folders, tags, and collections.',
                 trailing: HeaderActionButton(
-                  icon: Icons.wifi_off_rounded,
+                  icon: Icons.cloud_sync_outlined,
                   onPressed: () => _showSnack(
-                      context, 'Offline mode keeps everything on-device.'),
+                    context,
+                    'Folders and tags are local-first and ready for sync.',
+                  ),
                 ),
               ),
               const SizedBox(height: AppSpacing.headerToSearch),
@@ -457,6 +459,12 @@ class _CollectionsSection extends ConsumerWidget {
         subtitle: '${notesState.activeNotes.take(5).length} notes',
         icon: Icons.schedule_rounded,
         onTap: () => ref.read(shellTabProvider.notifier).state = ShellTab.home,
+      ),
+      (
+        title: 'Archive',
+        subtitle: '${notesState.archivedNotes.length} notes',
+        icon: Icons.archive_outlined,
+        onTap: () => context.push(RouteNames.archive),
       ),
       (
         title: 'Trash',

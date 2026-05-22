@@ -30,6 +30,8 @@ abstract class NotesRepository {
   Future<NoteModel?> saveNote(NoteDraft draft);
   Future<void> moveToTrash(String id);
   Future<void> restoreNote(String id);
+  Future<NoteModel> archiveNote(String id);
+  Future<NoteModel> unarchiveNote(String id);
   Future<void> deleteNote(String id);
   Future<void> emptyTrash();
   Future<NoteModel> togglePin(String id);
@@ -49,5 +51,6 @@ abstract class NotesRepository {
   Future<void> clearRecentSearches();
   Future<AppPreferencesModel> updatePreferences(
       AppPreferencesModel preferences);
+  Future<void> replaceStore(NotesStoreModel store);
   Future<void> clearAllNotes();
 }

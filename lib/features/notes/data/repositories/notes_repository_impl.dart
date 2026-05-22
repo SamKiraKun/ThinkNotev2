@@ -2,6 +2,7 @@ import 'package:uuid/uuid.dart';
 
 import '../../../folders/data/models/folder_model.dart';
 import '../../../folders/data/models/tag_model.dart';
+import '../../domain/entities/note_entity.dart';
 import '../../domain/repositories/notes_repository.dart';
 import '../datasources/notes_local_datasource.dart';
 import '../models/app_preferences_model.dart';
@@ -55,6 +56,7 @@ class NotesRepositoryImpl implements NotesRepository {
         isFavorite: draft.isFavorite,
         createdAt: now,
         updatedAt: now,
+        syncStatus: NoteSyncStatus.pendingCreate,
       );
 
       final updatedStore = store.copyWith(
@@ -76,6 +78,7 @@ class NotesRepositoryImpl implements NotesRepository {
       updatedAt: now,
       isDeleted: false,
       deletedAt: null,
+      syncStatus: _pendingMutationStatus(current),
     );
 
     final updatedNotes = List<NoteModel>.from(store.notes)
@@ -101,6 +104,8 @@ class NotesRepositoryImpl implements NotesRepository {
           deletedAt: now,
           updatedAt: now,
           isPinned: false,
+          isArchived: false,
+          syncStatus: _pendingMutationStatus(note),
         );
       }).toList(growable: false);
       return store.copyWith(notes: updatedNotes);
@@ -119,9 +124,35 @@ class NotesRepositoryImpl implements NotesRepository {
           isDeleted: false,
           deletedAt: null,
           updatedAt: now,
+          syncStatus: _pendingMutationStatus(note),
         );
       }).toList(growable: false);
       return store.copyWith(notes: updatedNotes);
+    });
+  }
+
+  @override
+  Future<NoteModel> archiveNote(String id) async {
+    return _updateSingleNote(id, (note) {
+      return note.copyWith(
+        isArchived: true,
+        isDeleted: false,
+        deletedAt: null,
+        isPinned: false,
+        updatedAt: DateTime.now(),
+        syncStatus: _pendingMutationStatus(note),
+      );
+    });
+  }
+
+  @override
+  Future<NoteModel> unarchiveNote(String id) async {
+    return _updateSingleNote(id, (note) {
+      return note.copyWith(
+        isArchived: false,
+        updatedAt: DateTime.now(),
+        syncStatus: _pendingMutationStatus(note),
+      );
     });
   }
 
@@ -149,6 +180,7 @@ class NotesRepositoryImpl implements NotesRepository {
       return note.copyWith(
         isPinned: !note.isPinned,
         updatedAt: DateTime.now(),
+        syncStatus: _pendingMutationStatus(note),
       );
     });
   }
@@ -159,6 +191,7 @@ class NotesRepositoryImpl implements NotesRepository {
       return note.copyWith(
         isFavorite: !note.isFavorite,
         updatedAt: DateTime.now(),
+        syncStatus: _pendingMutationStatus(note),
       );
     });
   }
@@ -227,7 +260,10 @@ class NotesRepositoryImpl implements NotesRepository {
       final updatedNotes = store.notes.map((note) {
         if (note.folderId == id) {
           return note.copyWith(
-              folderId: fallbackFolderId, updatedAt: DateTime.now());
+            folderId: fallbackFolderId,
+            updatedAt: DateTime.now(),
+            syncStatus: _pendingMutationStatus(note),
+          );
         }
         return note;
       }).toList(growable: false);
@@ -281,6 +317,7 @@ class NotesRepositoryImpl implements NotesRepository {
               .where((item) => item.toLowerCase() != tag.label.toLowerCase())
               .toList(growable: false),
           updatedAt: DateTime.now(),
+          syncStatus: _pendingMutationStatus(note),
         );
       }).toList(growable: false);
       return store.copyWith(tags: updatedTags, notes: updatedNotes);
@@ -324,6 +361,11 @@ class NotesRepositoryImpl implements NotesRepository {
   }
 
   @override
+  Future<void> replaceStore(NotesStoreModel store) async {
+    await _localDataSource.writeStore(store.withDefaults());
+  }
+
+  @override
   Future<void> clearAllNotes() async {
     await _mutateStore((store) {
       return store.copyWith(notes: const <NoteModel>[]);
@@ -352,6 +394,12 @@ class NotesRepositoryImpl implements NotesRepository {
       ..[index] = updatedNote;
     await _localDataSource.writeStore(store.copyWith(notes: updatedNotes));
     return updatedNote;
+  }
+
+  NoteSyncStatus _pendingMutationStatus(NoteModel note) {
+    return note.remoteId == null
+        ? NoteSyncStatus.pendingCreate
+        : NoteSyncStatus.pendingUpdate;
   }
 
   List<String> _normalizeTags(List<String> tags) {

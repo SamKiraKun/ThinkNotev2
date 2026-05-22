@@ -40,6 +40,15 @@ void main() {
           createdAt: now.subtract(const Duration(days: 1)),
           updatedAt: now.subtract(const Duration(hours: 1)),
         ),
+        NoteModel(
+          id: '4',
+          title: 'Archived Spec',
+          content: 'Hidden from active search.',
+          folderId: 'work',
+          isArchived: true,
+          createdAt: now,
+          updatedAt: now,
+        ),
       ],
       folders: folders,
       tags: TagModel.defaults(),
@@ -68,6 +77,12 @@ void main() {
       expect(favorites.single.id, '3');
       expect(alphabetical.first.id, '1');
       expect(alphabetical.last.id, '3');
+    });
+
+    test('keeps archived notes out of active filters', () {
+      expect(state.activeNotes.map((note) => note.id), isNot(contains('4')));
+      expect(state.archivedNotes.single.id, '4');
+      expect(state.filterNotes(includeArchived: true).single.id, '4');
     });
   });
 }

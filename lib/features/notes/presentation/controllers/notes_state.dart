@@ -2,6 +2,7 @@ import '../../../folders/data/models/folder_model.dart';
 import '../../../folders/data/models/tag_model.dart';
 import '../../data/models/app_preferences_model.dart';
 import '../../data/models/note_model.dart';
+import '../../data/models/notes_store_model.dart';
 
 class FolderSummary {
   const FolderSummary({
@@ -38,6 +39,16 @@ class NotesState {
   final List<String> recentSearches;
   final AppPreferencesModel preferences;
 
+  NotesStoreModel toStore() {
+    return NotesStoreModel(
+      notes: notes,
+      folders: folders,
+      tags: tags,
+      recentSearches: recentSearches,
+      preferences: preferences,
+    );
+  }
+
   Map<String, FolderModel> get folderMap {
     return <String, FolderModel>{
       for (final folder in folders) folder.id: folder,
@@ -68,6 +79,13 @@ class NotesState {
           (b.deletedAt ?? b.updatedAt).compareTo(a.deletedAt ?? a.updatedAt));
   }
 
+  List<NoteModel> get archivedNotes {
+    return notes
+        .where((note) => note.isArchived && !note.isDeleted)
+        .toList(growable: false)
+      ..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
+  }
+
   NoteModel? get featuredPinnedNote {
     final pinned =
         activeNotes.where((note) => note.isPinned).toList(growable: false);
@@ -84,7 +102,7 @@ class NotesState {
   List<FolderSummary> get folderSummaries {
     return folders.map((folder) {
       final noteCount = notes.where((note) {
-        return !note.isDeleted && note.folderId == folder.id;
+        return !note.isDeleted && !note.isArchived && note.folderId == folder.id;
       }).length;
       return FolderSummary(folder: folder, noteCount: noteCount);
     }).toList(growable: false);
@@ -93,7 +111,7 @@ class NotesState {
   List<TagSummary> get tagSummaries {
     return tags.map((tag) {
       final noteCount = notes.where((note) {
-        if (note.isDeleted) {
+        if (note.isDeleted || note.isArchived) {
           return false;
         }
         return note.tags.any(
@@ -106,7 +124,9 @@ class NotesState {
 
   List<NoteModel> topPicks({int limit = 3}) {
     final candidates =
-        notes.where((note) => !note.isDeleted).toList(growable: false)
+        notes
+            .where((note) => !note.isDeleted && !note.isArchived)
+            .toList(growable: false)
           ..sort((a, b) {
             final scoreA = (a.isPinned ? 2 : 0) + (a.isFavorite ? 1 : 0);
             final scoreB = (b.isPinned ? 2 : 0) + (b.isFavorite ? 1 : 0);
@@ -126,6 +146,7 @@ class NotesState {
     bool favoritesOnly = false,
     bool pinnedOnly = false,
     bool includeDeleted = false,
+    bool includeArchived = false,
     NoteSortOrder? sortOrder,
   }) {
     final effectiveSort = sortOrder ?? preferences.defaultSortOrder;
@@ -135,6 +156,12 @@ class NotesState {
         return false;
       }
       if (includeDeleted && !note.isDeleted) {
+        return false;
+      }
+      if (!includeArchived && note.isArchived) {
+        return false;
+      }
+      if (includeArchived && !note.isArchived) {
         return false;
       }
       if (folderId != null && note.folderId != folderId) {

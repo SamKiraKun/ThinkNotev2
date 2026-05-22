@@ -4,6 +4,7 @@ import '../../../../bootstrap/dependency_injection.dart';
 import '../../../folders/data/models/folder_model.dart';
 import '../../../folders/data/models/tag_model.dart';
 import '../../data/models/app_preferences_model.dart';
+import '../../data/models/notes_store_model.dart';
 import 'notes_state.dart';
 
 final notesControllerProvider =
@@ -27,6 +28,16 @@ class NotesController extends AsyncNotifier<NotesState> {
 
   Future<void> restore(String id) async {
     await ref.read(notesRepositoryProvider).restoreNote(id);
+    ref.invalidateSelf();
+  }
+
+  Future<void> archive(String id) async {
+    await ref.read(notesRepositoryProvider).archiveNote(id);
+    ref.invalidateSelf();
+  }
+
+  Future<void> unarchive(String id) async {
+    await ref.read(notesRepositoryProvider).unarchiveNote(id);
     ref.invalidateSelf();
   }
 
@@ -87,6 +98,11 @@ class NotesController extends AsyncNotifier<NotesState> {
 
   Future<void> updatePreferences(AppPreferencesModel preferences) async {
     await ref.read(notesRepositoryProvider).updatePreferences(preferences);
+    ref.invalidateSelf();
+  }
+
+  Future<void> replaceStore(NotesStoreModel store) async {
+    await ref.read(notesRepositoryProvider).replaceStore(store);
     ref.invalidateSelf();
   }
 
