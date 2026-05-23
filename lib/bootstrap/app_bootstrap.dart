@@ -8,7 +8,9 @@ import 'app_initializer.dart';
 Future<void> bootstrapApp() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  final prefs = await const AppInitializer().initializePreferences();
+  const initializer = AppInitializer();
+  await initializer.initializeFirebase();
+  final prefs = await initializer.initializePreferences();
 
   runApp(
     ProviderScope(

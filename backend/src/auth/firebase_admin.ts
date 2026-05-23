@@ -7,6 +7,8 @@ export function firebaseAuth(): admin.auth.Auth {
     admin.initializeApp({
       credential: buildCredential(),
       projectId: process.env.FIREBASE_PROJECT_ID,
+      databaseURL: process.env.FIREBASE_DATABASE_URL,
+      storageBucket: process.env.FIREBASE_STORAGE_BUCKET,
     });
     initialized = true;
   }
