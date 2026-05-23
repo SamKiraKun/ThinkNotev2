@@ -6,11 +6,12 @@ Node.js Backend using TursoDB (libSQL).
 
 1. Copy `.env.example` to `.env`
 2. Update `TURSO_DATABASE_URL` and `TURSO_AUTH_TOKEN` (optional for local file DB).
-3. Add Firebase Admin credentials using either `FIREBASE_SERVICE_ACCOUNT_JSON`
+3. The example file already includes the Firebase project ID, database URL, and storage bucket for the current Android client config.
+4. Add Firebase Admin credentials using either `FIREBASE_SERVICE_ACCOUNT_JSON`
    or `FIREBASE_PROJECT_ID`, `FIREBASE_CLIENT_EMAIL`, and `FIREBASE_PRIVATE_KEY`.
-4. Run `npm install`
-5. Run `npm run db:push` to initialize the database scheme.
-6. Run `npm run dev` to start the development server.
+5. Run `npm install`
+6. Run `npm run db:push` to initialize the database scheme.
+7. Run `npm run dev` to start the development server.
 
 ## API Endpoints
 

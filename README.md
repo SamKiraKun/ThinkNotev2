@@ -5,44 +5,26 @@ This workspace contains the ThinkNote Flutter client with Riverpod state managem
 ## Run the app
 
 1. Install Flutter for the stable 3.4+ SDK line.
-2. From the project root, fetch packages:
+2. Copy `.env.example` to `.env` in the project root and fill in the Firebase client values.
+3. From the project root, fetch packages:
 
 ```bash
 flutter pub get
 ```
 
-3. Start the app with your API base URL:
+4. Start the app:
 
 ```bash
-flutter run --dart-define=API_BASE_URL=http://localhost:3000
+flutter run
 ```
 
-## Auth endpoint configuration
+## Firebase env
 
-The auth client reads its base URL from `API_BASE_URL`.
+The Android client reads Firebase config from the root `.env` file.
 
-- Sign in: `POST /auth/sign-in`
-- Google: `POST /auth/social/google`
-- Apple: `POST /auth/social/apple`
-- Microsoft: `POST /auth/social/microsoft`
-- Forgot password: `POST /auth/forgot-password`
-- Current user: `GET /auth/me`
-
-Social auth is intentionally gated behind:
-
-```bash
---dart-define=ENABLE_SOCIAL_AUTH=true
-```
-
-If that flag is not enabled, the UI stays real but the repository returns a controlled "coming soon" error instead of faking success.
-
-## Social credentials
-
-Do not place OAuth secrets, backend tokens, or service credentials in Dart source.
-
-- Put mobile or web client IDs in the platform-specific configuration expected by each provider.
-- Keep provider secrets on the backend only.
-- Wire provider callback handling to the backend endpoints above before enabling `ENABLE_SOCIAL_AUTH=true`.
+- Client config lives in `.env`
+- Backend Admin config lives in `backend/.env`
+- Keep both files out of git; only `.env.example` files are tracked
 
 ## Illustration assets
 
