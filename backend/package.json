@@ -5,6 +5,7 @@
   "main": "dist/server.js",
   "scripts": {
     "start": "node dist/server.js",
+    "postinstall": "npm run build",
     "dev": "ts-node-dev src/server.ts",
     "build": "tsc",
     "db:push": "node scripts/push_schema.js"

@@ -11,6 +11,7 @@ coverage/
 test_cache/
 node_modules/
 backend/node_modules/
+backend/dist/
 
 *.iml
 *.swp
