@@ -72,12 +72,68 @@ jobs:
               > android/key.properties
 
       - run:
-          name: Build release APK
-          command: flutter build apk --release --build-number="${CIRCLE_BUILD_NUM:-1}"
+          name: Build release Android artifacts
+          command: |
+            set -euo pipefail
 
-      - run:
-          name: Build release AAB
-          command: flutter build appbundle --release --build-number="${CIRCLE_BUILD_NUM:-1}"
+            required_runtime_env=(
+              APP_FLAVOR
+              API_URL
+              FIREBASE_API_KEY
+              FIREBASE_APP_ID
+              FIREBASE_MESSAGING_SENDER_ID
+              FIREBASE_PROJECT_ID
+            )
+
+            for var_name in "${required_runtime_env[@]}"; do
+              if [ -z "${!var_name:-}" ]; then
+                echo "Missing required runtime environment variable: ${var_name}"
+                exit 1
+              fi
+            done
+
+            case "${APP_FLAVOR}" in
+              development|staging|production) ;;
+              *)
+                echo "APP_FLAVOR must be one of: development, staging, production"
+                exit 1
+                ;;
+            esac
+
+            : "${ENABLE_ANALYTICS:=false}"
+            : "${ENABLE_EXPERIMENTAL_SYNC:=false}"
+
+            build_args=(
+              "--release"
+              "--build-number=${CIRCLE_BUILD_NUM:-1}"
+              "--dart-define=APP_FLAVOR=${APP_FLAVOR}"
+              "--dart-define=API_URL=${API_URL}"
+              "--dart-define=FIREBASE_API_KEY=${FIREBASE_API_KEY}"
+              "--dart-define=FIREBASE_APP_ID=${FIREBASE_APP_ID}"
+              "--dart-define=FIREBASE_MESSAGING_SENDER_ID=${FIREBASE_MESSAGING_SENDER_ID}"
+              "--dart-define=FIREBASE_PROJECT_ID=${FIREBASE_PROJECT_ID}"
+              "--dart-define=ENABLE_ANALYTICS=${ENABLE_ANALYTICS}"
+              "--dart-define=ENABLE_EXPERIMENTAL_SYNC=${ENABLE_EXPERIMENTAL_SYNC}"
+            )
+
+            if [ -n "${FIREBASE_DATABASE_URL:-}" ]; then
+              build_args+=("--dart-define=FIREBASE_DATABASE_URL=${FIREBASE_DATABASE_URL}")
+            fi
+
+            if [ -n "${FIREBASE_STORAGE_BUCKET:-}" ]; then
+              build_args+=("--dart-define=FIREBASE_STORAGE_BUCKET=${FIREBASE_STORAGE_BUCKET}")
+            fi
+
+            if [ -n "${SENTRY_DSN:-}" ]; then
+              build_args+=("--dart-define=SENTRY_DSN=${SENTRY_DSN}")
+            fi
+
+            if [ -n "${ANALYTICS_KEY:-}" ]; then
+              build_args+=("--dart-define=ANALYTICS_KEY=${ANALYTICS_KEY}")
+            fi
+
+            flutter build apk "${build_args[@]}"
+            flutter build appbundle "${build_args[@]}"
 
       - store_artifacts:
           path: build/app/outputs/flutter-apk/app-release.apk

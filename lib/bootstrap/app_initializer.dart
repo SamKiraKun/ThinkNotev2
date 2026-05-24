@@ -1,15 +1,19 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../core/config/app_env.dart';
 import '../core/config/firebase_client_options.dart';
 
 class AppInitializer {
   const AppInitializer();
 
-  Future<void> initializeEnvironment() {
-    return dotenv.load(fileName: '.env');
+  void validateEnvironment() {
+    AppEnv.validateBase();
+
+    if (defaultTargetPlatform == TargetPlatform.android) {
+      AppEnv.validateAndroid();
+    }
   }
 
   Future<void> initializeFirebase() async {

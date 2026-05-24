@@ -9,7 +9,7 @@ Future<void> bootstrapApp() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   const initializer = AppInitializer();
-  await initializer.initializeEnvironment();
+  initializer.validateEnvironment();
   await initializer.initializeFirebase();
   final prefs = await initializer.initializePreferences();
 
