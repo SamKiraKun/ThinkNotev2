@@ -217,7 +217,7 @@ jobs:
           path: build/release-metadata
           destination: release-metadata
 
-        - store_artifacts:
+      - store_artifacts:
           path: build/test-results
           destination: test-results
 
