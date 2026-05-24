@@ -17,6 +17,10 @@ class AppInitializer {
   }
 
   Future<void> initializeFirebase() async {
+    if (!AppEnv.enableExperimentalSync) {
+      return;
+    }
+
     if (defaultTargetPlatform != TargetPlatform.android) {
       return;
     }

@@ -147,8 +147,7 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
                                   color: palette.surfacePrimary,
                                   borderRadius:
                                       BorderRadius.circular(AppRadius.pill),
-                                  border:
-                                      Border.all(color: palette.borderSoft),
+                                  border: Border.all(color: palette.borderSoft),
                                 ),
                                 padding: const EdgeInsets.symmetric(
                                   horizontal: AppSpacing.lg,
@@ -411,8 +410,7 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
                                     border: InputBorder.none,
                                     hintText:
                                         'Start writing. This note saves automatically.',
-                                    hintStyle:
-                                        AppTypography.bodyLarge.copyWith(
+                                    hintStyle: AppTypography.bodyLarge.copyWith(
                                       color: palette.textPlaceholder,
                                     ),
                                   ),
@@ -463,8 +461,8 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
                             _BottomAction(
                               icon: Icons.sell_outlined,
                               label: 'Tag',
-                              onTap: () =>
-                                  _showTagSelector(context, ref, editorState.tags),
+                              onTap: () => _showTagSelector(
+                                  context, ref, editorState.tags),
                             ),
                           ],
                         ),
@@ -479,17 +477,18 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
   Future<void> _saveAndClose(NoteEditorController controller) async {
     await controller.saveNow();
 
-    if (!context.mounted) {
+    if (!mounted) {
       return;
     }
 
     final navigator = Navigator.of(context);
+    final router = GoRouter.of(context);
     if (navigator.canPop()) {
-      context.pop();
+      navigator.pop();
       return;
     }
 
-    context.go(RouteNames.root);
+    router.go(RouteNames.root);
   }
 
   void _applyInlineWrap(

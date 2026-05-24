@@ -8,6 +8,7 @@
     "postinstall": "npm run build",
     "dev": "ts-node-dev src/server.ts",
     "build": "tsc",
+    "test": "npm run build && node scripts/validate_note_payloads.js",
     "db:push": "node scripts/push_schema.js"
   },
   "dependencies": {

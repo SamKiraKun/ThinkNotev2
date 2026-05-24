@@ -66,6 +66,15 @@ void main() {
       await repository.deleteNote(created.id);
       store = await repository.loadStore();
       expect(store.notes, isEmpty);
+
+      final db = await database.instance;
+      final queueRows = db.select(
+        'SELECT entity_type, entity_id, operation FROM sync_queue',
+      );
+      expect(queueRows, hasLength(1));
+      expect(queueRows.single['entity_type'], 'note');
+      expect(queueRows.single['entity_id'], created.id);
+      expect(queueRows.single['operation'], 'delete');
     });
 
     test('archives and unarchives notes separately from trash', () async {
@@ -107,6 +116,57 @@ void main() {
       expect(store.preferences.defaultSortOrder, NoteSortOrder.titleAsc);
       expect(store.preferences.previewLines, 3);
       expect(store.preferences.themePreference, AppThemePreference.dark);
+    });
+
+    test('deletes custom folders with a queued tombstone and reassigns notes',
+        () async {
+      final folder = await repository.createFolder('Launch board', emoji: 'W');
+      final created = await repository.saveNote(
+        NoteDraft(
+          title: 'Sprint notes',
+          content: 'Move this note when the folder is deleted.',
+          folderId: folder.id,
+        ),
+      );
+
+      await repository.deleteFolder(folder.id);
+      final store = await repository.loadStore();
+
+      expect(store.folders.any((item) => item.id == folder.id), isFalse);
+      expect(store.notes.single.id, created!.id);
+      expect(store.notes.single.folderId, isNot(folder.id));
+
+      final db = await database.instance;
+      final queueRows = db.select(
+        "SELECT entity_type, entity_id FROM sync_queue WHERE entity_type = 'folder'",
+      );
+      expect(queueRows, hasLength(1));
+      expect(queueRows.single['entity_id'], folder.id);
+    });
+
+    test('deletes custom tags with a queued tombstone and strips note labels',
+        () async {
+      final tag = await repository.createTag('Launch', emoji: '#');
+      await repository.saveNote(
+        const NoteDraft(
+          title: 'Checklist',
+          content: 'Remove launch tag everywhere.',
+          tags: <String>['Launch'],
+        ),
+      );
+
+      await repository.deleteTag(tag.id);
+      final store = await repository.loadStore();
+
+      expect(store.tags.any((item) => item.id == tag.id), isFalse);
+      expect(store.notes.single.tags, isNot(contains('Launch')));
+
+      final db = await database.instance;
+      final queueRows = db.select(
+        "SELECT entity_type, entity_id FROM sync_queue WHERE entity_type = 'tag'",
+      );
+      expect(queueRows, hasLength(1));
+      expect(queueRows.single['entity_id'], tag.id);
     });
   });
 }

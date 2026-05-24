@@ -7,6 +7,7 @@ class FolderModel extends FolderEntity {
     required super.colorKey,
     required super.emoji,
     required super.createdAt,
+    required super.updatedAt,
     super.isSystem,
   });
 
@@ -17,6 +18,9 @@ class FolderModel extends FolderEntity {
       colorKey: json['color_key'] as String? ?? 'personal',
       emoji: json['emoji'] as String? ?? '',
       createdAt: DateTime.parse(json['created_at'] as String),
+      updatedAt: json['updated_at'] == null
+          ? DateTime.parse(json['created_at'] as String)
+          : DateTime.parse(json['updated_at'] as String),
       isSystem: json['is_system'] as bool? ?? false,
     );
   }
@@ -28,6 +32,7 @@ class FolderModel extends FolderEntity {
       'color_key': colorKey,
       'emoji': emoji,
       'created_at': createdAt.toIso8601String(),
+      'updated_at': updatedAt.toIso8601String(),
       'is_system': isSystem,
     };
   }
@@ -36,6 +41,7 @@ class FolderModel extends FolderEntity {
     String? name,
     String? colorKey,
     String? emoji,
+    DateTime? updatedAt,
     bool? isSystem,
   }) {
     return FolderModel(
@@ -44,6 +50,7 @@ class FolderModel extends FolderEntity {
       colorKey: colorKey ?? this.colorKey,
       emoji: emoji ?? this.emoji,
       createdAt: createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
       isSystem: isSystem ?? this.isSystem,
     );
   }
@@ -63,6 +70,7 @@ class FolderModel extends FolderEntity {
         colorKey: folder.colorKey,
         emoji: folder.emoji,
         createdAt: createdAt,
+        updatedAt: createdAt,
         isSystem: true,
       );
     }).toList(growable: false);

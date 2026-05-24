@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/constants/route_names.dart';
+import '../../../../core/config/app_env.dart';
 import '../../../../core/extensions/context_extensions.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_radius.dart';
@@ -16,6 +17,7 @@ import '../../../../shared/widgets/app_search_bar.dart';
 import '../../../../shared/widgets/tag_chip.dart';
 import '../../../notes/presentation/controllers/notes_controller.dart';
 import '../../../shell/presentation/controllers/shell_controller.dart';
+import '../../../sync/presentation/controllers/sync_controller.dart';
 import '../controllers/folders_controller.dart';
 import '../widgets/folder_visuals.dart';
 
@@ -26,6 +28,8 @@ class FoldersScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final notesAsync = ref.watch(notesControllerProvider);
     final segment = ref.watch(foldersSegmentProvider);
+    final syncEnabled = AppEnv.enableExperimentalSync;
+    final syncState = ref.watch(syncControllerProvider);
 
     return SafeArea(
       bottom: false,
@@ -41,14 +45,20 @@ class FoldersScreen extends ConsumerWidget {
             children: [
               AppHeader(
                 title: 'Folders',
-                subtitle: 'Organize notes into folders, tags, and collections.',
-                trailing: HeaderActionButton(
-                  icon: Icons.cloud_sync_outlined,
-                  onPressed: () => _showSnack(
-                    context,
-                    'Folders and tags are local-first and ready for sync.',
-                  ),
-                ),
+                subtitle: syncEnabled
+                    ? 'Organize notes into folders, tags, and collections that sync with your account.'
+                    : 'Organize notes into folders, tags, and collections on this device.',
+                trailing: syncEnabled
+                    ? HeaderActionButton(
+                        icon: syncState.isSyncing
+                            ? Icons.sync_rounded
+                            : Icons.cloud_done_outlined,
+                        onPressed: () => _showSnack(
+                          context,
+                          'Folder and tag changes sync after they are saved locally.',
+                        ),
+                      )
+                    : null,
               ),
               const SizedBox(height: AppSpacing.headerToSearch),
               AppSearchBar(

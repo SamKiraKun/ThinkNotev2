@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../core/constants/route_names.dart';
 import '../../../../core/constants/app_constants.dart';
+import '../../../../core/config/app_env.dart';
 import '../../../../core/extensions/context_extensions.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_radius.dart';
@@ -19,6 +20,7 @@ import '../../../notes/data/models/app_preferences_model.dart';
 import '../../../notes/presentation/controllers/notes_controller.dart';
 import '../../../notes/presentation/widgets/note_card.dart';
 import '../../../shell/presentation/controllers/shell_controller.dart';
+import '../../../sync/presentation/controllers/sync_controller.dart';
 import '../controllers/search_controller.dart';
 
 class SearchScreen extends ConsumerStatefulWidget {
@@ -51,6 +53,8 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     final topPicks = ref.watch(searchTopPicksProvider);
     final hasFilters = ref.watch(hasSearchFiltersProvider);
     final palette = context.palette;
+    final syncEnabled = AppEnv.enableExperimentalSync;
+    final syncState = ref.watch(syncControllerProvider);
 
     if (_controller.text != searchState.query) {
       _controller.value = _controller.value.copyWith(
@@ -73,16 +77,21 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
             children: [
               AppHeader(
                 title: AppConstants.appName,
-                subtitle: 'Search notes, folders, and tags instantly.',
+                subtitle:
+                    'Search notes, folders, and tags instantly on this device.',
                 brandStyle: true,
                 leading: const HeaderAvatar(label: 'T'),
-                trailing: HeaderActionButton(
-                  icon: Icons.cloud_sync_outlined,
-                  onPressed: () => _showSnack(
-                    context,
-                    'Search stays local for speed, even when sync is enabled.',
-                  ),
-                ),
+                trailing: syncEnabled
+                    ? HeaderActionButton(
+                        icon: syncState.isSyncing
+                            ? Icons.sync_rounded
+                            : Icons.cloud_done_outlined,
+                        onPressed: () => _showSnack(
+                          context,
+                          'Search stays local for speed while synced notes update in the background.',
+                        ),
+                      )
+                    : null,
               ),
               const SizedBox(height: AppSpacing.headerToSearch),
               AppSearchBar(
@@ -502,7 +511,8 @@ class _ModeChip extends StatelessWidget {
           child: Text(
             label,
             style: AppTypography.bodyMedium.copyWith(
-              color: selected ? context.colors.onPrimary : palette.textSecondary,
+              color:
+                  selected ? context.colors.onPrimary : palette.textSecondary,
             ),
           ),
         ),

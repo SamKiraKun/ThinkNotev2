@@ -5,6 +5,7 @@ class TagModel extends TagEntity {
     required super.id,
     required super.label,
     required super.createdAt,
+    required super.updatedAt,
     super.emoji,
   });
 
@@ -13,6 +14,9 @@ class TagModel extends TagEntity {
       id: json['id'] as String,
       label: json['label'] as String,
       createdAt: DateTime.parse(json['created_at'] as String),
+      updatedAt: json['updated_at'] == null
+          ? DateTime.parse(json['created_at'] as String)
+          : DateTime.parse(json['updated_at'] as String),
       emoji: json['emoji'] as String? ?? '',
     );
   }
@@ -22,6 +26,7 @@ class TagModel extends TagEntity {
       'id': id,
       'label': label,
       'created_at': createdAt.toIso8601String(),
+      'updated_at': updatedAt.toIso8601String(),
       'emoji': emoji,
     };
   }
@@ -40,6 +45,7 @@ class TagModel extends TagEntity {
         id: tag.id,
         label: tag.label,
         createdAt: createdAt,
+        updatedAt: createdAt,
         emoji: tag.emoji,
       );
     }).toList(growable: false);

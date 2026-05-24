@@ -5,6 +5,7 @@ class FolderEntity {
     required this.colorKey,
     required this.emoji,
     required this.createdAt,
+    required this.updatedAt,
     this.isSystem = false,
   });
 
@@ -13,6 +14,7 @@ class FolderEntity {
   final String colorKey;
   final String emoji;
   final DateTime createdAt;
+  final DateTime updatedAt;
   final bool isSystem;
 
   String get displayName {

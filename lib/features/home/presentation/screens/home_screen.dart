@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../core/constants/route_names.dart';
 import '../../../../core/constants/app_constants.dart';
+import '../../../../core/config/app_env.dart';
 import '../../../../core/extensions/context_extensions.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_gradients.dart';
@@ -21,6 +22,7 @@ import '../../../notes/presentation/controllers/notes_controller.dart';
 import '../../../notes/presentation/controllers/notes_state.dart';
 import '../../../notes/presentation/widgets/note_card.dart';
 import '../../../shell/presentation/controllers/shell_controller.dart';
+import '../../../sync/presentation/controllers/sync_controller.dart';
 import '../../../../shared/widgets/category_chip.dart';
 
 class HomeScreen extends ConsumerWidget {
@@ -31,6 +33,8 @@ class HomeScreen extends ConsumerWidget {
     final selectedFolderId = ref.watch(homeSelectedFolderProvider);
     final notesAsync = ref.watch(notesControllerProvider);
     final palette = context.palette;
+    final syncEnabled = AppEnv.enableExperimentalSync;
+    final syncState = ref.watch(syncControllerProvider);
 
     return SafeArea(
       bottom: false,
@@ -52,16 +56,21 @@ class HomeScreen extends ConsumerWidget {
             children: [
               AppHeader(
                 title: AppConstants.appName,
-                subtitle: 'Good morning. Your notes work offline and sync when configured.',
+                subtitle: syncEnabled
+                    ? 'Good morning. Your notes stay on this device first and sync when you are online.'
+                    : 'Good morning. Your notes stay on this device and work offline.',
                 brandStyle: true,
                 leading: const HeaderAvatar(label: 'T'),
-                trailing: HeaderActionButton(
-                  icon: Icons.cloud_sync_outlined,
-                  onPressed: () => _showOfflineSnack(
-                    context,
-                    'Cloud sync requires Firebase/Turso environment setup.',
-                  ),
-                ),
+                trailing: syncEnabled
+                    ? HeaderActionButton(
+                        icon: syncState.isSyncing
+                            ? Icons.sync_rounded
+                            : syncState.lastError == null
+                                ? Icons.cloud_done_outlined
+                                : Icons.cloud_off_outlined,
+                        onPressed: () => _runSync(context, ref),
+                      )
+                    : null,
               ),
               const SizedBox(height: AppSpacing.headerToSearch),
               AppSearchBar(
@@ -267,7 +276,16 @@ class HomeScreen extends ConsumerWidget {
     );
   }
 
-  void _showOfflineSnack(BuildContext context, String message) {
+  Future<void> _runSync(BuildContext context, WidgetRef ref) async {
+    await ref.read(syncControllerProvider.notifier).syncNow();
+    final syncState = ref.read(syncControllerProvider);
+    final message = syncState.lastError == null
+        ? 'Sync complete.'
+        : 'Sync failed: ${syncState.lastError}';
+    if (!context.mounted) {
+      return;
+    }
+
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(message)),
     );

@@ -1,5 +1,6 @@
 import 'package:uuid/uuid.dart';
 
+import '../../../sync/data/models/sync_delete_operation.dart';
 import '../../../folders/data/models/folder_model.dart';
 import '../../../folders/data/models/tag_model.dart';
 import '../../domain/entities/note_entity.dart';
@@ -158,20 +159,47 @@ class NotesRepositoryImpl implements NotesRepository {
 
   @override
   Future<void> deleteNote(String id) async {
-    await _mutateStore((store) {
-      final updatedNotes =
-          store.notes.where((note) => note.id != id).toList(growable: false);
-      return store.copyWith(notes: updatedNotes);
-    });
+    final store = await loadStore();
+    final note = store.notes.where((item) => item.id == id).firstOrNull;
+    if (note == null) {
+      return;
+    }
+
+    await _queueDeleteOperation(
+      SyncDeleteOperation.forEntity(
+        entityType: SyncEntityType.note,
+        entityId: note.id,
+        deletedAt: DateTime.now().toUtc(),
+      ),
+    );
+
+    final updatedNotes =
+        store.notes.where((item) => item.id != id).toList(growable: false);
+    await _localDataSource.writeStore(store.copyWith(notes: updatedNotes));
   }
 
   @override
   Future<void> emptyTrash() async {
-    await _mutateStore((store) {
-      final updatedNotes =
-          store.notes.where((note) => !note.isDeleted).toList(growable: false);
-      return store.copyWith(notes: updatedNotes);
-    });
+    final store = await loadStore();
+    final deletedNotes =
+        store.notes.where((note) => note.isDeleted).toList(growable: false);
+    if (deletedNotes.isEmpty) {
+      return;
+    }
+
+    await _queueDeleteOperations(
+      deletedNotes.map((note) {
+        return SyncDeleteOperation.forEntity(
+          entityType: SyncEntityType.note,
+          entityId: note.id,
+          deletedAt: DateTime.now().toUtc(),
+        );
+      }).toList(growable: false),
+    );
+
+    final updatedNotes =
+        store.notes.where((note) => !note.isDeleted).toList(growable: false);
+    await _localDataSource.writeStore(store.copyWith(notes: updatedNotes));
   }
 
   @override
@@ -215,6 +243,7 @@ class NotesRepositoryImpl implements NotesRepository {
       colorKey: _nextFolderColor(store.folders.length),
       emoji: emoji,
       createdAt: DateTime.now(),
+      updatedAt: DateTime.now(),
     );
 
     final updatedStore = store.copyWith(
@@ -237,7 +266,10 @@ class NotesRepositoryImpl implements NotesRepository {
         if (folder.id != id) {
           return folder;
         }
-        renamedFolder = folder.copyWith(name: trimmedName);
+        renamedFolder = folder.copyWith(
+          name: trimmedName,
+          updatedAt: DateTime.now(),
+        );
         return renamedFolder;
       }).toList(growable: false);
       return store.copyWith(folders: updatedFolders);
@@ -247,31 +279,40 @@ class NotesRepositoryImpl implements NotesRepository {
 
   @override
   Future<void> deleteFolder(String id) async {
-    await _mutateStore((store) {
-      final folder = store.folders.where((item) => item.id == id).firstOrNull;
-      if (folder == null || folder.isSystem) {
-        return store;
-      }
+    final store = await loadStore();
+    final folder = store.folders.where((item) => item.id == id).firstOrNull;
+    if (folder == null || folder.isSystem) {
+      return;
+    }
 
-      final fallbackFolderId = _fallbackFolderId(
-          store.folders.where((item) => item.id != id).toList());
-      final updatedFolders =
-          store.folders.where((item) => item.id != id).toList(growable: false);
-      final updatedNotes = store.notes.map((note) {
-        if (note.folderId == id) {
-          return note.copyWith(
-            folderId: fallbackFolderId,
-            updatedAt: DateTime.now(),
-            syncStatus: _pendingMutationStatus(note),
-          );
-        }
-        return note;
-      }).toList(growable: false);
-      return store.copyWith(
+    await _queueDeleteOperation(
+      SyncDeleteOperation.forEntity(
+        entityType: SyncEntityType.folder,
+        entityId: folder.id,
+        deletedAt: DateTime.now().toUtc(),
+      ),
+    );
+
+    final fallbackFolderId = _fallbackFolderId(
+        store.folders.where((item) => item.id != id).toList());
+    final updatedFolders =
+        store.folders.where((item) => item.id != id).toList(growable: false);
+    final updatedNotes = store.notes.map((note) {
+      if (note.folderId == id) {
+        return note.copyWith(
+          folderId: fallbackFolderId,
+          updatedAt: DateTime.now(),
+          syncStatus: _pendingMutationStatus(note),
+        );
+      }
+      return note;
+    }).toList(growable: false);
+    await _localDataSource.writeStore(
+      store.copyWith(
         folders: updatedFolders,
         notes: updatedNotes,
-      );
-    });
+      ),
+    );
   }
 
   @override
@@ -291,6 +332,7 @@ class NotesRepositoryImpl implements NotesRepository {
       id: _uuid.v4(),
       label: trimmedLabel,
       createdAt: DateTime.now(),
+      updatedAt: DateTime.now(),
       emoji: emoji,
     );
 
@@ -303,25 +345,34 @@ class NotesRepositoryImpl implements NotesRepository {
 
   @override
   Future<void> deleteTag(String id) async {
-    await _mutateStore((store) {
-      final tag = store.tags.where((item) => item.id == id).firstOrNull;
-      if (tag == null) {
-        return store;
-      }
+    final store = await loadStore();
+    final tag = store.tags.where((item) => item.id == id).firstOrNull;
+    if (tag == null) {
+      return;
+    }
 
-      final updatedTags =
-          store.tags.where((item) => item.id != id).toList(growable: false);
-      final updatedNotes = store.notes.map((note) {
-        return note.copyWith(
-          tags: note.tags
-              .where((item) => item.toLowerCase() != tag.label.toLowerCase())
-              .toList(growable: false),
-          updatedAt: DateTime.now(),
-          syncStatus: _pendingMutationStatus(note),
-        );
-      }).toList(growable: false);
-      return store.copyWith(tags: updatedTags, notes: updatedNotes);
-    });
+    await _queueDeleteOperation(
+      SyncDeleteOperation.forEntity(
+        entityType: SyncEntityType.tag,
+        entityId: tag.id,
+        deletedAt: DateTime.now().toUtc(),
+      ),
+    );
+
+    final updatedTags =
+        store.tags.where((item) => item.id != id).toList(growable: false);
+    final updatedNotes = store.notes.map((note) {
+      return note.copyWith(
+        tags: note.tags
+            .where((item) => item.toLowerCase() != tag.label.toLowerCase())
+            .toList(growable: false),
+        updatedAt: DateTime.now(),
+        syncStatus: _pendingMutationStatus(note),
+      );
+    }).toList(growable: false);
+    await _localDataSource.writeStore(
+      store.copyWith(tags: updatedTags, notes: updatedNotes),
+    );
   }
 
   @override
@@ -367,9 +418,36 @@ class NotesRepositoryImpl implements NotesRepository {
 
   @override
   Future<void> clearAllNotes() async {
-    await _mutateStore((store) {
-      return store.copyWith(notes: const <NoteModel>[]);
-    });
+    final store = await loadStore();
+    if (store.notes.isEmpty) {
+      return;
+    }
+
+    await _queueDeleteOperations(
+      store.notes.map((note) {
+        return SyncDeleteOperation.forEntity(
+          entityType: SyncEntityType.note,
+          entityId: note.id,
+          deletedAt: DateTime.now().toUtc(),
+        );
+      }).toList(growable: false),
+    );
+
+    await _localDataSource.writeStore(
+      store.copyWith(notes: const <NoteModel>[]),
+    );
+  }
+
+  Future<void> _queueDeleteOperation(SyncDeleteOperation operation) async {
+    await _localDataSource.upsertDeleteOperation(operation);
+  }
+
+  Future<void> _queueDeleteOperations(
+    List<SyncDeleteOperation> operations,
+  ) async {
+    for (final operation in operations) {
+      await _queueDeleteOperation(operation);
+    }
   }
 
   Future<void> _mutateStore(
@@ -430,6 +508,7 @@ class NotesRepositoryImpl implements NotesRepository {
             id: _uuid.v4(),
             label: tag,
             createdAt: DateTime.now(),
+            updatedAt: DateTime.now(),
             emoji: '#',
           ),
         );

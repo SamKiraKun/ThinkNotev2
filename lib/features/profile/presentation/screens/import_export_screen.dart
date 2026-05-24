@@ -4,12 +4,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/config/app_env.dart';
 import '../../../../core/extensions/context_extensions.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_radius.dart';
 import '../../../../core/theme/app_shadows.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
+import '../../../../shared/widgets/app_feature_notice_screen.dart';
 import '../../../../shared/widgets/app_confirmation_dialog.dart';
 import '../../../notes/data/models/notes_store_model.dart';
 import '../../../notes/presentation/controllers/notes_controller.dart';
@@ -19,6 +21,16 @@ class ImportExportScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    if (!AppEnv.showPrototypeTools) {
+      return const AppFeatureNoticeScreen(
+        title: 'Import and export',
+        icon: Icons.shield_outlined,
+        headline: 'Clipboard backups are disabled in this release',
+        message:
+            'ThinkNote does not copy full note archives to the system clipboard in production. File-based backup and restore will return only after safer export and validation flows are implemented.',
+      );
+    }
+
     final notesAsync = ref.watch(notesControllerProvider);
     final palette = context.palette;
 

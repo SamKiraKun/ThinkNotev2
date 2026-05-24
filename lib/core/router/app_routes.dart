@@ -1,17 +1,23 @@
 import 'package:go_router/go_router.dart';
 
+import '../../features/auth/presentation/screens/auth_gate_screen.dart';
 import '../../features/notes/presentation/screens/archived_notes_screen.dart';
 import '../../features/notes/presentation/screens/note_editor_screen.dart';
 import '../../features/notes/presentation/screens/trash_screen.dart';
 import '../../features/profile/presentation/screens/import_export_screen.dart';
 import '../../features/profile/presentation/screens/lock_notes_screen.dart';
 import '../../features/profile/presentation/screens/notification_settings_screen.dart';
+import '../../features/profile/presentation/screens/privacy_screen.dart';
 import '../../features/profile/presentation/screens/theme_settings_screen.dart';
 import '../../features/shell/presentation/screens/main_shell_screen.dart';
 import '../constants/route_names.dart';
 
 List<RouteBase> buildAppRoutes() {
   return <RouteBase>[
+    GoRoute(
+      path: RouteNames.auth,
+      builder: (context, state) => const AuthGateScreen(),
+    ),
     GoRoute(
       path: RouteNames.root,
       builder: (context, state) => const MainShellScreen(),
@@ -38,6 +44,10 @@ List<RouteBase> buildAppRoutes() {
     GoRoute(
       path: RouteNames.themeSettings,
       builder: (context, state) => const ThemeSettingsScreen(),
+    ),
+    GoRoute(
+      path: RouteNames.privacy,
+      builder: (context, state) => const PrivacyScreen(),
     ),
     GoRoute(
       path: RouteNames.importExport,

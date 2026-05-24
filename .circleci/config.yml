@@ -47,7 +47,11 @@ jobs:
 
       - run:
           name: Run tests
-          command: flutter test
+          command: |
+            set -euo pipefail
+
+            mkdir -p build/test-results
+            flutter test --reporter expanded | tee build/test-results/flutter-test-output.txt
 
       - run:
           name: Prepare Android signing
@@ -76,21 +80,10 @@ jobs:
           command: |
             set -euo pipefail
 
-            required_runtime_env=(
-              APP_FLAVOR
-              API_URL
-              FIREBASE_API_KEY
-              FIREBASE_APP_ID
-              FIREBASE_MESSAGING_SENDER_ID
-              FIREBASE_PROJECT_ID
-            )
-
-            for var_name in "${required_runtime_env[@]}"; do
-              if [ -z "${!var_name:-}" ]; then
-                echo "Missing required runtime environment variable: ${var_name}"
-                exit 1
-              fi
-            done
+            if [ -z "${APP_FLAVOR:-}" ]; then
+              echo "Missing required runtime environment variable: APP_FLAVOR"
+              exit 1
+            fi
 
             case "${APP_FLAVOR}" in
               development|staging|production) ;;
@@ -103,18 +96,55 @@ jobs:
             : "${ENABLE_ANALYTICS:=false}"
             : "${ENABLE_EXPERIMENTAL_SYNC:=false}"
 
+            if [ "${ENABLE_EXPERIMENTAL_SYNC}" = "true" ]; then
+              required_sync_env=(
+                API_URL
+                FIREBASE_API_KEY
+                FIREBASE_APP_ID
+                FIREBASE_MESSAGING_SENDER_ID
+                FIREBASE_PROJECT_ID
+              )
+
+              for var_name in "${required_sync_env[@]}"; do
+                if [ -z "${!var_name:-}" ]; then
+                  echo "Missing required experimental sync environment variable: ${var_name}"
+                  exit 1
+                fi
+              done
+
+              if [ "${APP_FLAVOR}" = "production" ] && [[ "${API_URL}" != https://* ]]; then
+                echo "Production experimental sync builds must use an HTTPS API_URL."
+                exit 1
+              fi
+            fi
+
             build_args=(
               "--release"
               "--build-number=${CIRCLE_BUILD_NUM:-1}"
               "--dart-define=APP_FLAVOR=${APP_FLAVOR}"
-              "--dart-define=API_URL=${API_URL}"
-              "--dart-define=FIREBASE_API_KEY=${FIREBASE_API_KEY}"
-              "--dart-define=FIREBASE_APP_ID=${FIREBASE_APP_ID}"
-              "--dart-define=FIREBASE_MESSAGING_SENDER_ID=${FIREBASE_MESSAGING_SENDER_ID}"
-              "--dart-define=FIREBASE_PROJECT_ID=${FIREBASE_PROJECT_ID}"
               "--dart-define=ENABLE_ANALYTICS=${ENABLE_ANALYTICS}"
               "--dart-define=ENABLE_EXPERIMENTAL_SYNC=${ENABLE_EXPERIMENTAL_SYNC}"
             )
+
+            if [ -n "${API_URL:-}" ]; then
+              build_args+=("--dart-define=API_URL=${API_URL}")
+            fi
+
+            if [ -n "${FIREBASE_API_KEY:-}" ]; then
+              build_args+=("--dart-define=FIREBASE_API_KEY=${FIREBASE_API_KEY}")
+            fi
+
+            if [ -n "${FIREBASE_APP_ID:-}" ]; then
+              build_args+=("--dart-define=FIREBASE_APP_ID=${FIREBASE_APP_ID}")
+            fi
+
+            if [ -n "${FIREBASE_MESSAGING_SENDER_ID:-}" ]; then
+              build_args+=("--dart-define=FIREBASE_MESSAGING_SENDER_ID=${FIREBASE_MESSAGING_SENDER_ID}")
+            fi
+
+            if [ -n "${FIREBASE_PROJECT_ID:-}" ]; then
+              build_args+=("--dart-define=FIREBASE_PROJECT_ID=${FIREBASE_PROJECT_ID}")
+            fi
 
             if [ -n "${FIREBASE_DATABASE_URL:-}" ]; then
               build_args+=("--dart-define=FIREBASE_DATABASE_URL=${FIREBASE_DATABASE_URL}")
@@ -135,13 +165,61 @@ jobs:
             flutter build apk "${build_args[@]}"
             flutter build appbundle "${build_args[@]}"
 
+            mkdir -p build/release-metadata
+            flutter --version > build/release-metadata/flutter-version.txt
+            (cd android && ./gradlew --version) > build/release-metadata/gradle-version.txt
+
+            cp pubspec.lock build/release-metadata/pubspec.lock
+            cp android/gradle/wrapper/gradle-wrapper.properties build/release-metadata/gradle-wrapper.properties
+            cp android/build.gradle.kts build/release-metadata/android-build.gradle.kts
+            cp android/app/build.gradle.kts build/release-metadata/android-app-build.gradle.kts
+
+            if [ -f build/app/outputs/mapping/release/mapping.txt ]; then
+              cp build/app/outputs/mapping/release/mapping.txt build/release-metadata/r8-mapping.txt
+            else
+              printf 'R8 mapping file was not generated for this build.\n' > build/release-metadata/r8-mapping.txt
+            fi
+
+            printf '{\n  "git_sha": "%s",\n  "circle_build_num": "%s",\n  "app_flavor": "%s",\n  "enable_analytics": "%s",\n  "enable_experimental_sync": "%s",\n  "play_artifact": "%s",\n  "qa_artifact": "%s",\n  "r8_mapping": "%s"\n}\n' \
+              "${CIRCLE_SHA1:-$(git rev-parse HEAD)}" \
+              "${CIRCLE_BUILD_NUM:-1}" \
+              "${APP_FLAVOR}" \
+              "${ENABLE_ANALYTICS}" \
+              "${ENABLE_EXPERIMENTAL_SYNC}" \
+              "build/app/outputs/bundle/release/app-release.aab" \
+              "build/app/outputs/flutter-apk/app-release.apk" \
+              "build/release-metadata/r8-mapping.txt" \
+              > build/release-metadata/release-manifest.json
+
+      - run:
+          name: Verify signed release artifacts
+          command: |
+            set -euo pipefail
+
+            test -f build/app/outputs/flutter-apk/app-release.apk
+            test -f build/app/outputs/bundle/release/app-release.aab
+
+            mkdir -p build/release-metadata
+            jarsigner -verify -verbose -certs build/app/outputs/bundle/release/app-release.aab \
+              > build/release-metadata/aab-signature-verification.txt
+            unzip -tqq build/app/outputs/bundle/release/app-release.aab \
+              > build/release-metadata/aab-zip-validation.txt
+
       - store_artifacts:
           path: build/app/outputs/flutter-apk/app-release.apk
-          destination: app-release.apk
+          destination: qa-app-release.apk
 
       - store_artifacts:
           path: build/app/outputs/bundle/release/app-release.aab
-          destination: app-release.aab
+          destination: play/app-release.aab
+
+      - store_artifacts:
+          path: build/release-metadata
+          destination: release-metadata
+
+        - store_artifacts:
+          path: build/test-results
+          destination: test-results
 
       - save_cache:
           key: flutter-pub-v1-{{ arch }}-{{ checksum "pubspec.lock" }}-{{ checksum "pubspec.yaml" }}
@@ -154,7 +232,42 @@ jobs:
             - ~/.gradle/caches
             - ~/.gradle/wrapper
 
+  backend_checks:
+    docker:
+      - image: cimg/node:22.11
+    resource_class: medium
+
+    steps:
+      - checkout
+
+      - restore_cache:
+          keys:
+            - backend-npm-v1-{{ arch }}-{{ checksum "backend/package-lock.json" }}
+            - backend-npm-v1-{{ arch }}-
+
+      - run:
+          name: Install backend dependencies
+          command: cd backend && npm ci
+
+      - run:
+          name: Build backend
+          command: cd backend && npm run build
+
+      - run:
+          name: Test backend payload validation
+          command: cd backend && npm test
+
+      - run:
+          name: Audit backend production dependencies
+          command: cd backend && npm audit --omit=dev --audit-level=high
+
+      - save_cache:
+          key: backend-npm-v1-{{ arch }}-{{ checksum "backend/package-lock.json" }}
+          paths:
+            - backend/node_modules
+
 workflows:
   android_build_workflow:
     jobs:
       - build_android
+      - backend_checks

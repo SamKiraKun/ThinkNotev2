@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/constants/route_names.dart';
+import '../../../../core/config/app_env.dart';
 import '../../../../core/extensions/context_extensions.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_radius.dart';
@@ -11,8 +12,11 @@ import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../shared/widgets/app_confirmation_dialog.dart';
 import '../../../../shared/widgets/app_header.dart';
+import '../../../auth/auth_providers.dart';
+import '../../../auth/presentation/controllers/auth_controller.dart';
 import '../../../notes/data/models/app_preferences_model.dart';
 import '../../../notes/presentation/controllers/notes_controller.dart';
+import '../../../sync/presentation/controllers/sync_controller.dart';
 
 class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});
@@ -21,6 +25,11 @@ class ProfileScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final notesAsync = ref.watch(notesControllerProvider);
     final palette = context.palette;
+    final syncEnabled = AppEnv.enableExperimentalSync;
+    final showPrototypeTools = AppEnv.showPrototypeTools;
+    final authSession =
+        syncEnabled ? ref.watch(currentAuthSessionProvider) : null;
+    final syncState = ref.watch(syncControllerProvider);
 
     return SafeArea(
       bottom: false,
@@ -37,14 +46,19 @@ class ProfileScreen extends ConsumerWidget {
             children: [
               AppHeader(
                 title: 'Settings',
-                subtitle: 'Manage offline-first preferences and sync readiness.',
-                trailing: HeaderActionButton(
-                  icon: Icons.cloud_sync_outlined,
-                  onPressed: () => _showSnack(
-                    context,
-                    'Cloud sync is prepared in code and requires Firebase/Turso configuration.',
-                  ),
-                ),
+                subtitle: syncEnabled
+                    ? 'Manage your synced workspace, device preferences, and account.'
+                    : 'Manage local notes and device preferences.',
+                trailing: syncEnabled
+                    ? HeaderActionButton(
+                        icon: syncState.isSyncing
+                            ? Icons.sync_rounded
+                            : syncState.lastError == null
+                                ? Icons.cloud_done_outlined
+                                : Icons.cloud_off_outlined,
+                        onPressed: () => _syncNow(context, ref),
+                      )
+                    : null,
               ),
               const SizedBox(height: AppSpacing.xxl),
               Container(
@@ -65,7 +79,7 @@ class ProfileScreen extends ConsumerWidget {
                       ),
                       alignment: Alignment.center,
                       child: Text(
-                        'N',
+                        authSession?.initials ?? 'N',
                         style: AppTypography.titleLarge.copyWith(
                           color: AppColors.surfaceWhite,
                         ),
@@ -76,21 +90,71 @@ class ProfileScreen extends ConsumerWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('Local Workspace',
-                              style: AppTypography.titleMedium),
+                          Text(
+                            syncEnabled
+                                ? (authSession?.displayName ??
+                                    authSession?.email ??
+                                    'Cloud workspace')
+                                : 'Local Workspace',
+                            style: AppTypography.titleMedium,
+                          ),
                           const SizedBox(height: AppSpacing.xs),
                           Text(
-                            'Notes work offline first and are ready for authenticated cloud sync.',
+                            syncEnabled
+                                ? 'Notes save on this device first and sync to your account when you are online.'
+                                : 'Notes stay on this device and are available offline anytime.',
                             style: AppTypography.bodyMedium.copyWith(
                               color: palette.textSecondary,
                             ),
                           ),
+                          if (syncEnabled && authSession?.email != null) ...[
+                            const SizedBox(height: AppSpacing.xs),
+                            Text(
+                              authSession!.email!,
+                              style: AppTypography.bodySmall.copyWith(
+                                color: palette.textSecondary,
+                              ),
+                            ),
+                          ],
                         ],
                       ),
                     ),
                   ],
                 ),
               ),
+              if (syncEnabled) ...[
+                const SizedBox(height: AppSpacing.xxl),
+                Text('Account', style: AppTypography.titleMedium),
+                const SizedBox(height: AppSpacing.md),
+                _SettingsGroup(
+                  children: [
+                    _SettingsTile(
+                      icon: Icons.cloud_sync_outlined,
+                      title: 'Sync now',
+                      subtitle: syncState.lastError == null
+                          ? (syncState.lastSyncedAt == null
+                              ? 'Push local changes and pull latest notes'
+                              : 'Last sync ${syncState.lastSyncedAt}')
+                          : 'Last sync failed. Tap to retry.',
+                      onTap: () => _syncNow(context, ref),
+                    ),
+                    _SettingsTile(
+                      icon: Icons.logout_rounded,
+                      title: 'Sign out',
+                      subtitle: 'Stop syncing on this device until you sign in again',
+                      onTap: () => _signOut(context, ref),
+                    ),
+                    _SettingsTile(
+                      icon: Icons.person_remove_outlined,
+                      title: 'Delete account',
+                      subtitle:
+                          'Remove your account and synced note data from ThinkNote',
+                      onTap: () => _confirmDeleteAccount(context, ref),
+                      isDestructive: true,
+                    ),
+                  ],
+                ),
+              ],
               const SizedBox(height: AppSpacing.xxl),
               Text('Preferences', style: AppTypography.titleMedium),
               const SizedBox(height: AppSpacing.md),
@@ -132,18 +196,21 @@ class ProfileScreen extends ConsumerWidget {
                     ),
                     onTap: () => _showPreviewDialog(context, ref, preferences),
                   ),
-                  _SettingsTile(
-                    icon: Icons.notifications_none_rounded,
-                    title: 'Notifications',
-                    subtitle: 'Manage local reminder preferences',
-                    onTap: () => context.push(RouteNames.notificationSettings),
-                  ),
-                  _SettingsTile(
-                    icon: Icons.lock_outline_rounded,
-                    title: 'Lock notes',
-                    subtitle: 'Set a local passcode hash for protected access',
-                    onTap: () => context.push(RouteNames.lockNotes),
-                  ),
+                  if (showPrototypeTools) ...[
+                    _SettingsTile(
+                      icon: Icons.notifications_none_rounded,
+                      title: 'Notifications',
+                      subtitle: 'Manage experimental reminder preferences',
+                      onTap: () =>
+                          context.push(RouteNames.notificationSettings),
+                    ),
+                    _SettingsTile(
+                      icon: Icons.lock_outline_rounded,
+                      title: 'Lock notes',
+                      subtitle: 'Test local passcode preferences',
+                      onTap: () => context.push(RouteNames.lockNotes),
+                    ),
+                  ],
                 ],
               ),
               const SizedBox(height: AppSpacing.xxl),
@@ -165,50 +232,54 @@ class ProfileScreen extends ConsumerWidget {
                         '${notesState.trashedNotes.length} deleted notes waiting for action',
                     onTap: () => context.push(RouteNames.trash),
                   ),
-                  _SettingsTile(
-                    icon: Icons.import_export_rounded,
-                    title: 'Import and export',
-                    subtitle: 'Copy or restore a validated JSON backup',
-                    onTap: () => context.push(RouteNames.importExport),
-                  ),
-                  _SettingsTile(
-                    icon: Icons.cloud_queue_rounded,
-                    title: 'Sync storage',
-                    subtitle: 'Local SQLite database with pending sync metadata',
-                    trailing: Text(
-                      'Offline-first',
-                      style: AppTypography.bodyMedium.copyWith(
-                        color: palette.textSecondary,
-                      ),
+                  if (showPrototypeTools)
+                    _SettingsTile(
+                      icon: Icons.import_export_rounded,
+                      title: 'Import and export',
+                      subtitle: 'Test local JSON backup tools',
+                      onTap: () => context.push(RouteNames.importExport),
                     ),
-                    onTap: () {},
-                  ),
-                  _SettingsTile(
-                    icon: Icons.delete_forever_rounded,
-                    title: 'Clear all notes',
-                    subtitle:
-                        'Remove active and deleted notes from this device',
-                    onTap: () => _confirmClearAll(context, ref),
-                    isDestructive: true,
-                  ),
+                  if (!syncEnabled)
+                    _SettingsTile(
+                      icon: Icons.delete_forever_rounded,
+                      title: 'Clear all notes',
+                      subtitle:
+                          'Remove active and deleted notes from this device',
+                      onTap: () => _confirmClearAll(context, ref),
+                      isDestructive: true,
+                    ),
                 ],
               ),
               const SizedBox(height: AppSpacing.xxl),
               Text('About', style: AppTypography.titleMedium),
               const SizedBox(height: AppSpacing.md),
               _SettingsGroup(
-                children: const [
+                children: [
+                  _SettingsTile(
+                    icon: Icons.privacy_tip_outlined,
+                    title: 'Privacy and storage',
+                    subtitle: syncEnabled
+                        ? 'Review device storage, synced data, and deletion'
+                        : 'Review what stays on this device',
+                    onTap: () => context.push(RouteNames.privacy),
+                  ),
                   _StaticTile(
-                    icon: Icons.cloud_done_outlined,
-                    title: 'Offline-first sync model',
-                    subtitle:
-                        'Create and edit locally first; sync runs after authenticated cloud setup.',
+                    icon: syncEnabled
+                        ? Icons.cloud_done_outlined
+                        : Icons.smartphone_rounded,
+                    title: syncEnabled
+                        ? 'Offline-first sync'
+                        : 'Local-only release',
+                    subtitle: syncEnabled
+                        ? 'Notes save locally first, then sync to your account when a connection is available.'
+                        : 'This release focuses on fast local notes without account, sync, or clipboard backup claims.',
                   ),
                   _StaticTile(
                     icon: Icons.wifi_off_rounded,
-                    title: 'Offline-first',
-                    subtitle:
-                        'Search, sorting, folders, archive, and trash work without internet.',
+                    title: syncEnabled ? 'Works offline' : 'Offline-first',
+                    subtitle: syncEnabled
+                        ? 'Search, sorting, folders, archive, and trash continue to work without internet while pending changes wait to sync.'
+                        : 'Search, sorting, folders, archive, and trash work without internet.',
                   ),
                 ],
               ),
@@ -331,6 +402,52 @@ class ProfileScreen extends ConsumerWidget {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(message)),
     );
+  }
+
+  Future<void> _syncNow(BuildContext context, WidgetRef ref) async {
+    await ref.read(syncControllerProvider.notifier).syncNow();
+    final syncState = ref.read(syncControllerProvider);
+    final message = syncState.lastError == null
+        ? 'Sync complete.'
+        : 'Sync failed: ${syncState.lastError}';
+    if (!context.mounted) {
+      return;
+    }
+    _showSnack(context, message);
+  }
+
+  Future<void> _signOut(BuildContext context, WidgetRef ref) async {
+    await ref.read(authControllerProvider.notifier).signOut();
+    if (!context.mounted) {
+      return;
+    }
+    _showSnack(context, 'Signed out.');
+  }
+
+  Future<void> _confirmDeleteAccount(
+    BuildContext context,
+    WidgetRef ref,
+  ) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (_) => const AppConfirmationDialog(
+        title: 'Delete account?',
+        message:
+            'This removes your ThinkNote account and synced note data from the backend.',
+        confirmLabel: 'Delete account',
+        isDestructive: true,
+      ),
+    );
+
+    if (confirmed != true) {
+      return;
+    }
+
+    await ref.read(authControllerProvider.notifier).deleteAccount();
+    if (!context.mounted) {
+      return;
+    }
+    _showSnack(context, 'Account deleted.');
   }
 }
 

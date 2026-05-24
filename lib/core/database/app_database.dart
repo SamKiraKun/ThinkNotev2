@@ -3,9 +3,12 @@ import 'package:path_provider/path_provider.dart';
 import 'package:sqlite3/sqlite3.dart';
 
 class AppDatabase {
-  AppDatabase({Database? database})
+  AppDatabase({
+    Database? database,
+    String databaseName = 'thinknote.sqlite',
+  })
       : _databaseFuture = database == null
-            ? _openOnDeviceDatabase()
+            ? _openOnDeviceDatabase(databaseName)
             : Future<Database>.value(database);
 
   AppDatabase.memory() : this(database: sqlite3.openInMemory());
@@ -27,9 +30,9 @@ class AppDatabase {
     database.close();
   }
 
-  static Future<Database> _openOnDeviceDatabase() async {
+  static Future<Database> _openOnDeviceDatabase(String databaseName) async {
     final directory = await getApplicationDocumentsDirectory();
-    final filePath = path.join(directory.path, 'thinknote.sqlite');
+    final filePath = path.join(directory.path, databaseName);
     return sqlite3.open(filePath);
   }
 

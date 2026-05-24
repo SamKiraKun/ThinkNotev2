@@ -5,6 +5,7 @@ import 'package:crypto/crypto.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/config/app_env.dart';
 import '../../../../core/constants/storage_keys.dart';
 import '../../../../core/extensions/context_extensions.dart';
 import '../../../../core/storage/local_storage.dart';
@@ -13,6 +14,7 @@ import '../../../../core/theme/app_radius.dart';
 import '../../../../core/theme/app_shadows.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
+import '../../../../shared/widgets/app_feature_notice_screen.dart';
 
 class LockNotesScreen extends ConsumerStatefulWidget {
   const LockNotesScreen({super.key});
@@ -29,9 +31,10 @@ class _LockNotesScreenState extends ConsumerState<LockNotesScreen> {
   @override
   void initState() {
     super.initState();
-    _isEnabled =
-        ref.read(sharedPreferencesProvider).getString(StorageKeys.lockPinHash) !=
-            null;
+    _isEnabled = ref
+            .read(sharedPreferencesProvider)
+            .getString(StorageKeys.lockPinHash) !=
+        null;
   }
 
   @override
@@ -43,6 +46,16 @@ class _LockNotesScreenState extends ConsumerState<LockNotesScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (!AppEnv.showPrototypeTools) {
+      return const AppFeatureNoticeScreen(
+        title: 'Lock notes',
+        icon: Icons.lock_outline_rounded,
+        headline: 'App-level locking is not part of this release',
+        message:
+            'ThinkNote currently relies on your device security settings. It does not claim encrypted note locking until secure storage and access enforcement are implemented end-to-end.',
+      );
+    }
+
     final palette = context.palette;
 
     return Scaffold(

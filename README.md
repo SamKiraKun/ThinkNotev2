@@ -1,6 +1,8 @@
 # ThinkNote Flutter App
 
-This workspace contains the ThinkNote Flutter client with Riverpod state management, `go_router` navigation, secure token storage, and a production-ready auth flow built from design tokens.
+This workspace contains the ThinkNote Flutter client with Riverpod state management, `go_router` navigation, local SQLite persistence, and Android release configuration.
+
+ThinkNote 1.0 now targets an authenticated offline-first notes release. The Flutter client initializes Firebase, supports email/password sign-in, keeps a per-account local SQLite cache with encrypted local note fields, and syncs notes, folders, and tags through the backend when `ENABLE_EXPERIMENTAL_SYNC=true`.
 
 ## Run the app
 
@@ -17,13 +19,12 @@ flutter pub get
 ```bash
 flutter run \
   --dart-define=APP_FLAVOR=development \
-  --dart-define=API_URL=http://10.0.2.2:3000 \
-  --dart-define=FIREBASE_API_KEY=your-firebase-api-key \
-  --dart-define=FIREBASE_APP_ID=your-firebase-app-id \
-  --dart-define=FIREBASE_MESSAGING_SENDER_ID=your-messaging-sender-id \
-  --dart-define=FIREBASE_PROJECT_ID=your-firebase-project-id \
-  --dart-define=FIREBASE_DATABASE_URL=your-database-url \
-  --dart-define=FIREBASE_STORAGE_BUCKET=your-storage-bucket
+  --dart-define=ENABLE_EXPERIMENTAL_SYNC=true \
+  --dart-define=API_URL=https://your-api.example.com \
+  --dart-define=FIREBASE_API_KEY=... \
+  --dart-define=FIREBASE_APP_ID=... \
+  --dart-define=FIREBASE_MESSAGING_SENDER_ID=... \
+  --dart-define=FIREBASE_PROJECT_ID=...
 ```
 
 ## Runtime configuration
@@ -38,11 +39,11 @@ The Flutter client is configured entirely through compile-time `--dart-define` v
 Supported client defines:
 
 - `APP_FLAVOR`
-- `API_URL`
-- `FIREBASE_API_KEY`
-- `FIREBASE_APP_ID`
-- `FIREBASE_MESSAGING_SENDER_ID`
-- `FIREBASE_PROJECT_ID`
+- `API_URL` (required when authenticated sync is enabled)
+- `FIREBASE_API_KEY` (required when authenticated sync is enabled)
+- `FIREBASE_APP_ID` (required when authenticated sync is enabled)
+- `FIREBASE_MESSAGING_SENDER_ID` (required when authenticated sync is enabled)
+- `FIREBASE_PROJECT_ID` (required when authenticated sync is enabled)
 - `FIREBASE_DATABASE_URL`
 - `FIREBASE_STORAGE_BUCKET`
 - `SENTRY_DSN`
@@ -54,28 +55,31 @@ Example Android release build:
 
 ```bash
 flutter build appbundle --release \
-  --dart-define=APP_FLAVOR=staging \
-  --dart-define=API_URL=https://staging-api.example.com \
-  --dart-define=FIREBASE_API_KEY=your-firebase-api-key \
-  --dart-define=FIREBASE_APP_ID=your-firebase-app-id \
-  --dart-define=FIREBASE_MESSAGING_SENDER_ID=your-messaging-sender-id \
-  --dart-define=FIREBASE_PROJECT_ID=your-firebase-project-id
+  --dart-define=APP_FLAVOR=production \
+  --dart-define=ENABLE_EXPERIMENTAL_SYNC=true \
+  --dart-define=API_URL=https://your-api.example.com \
+  --dart-define=FIREBASE_API_KEY=... \
+  --dart-define=FIREBASE_APP_ID=... \
+  --dart-define=FIREBASE_MESSAGING_SENDER_ID=... \
+  --dart-define=FIREBASE_PROJECT_ID=...
 ```
 
-## Illustration assets
+Sync-enabled builds must also pass Firebase client settings. Production sync builds must use an HTTPS `API_URL`.
 
-The sign-in and create-account screens look for these optional assets:
+CircleCI is the canonical Android release builder. It signs the release,
+stores the Play AAB separately from the QA APK, and archives release metadata
+including lockfiles, git SHA, Flutter/Gradle versions, and R8 mapping output.
 
-- `assets/images/auth/sign_in_mountain.png`
-- `assets/images/auth/create_account_mountain.png`
-
-If either asset is missing, the app falls back to the built-in `MountainIllustrationPainter`, so the auth flow still renders correctly. Replace those files when you have final illustration exports.
+Privacy and Play Data Safety drafts live in `PRIVACY_POLICY.md` and
+`docs/play_store/sync_enabled_data_map.md`. They should be treated as the
+working sync-enabled release documents until a hosted privacy policy and Play
+Console submission are finalized.
 
 ## Verification
 
-Run the analyzer and the auth-focused tests from the project root:
+Run the analyzer and Flutter tests from the project root:
 
 ```bash
 flutter analyze
-flutter test test/widget/sign_in_screen_test.dart test/widget/sign_in_form_card_test.dart test/widget/social_auth_row_test.dart test/widget/app_gradient_button_test.dart test/unit/sign_in_controller_test.dart test/unit/validators_test.dart
+flutter test
 ```

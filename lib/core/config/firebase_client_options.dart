@@ -11,8 +11,12 @@ class FirebaseClientOptions {
       appId: AppEnv.firebaseAppId,
       messagingSenderId: AppEnv.firebaseMessagingSenderId,
       projectId: AppEnv.firebaseProjectId,
-      databaseURL: AppEnv.firebaseDatabaseUrl,
-      storageBucket: AppEnv.firebaseStorageBucket,
+      databaseURL: AppEnv.firebaseDatabaseUrl.isEmpty
+          ? null
+          : AppEnv.firebaseDatabaseUrl,
+      storageBucket: AppEnv.firebaseStorageBucket.isEmpty
+          ? null
+          : AppEnv.firebaseStorageBucket,
     );
   }
 }

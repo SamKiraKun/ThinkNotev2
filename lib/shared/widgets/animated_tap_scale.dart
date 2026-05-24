@@ -17,7 +17,11 @@ class AnimatedTapScaleStateData {
   final bool isFocused;
   final bool isDisabled;
 
-  double scaleFor({required bool reducedMotion, required double tapScale, required double hoverScale}) {
+  double scaleFor({
+    required bool reducedMotion,
+    required double tapScale,
+    required double hoverScale,
+  }) {
     if (reducedMotion || isDisabled) {
       return 1;
     }
@@ -35,7 +39,8 @@ class AnimatedTapScaleStateData {
 }
 
 class AnimatedTapScale extends StatefulWidget {
-  final Widget Function(BuildContext context, AnimatedTapScaleStateData state) builder;
+  final Widget Function(BuildContext context, AnimatedTapScaleStateData state)
+      builder;
   final VoidCallback? onTap;
   final double tapScale;
   final double hoverScale;
@@ -64,12 +69,12 @@ class _AnimatedTapScaleState extends State<AnimatedTapScale> {
     setState(() => _isHovering = isHovering);
   }
 
-  void _onTapDown(_) {
+  void _onTapDown(TapDownDetails _) {
     if (widget.disabled) return;
     setState(() => _isTapped = true);
   }
 
-  void _onTapUp(_) {
+  void _onTapUp(TapUpDetails _) {
     if (widget.disabled) return;
     setState(() => _isTapped = false);
   }
@@ -95,7 +100,8 @@ class _AnimatedTapScaleState extends State<AnimatedTapScale> {
       isDisabled: widget.disabled,
     );
     final reducedMotion = AccessibilityUtils.reducedMotionOf(context);
-    final duration = reducedMotion ? Duration.zero : AppConstants.interactiveDuration;
+    final duration =
+        reducedMotion ? Duration.zero : AppConstants.interactiveDuration;
     final scale = state.scaleFor(
       reducedMotion: reducedMotion,
       tapScale: widget.tapScale,
@@ -104,7 +110,8 @@ class _AnimatedTapScaleState extends State<AnimatedTapScale> {
 
     return FocusableActionDetector(
       enabled: !widget.disabled,
-      mouseCursor: widget.disabled ? SystemMouseCursors.basic : SystemMouseCursors.click,
+      mouseCursor:
+          widget.disabled ? SystemMouseCursors.basic : SystemMouseCursors.click,
       onShowHoverHighlight: _onHover,
       onShowFocusHighlight: _onShowFocusHighlight,
       shortcuts: const <ShortcutActivator, Intent>{

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/config/app_env.dart';
 import '../../../../core/extensions/context_extensions.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
@@ -19,21 +20,23 @@ class TrashScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final notesAsync = ref.watch(notesControllerProvider);
     final palette = context.palette;
+    final syncEnabled = AppEnv.enableExperimentalSync;
 
     return Scaffold(
       backgroundColor: palette.pageBackground,
       appBar: AppBar(
         title: const Text('Trash'),
         actions: [
-          TextButton(
-            onPressed: () => _confirmEmptyTrash(context, ref),
-            child: Text(
-              'Empty',
-              style: AppTypography.bodyMedium.copyWith(
-                color: AppColors.brandPrimary,
+          if (!syncEnabled)
+            TextButton(
+              onPressed: () => _confirmEmptyTrash(context, ref),
+              child: Text(
+                'Empty',
+                style: AppTypography.bodyMedium.copyWith(
+                  color: AppColors.brandPrimary,
+                ),
               ),
             ),
-          ),
         ],
       ),
       body: SafeArea(
@@ -45,8 +48,9 @@ class TrashScreen extends ConsumerWidget {
                 child: AppEmptyState(
                   icon: Icons.delete_outline_rounded,
                   title: 'Trash is empty',
-                  message:
-                      'Deleted notes will appear here until you restore or remove them forever.',
+                  message: syncEnabled
+                      ? 'Deleted notes stay here until you restore them. Permanent cloud purge is not part of this release.'
+                      : 'Deleted notes will appear here until you restore or remove them forever.',
                 ),
               );
             }
@@ -71,19 +75,20 @@ class TrashScreen extends ConsumerWidget {
                             ref
                                 .read(notesControllerProvider.notifier)
                                 .restore(note.id);
-                          } else if (value == 'delete') {
+                          } else if (!syncEnabled && value == 'delete') {
                             _confirmPermanentDelete(context, ref, note.id);
                           }
                         },
-                        itemBuilder: (_) => const [
-                          PopupMenuItem(
+                        itemBuilder: (_) => [
+                          const PopupMenuItem(
                             value: 'restore',
                             child: Text('Restore'),
                           ),
-                          PopupMenuItem(
-                            value: 'delete',
-                            child: Text('Delete forever'),
-                          ),
+                          if (!syncEnabled)
+                            const PopupMenuItem(
+                              value: 'delete',
+                              child: Text('Delete forever'),
+                            ),
                         ],
                       ),
                     ),

@@ -1,8 +1,11 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../bootstrap/dependency_injection.dart';
 import '../../../folders/data/models/folder_model.dart';
 import '../../../folders/data/models/tag_model.dart';
+import '../../../sync/presentation/controllers/sync_controller.dart';
 import '../../data/models/app_preferences_model.dart';
 import '../../data/models/notes_store_model.dart';
 import 'notes_state.dart';
@@ -23,66 +26,82 @@ class NotesController extends AsyncNotifier<NotesState> {
 
   Future<void> moveToTrash(String id) async {
     await ref.read(notesRepositoryProvider).moveToTrash(id);
+    _scheduleSync();
     ref.invalidateSelf();
   }
 
   Future<void> restore(String id) async {
     await ref.read(notesRepositoryProvider).restoreNote(id);
+    _scheduleSync();
     ref.invalidateSelf();
   }
 
   Future<void> archive(String id) async {
     await ref.read(notesRepositoryProvider).archiveNote(id);
+    _scheduleSync();
     ref.invalidateSelf();
   }
 
   Future<void> unarchive(String id) async {
     await ref.read(notesRepositoryProvider).unarchiveNote(id);
+    _scheduleSync();
     ref.invalidateSelf();
   }
 
   Future<void> deletePermanently(String id) async {
     await ref.read(notesRepositoryProvider).deleteNote(id);
+    _scheduleSync();
     ref.invalidateSelf();
   }
 
   Future<void> emptyTrash() async {
     await ref.read(notesRepositoryProvider).emptyTrash();
+    _scheduleSync();
     ref.invalidateSelf();
   }
 
   Future<void> togglePin(String id) async {
     await ref.read(notesRepositoryProvider).togglePin(id);
+    _scheduleSync();
     ref.invalidateSelf();
   }
 
   Future<void> toggleFavorite(String id) async {
     await ref.read(notesRepositoryProvider).toggleFavorite(id);
+    _scheduleSync();
     ref.invalidateSelf();
   }
 
-  Future<void> createFolder(String name, {String emoji = '🗂️'}) async {
+  Future<void> createFolder(
+    String name, {
+    String emoji = '\u{1F5C2}\u{FE0F}',
+  }) async {
     await ref.read(notesRepositoryProvider).createFolder(name, emoji: emoji);
+    _scheduleSync();
     ref.invalidateSelf();
   }
 
   Future<void> renameFolder(String id, String name) async {
     await ref.read(notesRepositoryProvider).renameFolder(id, name);
+    _scheduleSync();
     ref.invalidateSelf();
   }
 
   Future<void> deleteFolder(String id) async {
     await ref.read(notesRepositoryProvider).deleteFolder(id);
+    _scheduleSync();
     ref.invalidateSelf();
   }
 
   Future<void> createTag(String label, {String emoji = '#'}) async {
     await ref.read(notesRepositoryProvider).createTag(label, emoji: emoji);
+    _scheduleSync();
     ref.invalidateSelf();
   }
 
   Future<void> deleteTag(String id) async {
     await ref.read(notesRepositoryProvider).deleteTag(id);
+    _scheduleSync();
     ref.invalidateSelf();
   }
 
@@ -103,11 +122,13 @@ class NotesController extends AsyncNotifier<NotesState> {
 
   Future<void> replaceStore(NotesStoreModel store) async {
     await ref.read(notesRepositoryProvider).replaceStore(store);
+    _scheduleSync();
     ref.invalidateSelf();
   }
 
   Future<void> clearAllNotes() async {
     await ref.read(notesRepositoryProvider).clearAllNotes();
+    _scheduleSync();
     ref.invalidateSelf();
   }
 
@@ -120,6 +141,10 @@ class NotesController extends AsyncNotifier<NotesState> {
       recentSearches: store.recentSearches,
       preferences: store.preferences,
     );
+  }
+
+  void _scheduleSync() {
+    unawaited(ref.read(syncControllerProvider.notifier).scheduleSync());
   }
 }
 

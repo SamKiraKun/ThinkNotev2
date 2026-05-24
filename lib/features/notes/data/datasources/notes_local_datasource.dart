@@ -4,18 +4,28 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sqlite3/sqlite3.dart';
 
+import '../../../../core/config/app_env.dart';
 import '../../../../core/constants/storage_keys.dart';
 import '../../../../core/database/app_database.dart';
+import '../../../../core/security/local_notes_cipher.dart';
 import '../../../../core/storage/local_storage.dart';
+import '../../../auth/auth_providers.dart';
 import '../../../folders/data/models/folder_model.dart';
 import '../../../folders/data/models/tag_model.dart';
+import '../../../sync/data/models/sync_delete_operation.dart';
 import '../../domain/entities/note_entity.dart';
 import '../models/app_preferences_model.dart';
 import '../models/note_model.dart';
 import '../models/notes_store_model.dart';
 
 final appDatabaseProvider = Provider<AppDatabase>((ref) {
-  final database = AppDatabase();
+  final database = AppDatabase(
+    databaseName: _databaseNameForCurrentSession(
+      AppEnv.enableExperimentalSync
+          ? ref.watch(currentAuthSessionProvider)?.uid
+          : null,
+    ),
+  );
   ref.onDispose(() {
     database.close();
   });
@@ -26,14 +36,20 @@ final notesLocalDataSourceProvider = Provider<NotesLocalDataSource>((ref) {
   return NotesLocalDataSource(
     ref.watch(sharedPreferencesProvider),
     ref.watch(appDatabaseProvider),
+    cipher: ref.watch(localNotesCipherProvider),
   );
 });
 
 class NotesLocalDataSource {
-  const NotesLocalDataSource(this._preferences, this._database);
+  NotesLocalDataSource(
+    this._preferences,
+    this._database, {
+    LocalNotesCipher? cipher,
+  }) : _cipher = cipher ?? const PassthroughLocalNotesCipher();
 
   final SharedPreferences _preferences;
   final AppDatabase _database;
+  final LocalNotesCipher _cipher;
 
   Future<NotesStoreModel> readStore() async {
     await _migrateLegacyPreferencesIfNeeded();
@@ -52,13 +68,18 @@ class NotesLocalDataSource {
       'SELECT * FROM recent_searches ORDER BY position ASC',
     );
     final preferences = _readPreferences(database);
+    final shouldRewriteEncryptedFields = _rowsRequireEncryption(
+      notesRows: notesRows,
+      folderRows: folderRows,
+      tagRows: tagRows,
+      searchRows: searchRows,
+    );
 
     final store = NotesStoreModel(
-      notes: notesRows.map(_noteFromRow).toList(growable: false),
-      folders: folderRows.map(_folderFromRow).toList(growable: false),
-      tags: tagRows.map(_tagFromRow).toList(growable: false),
-      recentSearches:
-          searchRows.map((row) => row['query'] as String).toList(growable: false),
+      notes: await _readNotes(notesRows),
+      folders: await _readFolders(folderRows),
+      tags: await _readTags(tagRows),
+      recentSearches: await _readRecentSearches(searchRows),
       preferences: preferences,
     ).withDefaults();
 
@@ -69,7 +90,8 @@ class NotesLocalDataSource {
     }
 
     if (store.folders.length != folderRows.length ||
-        store.tags.length != tagRows.length) {
+        store.tags.length != tagRows.length ||
+        shouldRewriteEncryptedFields) {
       await _writeStoreToDatabase(store);
     }
 
@@ -79,6 +101,110 @@ class NotesLocalDataSource {
   Future<void> writeStore(NotesStoreModel store) async {
     await _migrateLegacyPreferencesIfNeeded();
     await _writeStoreToDatabase(store.withDefaults());
+  }
+
+  Future<String?> readSyncState(String key) async {
+    final database = await _database.instance;
+    final rows = database.select(
+      'SELECT value FROM sync_state WHERE key = ? LIMIT 1',
+      [key],
+    );
+    if (rows.isEmpty) {
+      return null;
+    }
+
+    return rows.first['value'] as String;
+  }
+
+  Future<void> writeSyncState(String key, String value) async {
+    final database = await _database.instance;
+    database.execute(
+      '''
+        INSERT OR REPLACE INTO sync_state (key, value, updated_at)
+        VALUES (?, ?, ?)
+      ''',
+      [key, value, DateTime.now().toIso8601String()],
+    );
+  }
+
+  Future<void> deleteSyncState(String key) async {
+    final database = await _database.instance;
+    database.execute(
+      'DELETE FROM sync_state WHERE key = ?',
+      [key],
+    );
+  }
+
+  Future<void> upsertDeleteOperation(SyncDeleteOperation operation) async {
+    final database = await _database.instance;
+    database.execute(
+      '''
+        INSERT OR REPLACE INTO sync_queue (
+          id, entity_type, entity_id, operation, payload_json, created_at,
+          retry_count, last_error
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      ''',
+      [
+        operation.id,
+        operation.entityType.storageValue,
+        operation.entityId,
+        'delete',
+        operation.payloadJsonString,
+        operation.createdAt.toIso8601String(),
+        operation.retryCount,
+        operation.lastError,
+      ],
+    );
+  }
+
+  Future<List<SyncDeleteOperation>> readPendingDeleteOperations() async {
+    final database = await _database.instance;
+    final rows = database.select(
+      '''
+        SELECT *
+        FROM sync_queue
+        WHERE operation = 'delete'
+        ORDER BY created_at ASC
+      ''',
+    );
+    return rows.map(SyncDeleteOperation.fromRow).toList(growable: false);
+  }
+
+  Future<void> clearPendingDeleteOperations(List<String> queueIds) async {
+    if (queueIds.isEmpty) {
+      return;
+    }
+
+    final database = await _database.instance;
+    final placeholders = List.filled(queueIds.length, '?').join(', ');
+    database.execute(
+      'DELETE FROM sync_queue WHERE id IN ($placeholders)',
+      queueIds,
+    );
+  }
+
+  Future<void> markDeleteOperationsFailed(
+    List<String> queueIds,
+    String errorMessage,
+  ) async {
+    if (queueIds.isEmpty) {
+      return;
+    }
+
+    final database = await _database.instance;
+    final placeholders = List.filled(queueIds.length, '?').join(', ');
+    database.execute(
+      '''
+        UPDATE sync_queue
+        SET retry_count = retry_count + 1,
+            last_error = ?
+        WHERE id IN ($placeholders)
+      ''',
+      <Object?>[
+        errorMessage,
+        ...queueIds,
+      ],
+    );
   }
 
   Future<void> _migrateLegacyPreferencesIfNeeded() async {
@@ -164,12 +290,12 @@ class NotesLocalDataSource {
           insertFolder.execute([
             folder.id,
             null,
-            folder.name,
+            await _cipher.encrypt(folder.name),
             folder.colorKey,
             folder.emoji,
             _boolToInt(folder.isSystem),
             folder.createdAt.toIso8601String(),
-            folder.createdAt.toIso8601String(),
+            folder.updatedAt.toIso8601String(),
             'synced',
             null,
           ]);
@@ -179,10 +305,10 @@ class NotesLocalDataSource {
           insertTag.execute([
             tag.id,
             null,
-            tag.label,
+            await _cipher.encrypt(tag.label),
             tag.emoji,
             tag.createdAt.toIso8601String(),
-            tag.createdAt.toIso8601String(),
+            tag.updatedAt.toIso8601String(),
             'synced',
             null,
           ]);
@@ -192,10 +318,10 @@ class NotesLocalDataSource {
           insertNote.execute([
             note.id,
             note.remoteId,
-            note.title,
-            note.content,
+            await _cipher.encrypt(note.title),
+            await _cipher.encrypt(note.content),
             note.folderId,
-            jsonEncode(note.tags),
+            await _cipher.encrypt(jsonEncode(note.tags)),
             _boolToInt(note.isPinned),
             _boolToInt(note.isFavorite),
             _boolToInt(note.isArchived),
@@ -212,10 +338,14 @@ class NotesLocalDataSource {
         for (var index = 0;
             index < normalizedStore.recentSearches.length;
             index += 1) {
-          insertSearch.execute([index, normalizedStore.recentSearches[index]]);
+          insertSearch.execute([
+            index,
+            await _cipher.encrypt(normalizedStore.recentSearches[index]),
+          ]);
         }
 
-        for (final entry in _preferencesToMap(normalizedStore.preferences).entries) {
+        for (final entry
+            in _preferencesToMap(normalizedStore.preferences).entries) {
           insertPreference.execute([entry.key, entry.value]);
         }
 
@@ -261,14 +391,47 @@ class NotesLocalDataSource {
     );
   }
 
-  NoteModel _noteFromRow(Row row) {
+  Future<List<NoteModel>> _readNotes(ResultSet rows) async {
+    final items = <NoteModel>[];
+    for (final row in rows) {
+      items.add(await _noteFromRow(row));
+    }
+    return items;
+  }
+
+  Future<List<FolderModel>> _readFolders(ResultSet rows) async {
+    final items = <FolderModel>[];
+    for (final row in rows) {
+      items.add(await _folderFromRow(row));
+    }
+    return items;
+  }
+
+  Future<List<TagModel>> _readTags(ResultSet rows) async {
+    final items = <TagModel>[];
+    for (final row in rows) {
+      items.add(await _tagFromRow(row));
+    }
+    return items;
+  }
+
+  Future<List<String>> _readRecentSearches(ResultSet rows) async {
+    final items = <String>[];
+    for (final row in rows) {
+      items.add(await _cipher.decrypt(row['query'] as String));
+    }
+    return items;
+  }
+
+  Future<NoteModel> _noteFromRow(Row row) async {
     return NoteModel(
       id: row['id'] as String,
       remoteId: row['remote_id'] as String?,
-      title: row['title'] as String,
-      content: row['content'] as String,
+      title: await _cipher.decrypt(row['title'] as String),
+      content: await _cipher.decrypt(row['content'] as String),
       folderId: row['folder_id'] as String?,
-      tags: _decodeStringList(row['tags_json'] as String),
+      tags:
+          _decodeStringList(await _cipher.decrypt(row['tags_json'] as String)),
       isPinned: _intToBool(row['is_pinned'] as int),
       isFavorite: _intToBool(row['is_favorite'] as int),
       isArchived: _intToBool(row['is_archived'] as int),
@@ -282,22 +445,24 @@ class NotesLocalDataSource {
     );
   }
 
-  FolderModel _folderFromRow(Row row) {
+  Future<FolderModel> _folderFromRow(Row row) async {
     return FolderModel(
       id: row['id'] as String,
-      name: row['name'] as String,
+      name: await _cipher.decrypt(row['name'] as String),
       colorKey: row['color_key'] as String,
       emoji: row['emoji'] as String,
       createdAt: DateTime.parse(row['created_at'] as String),
+      updatedAt: DateTime.parse(row['updated_at'] as String),
       isSystem: _intToBool(row['is_system'] as int),
     );
   }
 
-  TagModel _tagFromRow(Row row) {
+  Future<TagModel> _tagFromRow(Row row) async {
     return TagModel(
       id: row['id'] as String,
-      label: row['label'] as String,
+      label: await _cipher.decrypt(row['label'] as String),
       createdAt: DateTime.parse(row['created_at'] as String),
+      updatedAt: DateTime.parse(row['updated_at'] as String),
       emoji: row['emoji'] as String,
     );
   }
@@ -332,4 +497,42 @@ class NotesLocalDataSource {
   int _boolToInt(bool value) => value ? 1 : 0;
 
   bool _intToBool(int value) => value == 1;
+
+  bool _rowsRequireEncryption({
+    required ResultSet notesRows,
+    required ResultSet folderRows,
+    required ResultSet tagRows,
+    required ResultSet searchRows,
+  }) {
+    bool containsPlaintext(
+      ResultSet rows,
+      List<String> keys,
+    ) {
+      for (final row in rows) {
+        for (final key in keys) {
+          final value = row[key];
+          if (value is String &&
+              value.isNotEmpty &&
+              !_cipher.isEncrypted(value)) {
+            return true;
+          }
+        }
+      }
+      return false;
+    }
+
+    return containsPlaintext(notesRows, ['title', 'content', 'tags_json']) ||
+        containsPlaintext(folderRows, ['name']) ||
+        containsPlaintext(tagRows, ['label']) ||
+        containsPlaintext(searchRows, ['query']);
+  }
+}
+
+String _databaseNameForCurrentSession(String? uid) {
+  if (uid == null || uid.trim().isEmpty) {
+    return 'thinknote.sqlite';
+  }
+
+  final normalizedUid = uid.replaceAll(RegExp(r'[^A-Za-z0-9_\-]'), '_');
+  return 'thinknote_$normalizedUid.sqlite';
 }

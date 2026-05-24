@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/config/app_env.dart';
 import '../../../../core/constants/storage_keys.dart';
 import '../../../../core/extensions/context_extensions.dart';
 import '../../../../core/storage/local_storage.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
+import '../../../../shared/widgets/app_feature_notice_screen.dart';
 
 class NotificationSettingsScreen extends ConsumerStatefulWidget {
   const NotificationSettingsScreen({super.key});
@@ -33,6 +35,16 @@ class _NotificationSettingsScreenState
 
   @override
   Widget build(BuildContext context) {
+    if (!AppEnv.showPrototypeTools) {
+      return const AppFeatureNoticeScreen(
+        title: 'Notification settings',
+        icon: Icons.notifications_off_outlined,
+        headline: 'Reminders are not part of this release',
+        message:
+            'ThinkNote 1.0 focuses on local note capture and organization. Reminder delivery will ship only after permissions, scheduling, and background behavior are implemented end-to-end.',
+      );
+    }
+
     final palette = context.palette;
 
     return Scaffold(
@@ -46,13 +58,14 @@ class _NotificationSettingsScreenState
               value: _notificationsEnabled,
               title: const Text('Enable local reminders'),
               subtitle: const Text(
-                'Stores reminder preferences locally. Scheduling requires the local notifications plugin setup.',
+                'Stores reminder preferences locally. Scheduling remains experimental in non-production builds.',
               ),
               activeThumbColor: AppColors.brandPrimary,
               onChanged: (value) => _setNotificationsEnabled(value),
             ),
             const SizedBox(height: AppSpacing.xxl),
-            Text('Default reminder lead time', style: AppTypography.titleMedium),
+            Text('Default reminder lead time',
+                style: AppTypography.titleMedium),
             const SizedBox(height: AppSpacing.md),
             for (final option in const [10, 30, 60, 1440])
               _ReminderOptionTile(

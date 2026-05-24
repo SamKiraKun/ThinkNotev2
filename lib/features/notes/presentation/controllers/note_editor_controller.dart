@@ -1,8 +1,11 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../bootstrap/dependency_injection.dart';
 import '../../../../core/utils/debouncer.dart';
 import '../../domain/repositories/notes_repository.dart';
+import '../../../sync/presentation/controllers/sync_controller.dart';
 import 'notes_controller.dart';
 
 class NoteEditorArgs {
@@ -206,6 +209,7 @@ class NoteEditorController extends StateNotifier<NoteEditorState> {
       return;
     }
     await _repository.archiveNote(noteId);
+    _scheduleSync();
     state = state.copyWith(isArchived: true, isPinned: false);
     _ref.invalidate(notesControllerProvider);
   }
@@ -216,6 +220,7 @@ class NoteEditorController extends StateNotifier<NoteEditorState> {
       return;
     }
     await _repository.unarchiveNote(noteId);
+    _scheduleSync();
     state = state.copyWith(isArchived: false);
     _ref.invalidate(notesControllerProvider);
   }
@@ -246,6 +251,7 @@ class NoteEditorController extends StateNotifier<NoteEditorState> {
       return;
     }
     await _repository.moveToTrash(noteId);
+    _scheduleSync();
     _ref.invalidate(notesControllerProvider);
   }
 
@@ -302,6 +308,7 @@ class NoteEditorController extends StateNotifier<NoteEditorState> {
         hasChanges: false,
         lastSavedAt: saved.updatedAt,
       );
+      _scheduleSync();
       _ref.invalidate(notesControllerProvider);
     } catch (error) {
       state = state.copyWith(
@@ -315,6 +322,10 @@ class NoteEditorController extends StateNotifier<NoteEditorState> {
   void dispose() {
     _debouncer.dispose();
     super.dispose();
+  }
+
+  void _scheduleSync() {
+    unawaited(_ref.read(syncControllerProvider.notifier).scheduleSync());
   }
 }
 

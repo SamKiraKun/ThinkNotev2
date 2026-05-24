@@ -12,12 +12,20 @@ plugins {
 val keystorePropertiesFile = rootProject.file("key.properties")
 val keystoreProperties = Properties()
 val hasReleaseKeystore = keystorePropertiesFile.exists()
+val minimumPlayTargetSdk = 35
 
 if (hasReleaseKeystore) {
     keystoreProperties.load(FileInputStream(keystorePropertiesFile))
 }
 
 android {
+    val releaseTargetSdk = flutter.targetSdkVersion
+    if (releaseTargetSdk < minimumPlayTargetSdk) {
+        throw GradleException(
+            "ThinkNote releases must target Android API $minimumPlayTargetSdk or higher. Current targetSdk is $releaseTargetSdk.",
+        )
+    }
+
     namespace = "note.thinkmart.in"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
@@ -48,7 +56,7 @@ android {
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion
-        targetSdk = flutter.targetSdkVersion
+        targetSdk = releaseTargetSdk
         versionCode = flutter.versionCode
         versionName = flutter.versionName
     }
@@ -60,8 +68,12 @@ android {
             } else {
                 throw GradleException("Missing android/key.properties. Provide the Android signing environment variables so CI can generate the release keystore configuration.")
             }
-            isMinifyEnabled = false
-            isShrinkResources = false
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro",
+            )
         }
     }
 }
