@@ -29,7 +29,10 @@ class AppEmptyState extends StatelessWidget {
 
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(AppSpacing.xxl),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.xxl,
+        vertical: 36,
+      ),
       decoration: BoxDecoration(
         color: palette.surfacePrimary,
         borderRadius: BorderRadius.circular(AppRadius.xl),
@@ -39,47 +42,131 @@ class AppEmptyState extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Container(
-            width: 56,
-            height: 56,
-            decoration: BoxDecoration(
-              color: palette.surfaceAccent,
-              shape: BoxShape.circle,
-            ),
-            alignment: Alignment.center,
-            child: Icon(
-              icon,
-              size: 28,
-              color: AppColors.brandPrimary,
+          // Custom Pure Flutter Visual Mockup Illustration
+          SizedBox(
+            height: 120,
+            width: 160,
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                // Soft background glow
+                Container(
+                  width: 90,
+                  height: 90,
+                  decoration: BoxDecoration(
+                    color: AppColors.brandPrimary.withValues(alpha: 0.05),
+                    shape: BoxShape.circle,
+                  ),
+                ),
+                // Rotated background note sheet card
+                Transform.rotate(
+                  angle: -0.12,
+                  child: Container(
+                    width: 52,
+                    height: 68,
+                    decoration: BoxDecoration(
+                      color: palette.surfaceSecondary,
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: palette.borderPrimary),
+                    ),
+                  ),
+                ),
+                // Rotated background note sheet card #2
+                Transform.rotate(
+                  angle: 0.08,
+                  child: Container(
+                    width: 52,
+                    height: 68,
+                    decoration: BoxDecoration(
+                      color: palette.surfaceSecondary,
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: palette.borderPrimary),
+                    ),
+                  ),
+                ),
+                // Central main note sheet card
+                Container(
+                  width: 52,
+                  height: 68,
+                  decoration: BoxDecoration(
+                    color: palette.surfacePrimary,
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: palette.borderPrimary),
+                    boxShadow: AppShadows.floatingCard,
+                  ),
+                  alignment: Alignment.center,
+                  child: Icon(
+                    icon,
+                    size: 24,
+                    color: AppColors.brandPrimary,
+                  ),
+                ),
+                // Sparkle decoration #1
+                Positioned(
+                  top: 14,
+                  right: 24,
+                  child: Icon(
+                    Icons.auto_awesome_rounded,
+                    color: AppColors.brandLavender.withValues(alpha: 0.8),
+                    size: 16,
+                  ),
+                ),
+                // Sparkle decoration #2
+                Positioned(
+                  bottom: 18,
+                  left: 20,
+                  child: const Icon(
+                    Icons.auto_awesome_rounded,
+                    color: AppColors.brandPrimaryLight,
+                    size: 12,
+                  ),
+                ),
+              ],
             ),
           ),
           const SizedBox(height: AppSpacing.lg),
+
+          // Headline Title
           Text(
             title,
-            style: AppTypography.titleMedium,
+            style: AppTypography.titleMedium.copyWith(
+              fontWeight: FontWeight.bold,
+              fontSize: 18,
+            ),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: AppSpacing.sm),
+
+          // Description Message
           Text(
             message,
             style: AppTypography.bodyMedium.copyWith(
               color: palette.textSecondary,
+              height: 1.4,
             ),
             textAlign: TextAlign.center,
           ),
+
+          // Massive Action Button
           if (actionLabel != null && onAction != null) ...[
-            const SizedBox(height: AppSpacing.lg),
-            TextButton(
+            const SizedBox(height: 28),
+            FilledButton.icon(
               onPressed: onAction,
-              style: TextButton.styleFrom(
-                foregroundColor: AppColors.brandPrimary,
-              ),
-              child: Text(
+              icon: const Icon(Icons.add_rounded, color: Colors.white),
+              label: Text(
                 actionLabel!,
-                style: AppTypography.bodyMedium.copyWith(
-                  color: AppColors.brandPrimary,
-                  fontWeight: FontWeight.w700,
+                style: AppTypography.bodyLarge.copyWith(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
                 ),
+              ),
+              style: FilledButton.styleFrom(
+                minimumSize: const Size.fromHeight(50),
+                backgroundColor: AppColors.brandPrimary,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(AppRadius.button),
+                ),
+                elevation: 1,
               ),
             ),
           ],

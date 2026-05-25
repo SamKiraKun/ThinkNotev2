@@ -4,6 +4,7 @@ import '../../core/constants/app_constants.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_radius.dart';
 import '../../core/theme/app_typography.dart';
+import '../../core/extensions/context_extensions.dart';
 
 class AppTextField extends StatefulWidget {
 	const AppTextField({
@@ -90,6 +91,7 @@ class _AppTextFieldState extends State<AppTextField> {
 		final hasError = widget.errorText != null && widget.errorText!.isNotEmpty;
 		final hasFocus = widget.focusNode.hasFocus;
 		final isActive = widget.controller.text.isNotEmpty;
+		final palette = context.palette;
 		final dividerColor = hasError
 				? AppColors.textDanger
 				: hasFocus
@@ -98,18 +100,18 @@ class _AppTextFieldState extends State<AppTextField> {
 								? AppColors.brandPrimary
 								: _isHovered
 										? AppColors.buttonSecondaryBorder
-										: AppColors.formDivider;
+										: palette.borderSoft;
 		final iconColor = hasError
 				? AppColors.textDanger
 				: hasFocus || isActive || _isHovered
 						? AppColors.brandPrimary
-						: AppColors.formFieldIcon;
+						: palette.textSecondary;
 		final placeholderColor = widget.enabled
 				? hasError
 						? AppColors.textDanger
 						: hasFocus || _isHovered
-								? AppColors.textTertiary
-								: AppColors.formFieldPlaceholder
+								? palette.textTertiary
+								: palette.textPlaceholder
 				: AppColors.buttonDisabledText;
 
 		return MouseRegion(
@@ -161,7 +163,7 @@ class _AppTextFieldState extends State<AppTextField> {
 											cursorColor: AppColors.brandPrimary,
 											style: AppTypography.inputText.copyWith(
 												color: widget.enabled
-														? AppColors.formFieldText
+														? palette.textPrimary
 														: AppColors.buttonDisabledText,
 											),
 											decoration: InputDecoration(

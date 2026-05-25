@@ -10,6 +10,7 @@ class AppThemePalette extends ThemeExtension<AppThemePalette> {
     required this.glassSurface,
     required this.borderPrimary,
     required this.borderSoft,
+    required this.textPrimary,
     required this.textSecondary,
     required this.textTertiary,
     required this.textPlaceholder,
@@ -22,6 +23,7 @@ class AppThemePalette extends ThemeExtension<AppThemePalette> {
   final Color glassSurface;
   final Color borderPrimary;
   final Color borderSoft;
+  final Color textPrimary;
   final Color textSecondary;
   final Color textTertiary;
   final Color textPlaceholder;
@@ -34,6 +36,7 @@ class AppThemePalette extends ThemeExtension<AppThemePalette> {
     glassSurface: Color(0xE6FFFFFF),
     borderPrimary: Color(0xFFE8E7F0),
     borderSoft: Color(0xFFF0EFF6),
+    textPrimary: Color(0xFF101126),
     textSecondary: Color(0xFF5D6077),
     textTertiary: Color(0xFF7C7F96),
     textPlaceholder: Color(0xFFA2A5B8),
@@ -47,6 +50,7 @@ class AppThemePalette extends ThemeExtension<AppThemePalette> {
     glassSurface: Color(0xE61E2233),
     borderPrimary: Color(0xFF353A50),
     borderSoft: Color(0xFF2A3044),
+    textPrimary: Color(0xFFF5F7FF),
     textSecondary: Color(0xFFC0C5DD),
     textTertiary: Color(0xFF8F96B3),
     textPlaceholder: Color(0xFF727A97),
@@ -61,6 +65,7 @@ class AppThemePalette extends ThemeExtension<AppThemePalette> {
     Color? glassSurface,
     Color? borderPrimary,
     Color? borderSoft,
+    Color? textPrimary,
     Color? textSecondary,
     Color? textTertiary,
     Color? textPlaceholder,
@@ -73,6 +78,7 @@ class AppThemePalette extends ThemeExtension<AppThemePalette> {
       glassSurface: glassSurface ?? this.glassSurface,
       borderPrimary: borderPrimary ?? this.borderPrimary,
       borderSoft: borderSoft ?? this.borderSoft,
+      textPrimary: textPrimary ?? this.textPrimary,
       textSecondary: textSecondary ?? this.textSecondary,
       textTertiary: textTertiary ?? this.textTertiary,
       textPlaceholder: textPlaceholder ?? this.textPlaceholder,
@@ -103,6 +109,7 @@ class AppThemePalette extends ThemeExtension<AppThemePalette> {
       borderPrimary:
           Color.lerp(borderPrimary, other.borderPrimary, t) ?? borderPrimary,
       borderSoft: Color.lerp(borderSoft, other.borderSoft, t) ?? borderSoft,
+      textPrimary: Color.lerp(textPrimary, other.textPrimary, t) ?? textPrimary,
       textSecondary:
           Color.lerp(textSecondary, other.textSecondary, t) ?? textSecondary,
       textTertiary:

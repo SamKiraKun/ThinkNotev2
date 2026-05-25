@@ -5,6 +5,7 @@ import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_radius.dart';
 import '../../core/theme/app_shadows.dart';
 import '../../core/utils/accessibility_utils.dart';
+import '../../core/extensions/context_extensions.dart';
 import 'animated_tap_scale.dart';
 
 class AppIconButton extends StatelessWidget {
@@ -41,22 +42,22 @@ class AppIconButton extends StatelessWidget {
 				onTap: onPressed,
 				disabled: isDisabled,
 				builder: (context, state) {
-					final duration = AccessibilityUtils.interactiveDuration(context);
+					final palette = context.palette;
 					final backgroundColor = isDisabled
-							? AppColors.surfaceMuted
+							? palette.surfaceSecondary
 							: state.isPressed
-									? AppColors.surfaceLavender
+									? palette.surfaceAccent
 									: state.isHovered
-											? AppColors.surfaceSoft
-											: AppColors.surface;
+											? palette.surfaceSecondary
+											: palette.surfacePrimary;
 					final iconColor = isDisabled
 							? AppColors.buttonDisabledText
 							: state.isHovered || state.isPressed
 									? AppColors.brandPrimary
-									: AppColors.textPrimary;
+									: palette.textPrimary;
 
 					return AnimatedContainer(
-						duration: duration,
+						duration: AccessibilityUtils.interactiveDuration(context),
 						curve: AppConstants.interactiveCurve,
 						width: size,
 						height: size,
@@ -87,7 +88,7 @@ class AppIconButton extends StatelessWidget {
 											decoration: BoxDecoration(
 												color: badgeColor,
 												shape: BoxShape.circle,
-												border: Border.all(color: AppColors.surface, width: 1.2),
+												border: Border.all(color: palette.surfacePrimary, width: 1.2),
 											),
 										),
 									),

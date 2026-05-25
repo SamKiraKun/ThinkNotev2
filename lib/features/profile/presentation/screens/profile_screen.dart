@@ -71,7 +71,7 @@ class ProfileScreen extends ConsumerWidget {
                       ),
                       alignment: Alignment.center,
                       child: Text(
-                        authSession?.initials ?? 'N',
+                        authSession?.initials ?? 'G',
                         style: AppTypography.titleLarge.copyWith(
                           color: AppColors.surfaceWhite,
                         ),
@@ -92,7 +92,9 @@ class ProfileScreen extends ConsumerWidget {
                           const SizedBox(height: AppSpacing.xs),
                           Text(
                             syncEnabled
-                                ? '${onboardingProfile?.workspaceFocus.label ?? 'Cloud workspace'} · Notes save on this device first and sync to your account when you are online.'
+                                ? (authSession == null
+                                    ? '${onboardingProfile?.workspaceFocus.label ?? 'Guest workspace'} · Writing as Guest. Notes are stored locally on this device.'
+                                    : '${onboardingProfile?.workspaceFocus.label ?? 'Cloud workspace'} · Notes save on this device first and sync to your account when you are online.')
                                 : '${onboardingProfile?.workspaceFocus.label ?? 'Device workspace'} · Notes stay on this device and are available offline anytime.',
                             style: AppTypography.bodyMedium.copyWith(
                               color: palette.textSecondary,
@@ -127,43 +129,59 @@ class ProfileScreen extends ConsumerWidget {
                 const SizedBox(height: AppSpacing.xxl),
                 Text('Account', style: AppTypography.titleMedium),
                 const SizedBox(height: AppSpacing.md),
-                _SettingsGroup(
-                  children: [
-                    _SettingsTile(
-                      icon: Icons.cloud_sync_outlined,
-                      title: 'Sync now',
-                      subtitle: syncState.lastError == null
-                          ? (syncState.lastSyncedAt == null
-                              ? 'Push local changes and pull latest notes'
-                              : 'Last sync ${syncState.lastSyncedAt}')
-                          : 'Last sync failed. Tap to retry.',
-                      onTap: () => _syncNow(context, ref),
-                    ),
-                    _SettingsTile(
-                      icon: Icons.logout_rounded,
-                      title: 'Sign out',
-                      subtitle:
-                          'Stop syncing on this device until you sign in again or switch accounts',
-                      onTap: () => _signOut(context, ref),
-                    ),
-                    if (authSession != null && !authSession.isEmailVerified)
+                if (authSession == null)
+                  _SettingsGroup(
+                    children: [
                       _SettingsTile(
-                        icon: Icons.mark_email_read_outlined,
-                        title: 'Verify email',
-                        subtitle:
-                            'Resend a verification email for stronger account recovery',
-                        onTap: () => _sendVerification(context, ref),
+                        icon: Icons.login_rounded,
+                        title: 'Link Cloud Account',
+                        subtitle: 'Sign in or register to enable real-time cloud synchronization and backups',
+                        onTap: () async {
+                          final sharedPrefs = ref.read(sharedPreferencesProvider);
+                          await sharedPrefs.setBool('is_guest_mode', false);
+                          ref.invalidate(appStartupSnapshotProvider);
+                        },
                       ),
-                    _SettingsTile(
-                      icon: Icons.person_remove_outlined,
-                      title: 'Delete account',
-                      subtitle:
-                          'Remove your account and synced note data from ThinkNote',
-                      onTap: () => _confirmDeleteAccount(context, ref),
-                      isDestructive: true,
-                    ),
-                  ],
-                ),
+                    ],
+                  )
+                else
+                  _SettingsGroup(
+                    children: [
+                      _SettingsTile(
+                        icon: Icons.cloud_sync_outlined,
+                        title: 'Sync now',
+                        subtitle: syncState.lastError == null
+                            ? (syncState.lastSyncedAt == null
+                                ? 'Push local changes and pull latest notes'
+                                : 'Last sync ${syncState.lastSyncedAt}')
+                            : 'Last sync failed. Tap to retry.',
+                        onTap: () => _syncNow(context, ref),
+                      ),
+                      _SettingsTile(
+                        icon: Icons.logout_rounded,
+                        title: 'Sign out',
+                        subtitle:
+                            'Stop syncing on this device until you sign in again or switch accounts',
+                        onTap: () => _signOut(context, ref),
+                      ),
+                      if (authSession != null && !authSession.isEmailVerified)
+                        _SettingsTile(
+                          icon: Icons.mark_email_read_outlined,
+                          title: 'Verify email',
+                          subtitle:
+                              'Resend a verification email for stronger account recovery',
+                          onTap: () => _sendVerification(context, ref),
+                        ),
+                      _SettingsTile(
+                        icon: Icons.person_remove_outlined,
+                        title: 'Delete account',
+                        subtitle:
+                            'Remove your account and synced note data from ThinkNote',
+                        onTap: () => _confirmDeleteAccount(context, ref),
+                        isDestructive: true,
+                      ),
+                    ],
+                  ),
               ],
               const SizedBox(height: AppSpacing.xxl),
               Text('Preferences', style: AppTypography.titleMedium),
@@ -434,7 +452,10 @@ class ProfileScreen extends ConsumerWidget {
   }
 
   Future<void> _signOut(BuildContext context, WidgetRef ref) async {
+    final sharedPrefs = ref.read(sharedPreferencesProvider);
+    await sharedPrefs.setBool('is_guest_mode', false);
     await ref.read(authControllerProvider.notifier).signOut();
+    ref.invalidate(appStartupSnapshotProvider);
     if (!context.mounted) {
       return;
     }
@@ -460,7 +481,10 @@ class ProfileScreen extends ConsumerWidget {
       return;
     }
 
+    final sharedPrefs = ref.read(sharedPreferencesProvider);
+    await sharedPrefs.setBool('is_guest_mode', false);
     await ref.read(authControllerProvider.notifier).deleteAccount();
+    ref.invalidate(appStartupSnapshotProvider);
     if (!context.mounted) {
       return;
     }
@@ -544,7 +568,7 @@ class _SettingsTile extends StatelessWidget {
                     style: AppTypography.titleSmall.copyWith(
                       color: isDestructive
                           ? AppColors.textDanger
-                          : AppColors.textPrimary,
+                          : palette.textPrimary,
                     ),
                   ),
                   const SizedBox(height: AppSpacing.xs),

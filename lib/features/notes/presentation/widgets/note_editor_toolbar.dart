@@ -16,6 +16,8 @@ class NoteEditorToolbar extends StatelessWidget {
     required this.onHeadingTap,
     required this.onQuoteTap,
     required this.onTagTap,
+    required this.onMicTap,
+    required this.onAttachTap,
   });
 
   final VoidCallback onBoldTap;
@@ -28,6 +30,8 @@ class NoteEditorToolbar extends StatelessWidget {
   final VoidCallback onHeadingTap;
   final VoidCallback onQuoteTap;
   final VoidCallback onTagTap;
+  final VoidCallback onMicTap;
+  final VoidCallback onAttachTap;
 
   @override
   Widget build(BuildContext context) {
@@ -94,6 +98,16 @@ class NoteEditorToolbar extends StatelessWidget {
               icon: Icons.sell_outlined,
               tooltip: 'Tags',
               onTap: onTagTap,
+            ),
+            _ToolbarButton(
+              icon: Icons.mic_none_rounded,
+              tooltip: 'Voice note',
+              onTap: onMicTap,
+            ),
+            _ToolbarButton(
+              icon: Icons.attach_file_rounded,
+              tooltip: 'Attach media',
+              onTap: onAttachTap,
             ),
           ],
         ),

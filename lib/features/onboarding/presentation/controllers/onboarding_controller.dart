@@ -106,13 +106,24 @@ class AppStartupSnapshot {
 
 final appStartupSnapshotProvider =
     FutureProvider<AppStartupSnapshot>((ref) async {
+  final startTime = DateTime.now();
+
   final session =
       AppEnv.enableExperimentalSync ? ref.watch(currentAuthSessionProvider) : null;
   final onboardingProfile = await ref.watch(onboardingControllerProvider.future);
   await ref.read(notesControllerProvider.future);
 
+  final sharedPrefs = ref.watch(sharedPreferencesProvider);
+  final isGuest = sharedPrefs.getBool('is_guest_mode') ?? false;
+
+  final elapsed = DateTime.now().difference(startTime);
+  const minDelay = Duration(seconds: 1);
+  if (elapsed < minDelay) {
+    await Future.delayed(minDelay - elapsed);
+  }
+
   return AppStartupSnapshot(
     onboardingProfile: onboardingProfile,
-    requiresAuthentication: AppEnv.enableExperimentalSync && session == null,
+    requiresAuthentication: AppEnv.enableExperimentalSync && session == null && !isGuest,
   );
 });

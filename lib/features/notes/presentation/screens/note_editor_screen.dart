@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../core/extensions/context_extensions.dart';
 import '../../../../core/constants/route_names.dart';
+import '../../../../shared/utils/jit_permission_service.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_gradients.dart';
 import '../../../../core/theme/app_radius.dart';
@@ -533,6 +534,8 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
                                     ref,
                                     editorState.tags,
                                   ),
+                                  onMicTap: _handleMicTap,
+                                  onAttachTap: _handleAttachTap,
                                 ),
                                 Divider(
                                   height: 1,
@@ -612,6 +615,16 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
                               onTap: () => _showTagSelector(
                                   context, ref, editorState.tags),
                             ),
+                            _BottomAction(
+                              icon: Icons.mic_none_rounded,
+                              label: 'Voice',
+                              onTap: _handleMicTap,
+                            ),
+                            _BottomAction(
+                              icon: Icons.attach_file_rounded,
+                              label: 'Attach',
+                              onTap: _handleAttachTap,
+                            ),
                           ],
                         ),
                       ),
@@ -620,6 +633,28 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
         ),
       ),
     );
+  }
+
+  Future<void> _handleMicTap() async {
+    final granted = await JitPermissionService.requestMicrophone(context);
+    if (granted && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('[Mic] Voice note initialized successfully (Simulated).'),
+        ),
+      );
+    }
+  }
+
+  Future<void> _handleAttachTap() async {
+    final granted = await JitPermissionService.requestStorage(context);
+    if (granted && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('[Storage] Media attachment selector opened (Simulated).'),
+        ),
+      );
+    }
   }
 
   int _countWords(String content) {

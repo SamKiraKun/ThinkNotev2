@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -12,11 +13,37 @@ import '../../../../core/theme/app_typography.dart';
 import '../../../notes/presentation/controllers/notes_controller.dart';
 import '../controllers/onboarding_controller.dart';
 
-class AppLaunchScreen extends ConsumerWidget {
+class AppLaunchScreen extends ConsumerStatefulWidget {
   const AppLaunchScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<AppLaunchScreen> createState() => _AppLaunchScreenState();
+}
+
+class _AppLaunchScreenState extends ConsumerState<AppLaunchScreen> {
+  bool _showProgress = false;
+  late final Timer _timer;
+
+  @override
+  void initState() {
+    super.initState();
+    _timer = Timer(const Duration(seconds: 2), () {
+      if (mounted) {
+        setState(() {
+          _showProgress = true;
+        });
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final palette = context.palette;
     final startup = ref.watch(appStartupSnapshotProvider);
 
@@ -29,35 +56,37 @@ class AppLaunchScreen extends ConsumerWidget {
             child: Padding(
               padding: const EdgeInsets.all(AppSpacing.xxl),
               child: startup.when(
-                loading: () => _LaunchBody(
-                  title: 'Preparing your workspace',
-                  subtitle: AppEnv.enableExperimentalSync
-                      ? 'Restoring your setup, account access, and note library before the dashboard opens.'
-                      : 'Restoring your setup and local note library before the dashboard opens.',
-                  showProgress: true,
-                  steps: <_LaunchStepData>[
-                    const _LaunchStepData(
-                      label: 'Validate app configuration',
-                      state: _LaunchStepState.complete,
-                    ),
-                    const _LaunchStepData(
-                      label: 'Restore onboarding and workspace profile',
-                      state: _LaunchStepState.active,
-                    ),
-                    _LaunchStepData(
-                      label: AppEnv.enableExperimentalSync
-                          ? 'Resolve account session'
-                          : 'Restore local workspace',
-                      state: _LaunchStepState.pending,
-                    ),
-                    _LaunchStepData(
-                      label: AppEnv.enableExperimentalSync
-                          ? 'Warm note cache for sync-aware launch'
-                          : 'Warm note cache for offline launch',
-                      state: _LaunchStepState.pending,
-                    ),
-                  ],
-                ),
+                loading: () => _showProgress
+                    ? _LaunchBody(
+                        title: 'Preparing your workspace',
+                        subtitle: AppEnv.enableExperimentalSync
+                            ? 'Restoring your setup, account access, and note library before the dashboard opens.'
+                            : 'Restoring your setup and local note library before the dashboard opens.',
+                        showProgress: true,
+                        steps: <_LaunchStepData>[
+                          const _LaunchStepData(
+                            label: 'Validate app configuration',
+                            state: _LaunchStepState.complete,
+                          ),
+                          const _LaunchStepData(
+                            label: 'Restore onboarding and workspace profile',
+                            state: _LaunchStepState.active,
+                          ),
+                          _LaunchStepData(
+                            label: AppEnv.enableExperimentalSync
+                                ? 'Resolve account session'
+                                : 'Restore local workspace',
+                            state: _LaunchStepState.pending,
+                          ),
+                          _LaunchStepData(
+                            label: AppEnv.enableExperimentalSync
+                                ? 'Warm note cache for sync-aware launch'
+                                : 'Warm note cache for offline launch',
+                            state: _LaunchStepState.pending,
+                          ),
+                        ],
+                      )
+                    : const _SplashVisual(),
                 error: (error, _) => _LaunchErrorState(
                   message: error.toString().replaceFirst('Exception: ', ''),
                   onRetry: () {
@@ -66,44 +95,116 @@ class AppLaunchScreen extends ConsumerWidget {
                     ref.invalidate(appStartupSnapshotProvider);
                   },
                 ),
-                data: (snapshot) => _LaunchBody(
-                  title: snapshot.onboardingProfile.hasCompletedOnboarding
-                      ? 'Opening ${snapshot.onboardingProfile.effectiveWorkspaceName}'
-                      : 'Setting up ThinkNote',
-                  subtitle: snapshot.requiresAuthentication
-                      ? 'Your workspace is ready. Sign in to reconnect cloud sync and continue.'
-                      : 'Your workspace is ready. Redirecting to the dashboard now.',
-                  showProgress: false,
-                  steps: <_LaunchStepData>[
-                    const _LaunchStepData(
-                      label: 'App configuration validated',
-                      state: _LaunchStepState.complete,
-                    ),
-                    _LaunchStepData(
-                      label: snapshot.onboardingProfile.hasCompletedOnboarding
-                          ? 'Workspace profile restored'
-                          : 'Workspace setup ready',
-                      state: _LaunchStepState.complete,
-                    ),
-                    _LaunchStepData(
-                      label: snapshot.requiresAuthentication
-                          ? 'Account sign-in required'
-                          : 'Account session resolved',
-                      state: snapshot.requiresAuthentication
-                          ? _LaunchStepState.active
-                          : _LaunchStepState.complete,
-                    ),
-                    const _LaunchStepData(
-                      label: 'Dashboard handoff in progress',
-                      state: _LaunchStepState.active,
-                    ),
-                  ],
-                ),
+                data: (snapshot) => _showProgress
+                    ? _LaunchBody(
+                        title: snapshot.onboardingProfile.hasCompletedOnboarding
+                            ? 'Opening ${snapshot.onboardingProfile.effectiveWorkspaceName}'
+                            : 'Setting up ThinkNote',
+                        subtitle: snapshot.requiresAuthentication
+                            ? 'Your workspace is ready. Sign in to reconnect cloud sync and continue.'
+                            : 'Your workspace is ready. Redirecting to the dashboard now.',
+                        showProgress: false,
+                        steps: <_LaunchStepData>[
+                          const _LaunchStepData(
+                            label: 'App configuration validated',
+                            state: _LaunchStepState.complete,
+                          ),
+                          _LaunchStepData(
+                            label: snapshot.onboardingProfile.hasCompletedOnboarding
+                                ? 'Workspace profile restored'
+                                : 'Workspace setup ready',
+                            state: _LaunchStepState.complete,
+                          ),
+                          _LaunchStepData(
+                            label: snapshot.requiresAuthentication
+                                ? 'Account sign-in required'
+                                : 'Account session resolved',
+                            state: snapshot.requiresAuthentication
+                                ? _LaunchStepState.active
+                                : _LaunchStepState.complete,
+                          ),
+                          const _LaunchStepData(
+                            label: 'Dashboard handoff in progress',
+                            state: _LaunchStepState.active,
+                          ),
+                        ],
+                      )
+                    : const _SplashVisual(),
               ),
             ),
           ),
         ),
       ),
+    );
+  }
+}
+
+class _SplashVisual extends StatelessWidget {
+  const _SplashVisual();
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = context.palette;
+
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        TweenAnimationBuilder<double>(
+          tween: Tween<double>(begin: 0.8, end: 1.0),
+          duration: const Duration(milliseconds: 800),
+          curve: Curves.easeOutBack,
+          builder: (context, value, child) {
+            return Transform.scale(
+              scale: value,
+              child: child,
+            );
+          },
+          child: Container(
+            width: 96,
+            height: 96,
+            decoration: BoxDecoration(
+              gradient: AppGradients.authPrimaryButton,
+              borderRadius: BorderRadius.circular(30),
+              boxShadow: AppShadows.floatingCard,
+            ),
+            alignment: Alignment.center,
+            child: const Icon(
+              Icons.auto_awesome_rounded,
+              color: Colors.white,
+              size: 44,
+            ),
+          ),
+        ),
+        const SizedBox(height: AppSpacing.xxl),
+        TweenAnimationBuilder<double>(
+          tween: Tween<double>(begin: 0.0, end: 1.0),
+          duration: const Duration(milliseconds: 600),
+          builder: (context, value, child) {
+            return Opacity(
+              opacity: value,
+              child: child,
+            );
+          },
+          child: Column(
+            children: [
+              Text(
+                'ThinkNote',
+                style: AppTypography.headlinePrimary.copyWith(
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: -0.5,
+                ),
+              ),
+              const SizedBox(height: AppSpacing.xs),
+              Text(
+                'Capture ideas instantly.',
+                style: AppTypography.tagline.copyWith(
+                  color: palette.textSecondary,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }

@@ -9,6 +9,7 @@ import '../../../../core/theme/app_radius.dart';
 import '../../../../core/theme/app_shadows.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
+import '../../../../shared/utils/jit_permission_service.dart';
 
 class NotificationSettingsScreen extends ConsumerStatefulWidget {
   const NotificationSettingsScreen({super.key});
@@ -217,6 +218,20 @@ class _NotificationSettingsScreenState
   }
 
   Future<void> _setNotificationsEnabled(bool value) async {
+    if (value) {
+      final granted = await JitPermissionService.requestNotifications(context);
+      if (!granted) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Notifications permission denied. Alerts cannot be enabled.'),
+            ),
+          );
+        }
+        return;
+      }
+    }
+
     await ref
         .read(sharedPreferencesProvider)
         .setBool(StorageKeys.notificationsEnabled, value);

@@ -4,6 +4,7 @@ import '../../core/constants/app_constants.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_typography.dart';
 import '../../core/utils/accessibility_utils.dart';
+import '../../core/extensions/context_extensions.dart';
 import 'animated_tap_scale.dart';
 
 class AppCheckbox extends StatelessWidget {
@@ -39,18 +40,19 @@ class AppCheckbox extends StatelessWidget {
         disabled: isDisabled,
         builder: (context, state) {
           final duration = AccessibilityUtils.interactiveDuration(context);
+          final palette = context.palette;
           final backgroundColor = isDisabled
               ? AppColors.buttonDisabledBackground
               : value
-                  ? state.isHovered
+                  ? state.isPressed
                       ? AppColors.brandPrimaryDark
                       : AppColors.checkboxActive
-                  : AppColors.surface;
+                  : palette.surfacePrimary;
           final borderColor = state.isFocused
               ? AppColors.borderFocus
               : value
                   ? Colors.transparent
-                  : AppColors.buttonSecondaryBorder;
+                  : palette.borderPrimary;
 
           return AnimatedContainer(
             duration: duration,
@@ -91,7 +93,7 @@ class AppCheckbox extends StatelessWidget {
                     style: (labelStyle ?? AppTypography.bodyMedium).copyWith(
                       color: isDisabled
                           ? AppColors.buttonDisabledText
-                          : AppColors.textSecondary,
+                          : palette.textSecondary,
                     ),
                   ),
                 ),

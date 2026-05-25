@@ -8,6 +8,8 @@ import '../../../../core/theme/app_radius.dart';
 import '../../../../core/theme/app_shadows.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
+import '../../../../core/storage/local_storage.dart';
+import '../../../onboarding/presentation/controllers/onboarding_controller.dart';
 import '../controllers/auth_controller.dart';
 
 class AuthGateScreen extends ConsumerStatefulWidget {
@@ -187,6 +189,28 @@ class _AuthGateScreenState extends ConsumerState<AuthGateScreen>
                           ),
                         ),
                       ],
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.lg),
+
+                  // Guest Mode/Deferred Auth CTA
+                  OutlinedButton.icon(
+                    onPressed: isBusy
+                        ? null
+                        : () async {
+                            final sharedPrefs = ref.read(sharedPreferencesProvider);
+                            await sharedPrefs.setBool('is_guest_mode', true);
+                            ref.invalidate(appStartupSnapshotProvider);
+                          },
+                    icon: const Icon(Icons.edit_note_rounded),
+                    label: const Text('Start writing now (Guest Mode)'),
+                    style: OutlinedButton.styleFrom(
+                      minimumSize: const Size.fromHeight(52),
+                      foregroundColor: AppColors.brandPrimary,
+                      side: const BorderSide(color: AppColors.brandPrimary),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(AppRadius.button),
+                      ),
                     ),
                   ),
                   const SizedBox(height: AppSpacing.xxl),

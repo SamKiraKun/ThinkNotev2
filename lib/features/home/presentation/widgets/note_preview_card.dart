@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/theme/app_shadows.dart';
+import '../../../../core/extensions/context_extensions.dart';
 
 class NotePreviewCard extends StatelessWidget {
   final String title;
@@ -21,6 +22,8 @@ class NotePreviewCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = context.palette;
+
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -28,9 +31,9 @@ class NotePreviewCard extends StatelessWidget {
         margin: const EdgeInsets.only(bottom: 10),
         padding: const EdgeInsets.all(6),
         decoration: BoxDecoration(
-          color: AppColors.surfaceWhite,
+          color: palette.surfacePrimary,
           borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: AppColors.borderSoft),
+          border: Border.all(color: palette.borderSoft),
           boxShadow: AppShadows.softCard,
         ),
         child: Row(
@@ -53,12 +56,12 @@ class NotePreviewCard extends StatelessWidget {
                 children: [
                   Text(title, style: AppTypography.bodyMedium.copyWith(fontWeight: FontWeight.w600), maxLines: 1, overflow: TextOverflow.ellipsis),
                   const SizedBox(height: 4),
-                  Text(category, style: AppTypography.bodySmall.copyWith(color: AppColors.textTertiary)),
+                  Text(category, style: AppTypography.bodySmall.copyWith(color: palette.textTertiary)),
                 ],
               ),
             ),
             IconButton(
-              icon: const Icon(Icons.more_horiz, color: AppColors.textPlaceholder),
+              icon: Icon(Icons.more_horiz, color: palette.textPlaceholder),
               onPressed: () {},
             )
           ],
