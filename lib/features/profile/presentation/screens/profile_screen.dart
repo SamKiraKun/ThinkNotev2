@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/constants/route_names.dart';
 import '../../../../core/config/app_env.dart';
 import '../../../../core/extensions/context_extensions.dart';
+import '../../../../core/storage/local_storage.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_radius.dart';
 import '../../../../core/theme/app_shadows.dart';
@@ -164,7 +165,7 @@ class ProfileScreen extends ConsumerWidget {
                             'Stop syncing on this device until you sign in again or switch accounts',
                         onTap: () => _signOut(context, ref),
                       ),
-                      if (authSession != null && !authSession.isEmailVerified)
+                      if (!authSession.isEmailVerified)
                         _SettingsTile(
                           icon: Icons.mark_email_read_outlined,
                           title: 'Verify email',

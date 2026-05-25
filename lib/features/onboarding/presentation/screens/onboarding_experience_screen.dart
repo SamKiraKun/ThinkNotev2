@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../../core/config/app_env.dart';
 import '../../../../core/extensions/context_extensions.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_gradients.dart';
@@ -331,7 +330,6 @@ class _OnboardingExperienceScreenState
   }
 
   Widget _buildMockFeaturesList(BuildContext context) {
-    final palette = context.palette;
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [

@@ -32,6 +32,10 @@ void main() {
     sharedPreferences = await SharedPreferences.getInstance();
   });
 
+  setUp(() async {
+    await sharedPreferences.clear();
+  });
+
   testWidgets('launch routing sends incomplete workspaces to onboarding',
       (tester) async {
     final onboardingController =
@@ -50,9 +54,9 @@ void main() {
       ],
     );
 
-    expect(find.text('Workspace Setup'), findsOneWidget);
+    expect(find.text('ThinkNote'), findsWidgets);
     expect(
-      find.text('Welcome to a modern cloud notes platform'),
+      find.text('Write anything instantly.'),
       findsOneWidget,
     );
   });
@@ -84,7 +88,7 @@ void main() {
     expect(find.text('Quick actions'), findsOneWidget);
   });
 
-  testWidgets('onboarding completion submits workspace choices',
+  testWidgets('onboarding completion submits default workspace choices',
       (tester) async {
     final onboardingController =
         _FakeOnboardingController(OnboardingProfile.initial());
@@ -97,34 +101,24 @@ void main() {
       ],
     );
 
-    await tester.tap(find.text('Continue'));
-    await tester.pumpAndSettle();
-
-    await tester.enterText(find.byType(TextField), 'Studio HQ');
-  await tester.ensureVisible(find.text('Team planning'));
-    await tester.tap(find.text('Team planning'));
-    await tester.pumpAndSettle();
+    expect(find.text('Write anything instantly.'), findsOneWidget);
 
     await tester.tap(find.text('Continue'));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Dark'));
-    await tester.pumpAndSettle();
+    expect(find.text('Designed for your ideas.'), findsOneWidget);
 
     await tester.tap(find.text('Continue'));
     await tester.pumpAndSettle();
 
-    final finishBtnFinder = find.byWidgetPredicate((widget) =>
-        widget is Text &&
-        (widget.data == 'Continue to Account' ||
-            widget.data == 'Open Dashboard' ||
-            widget.data == 'Open dashboard'));
-    await tester.tap(finishBtnFinder);
+    expect(find.text('Private and secure.'), findsOneWidget);
+
+    await tester.tap(find.text('Get Started'));
     await tester.pumpAndSettle();
 
-    expect(onboardingController.completedWorkspaceName, 'Studio HQ');
-    expect(onboardingController.completedFocus, WorkspaceFocus.planning);
-    expect(onboardingController.completedTheme, AppThemePreference.dark);
+    expect(onboardingController.completedWorkspaceName, 'My Workspace');
+    expect(onboardingController.completedFocus, WorkspaceFocus.capture);
+    expect(onboardingController.completedTheme, AppThemePreference.system);
     expect(onboardingController.completedNotifications, isFalse);
   });
 
@@ -167,6 +161,19 @@ void main() {
 
     expect(authController.signUpEmail, 'sam@example.com');
     expect(authController.signUpDisplayName, 'Sam');
+  });
+
+  testWidgets('auth screen supports guest mode activation', (tester) async {
+    await _pumpScreen(
+      tester,
+      const AuthGateScreen(),
+    );
+
+    expect(find.text('Start writing now (Guest Mode)'), findsOneWidget);
+    await tester.tap(find.text('Start writing now (Guest Mode)'));
+    await tester.pumpAndSettle();
+
+    expect(sharedPreferences.getBool('is_guest_mode'), isTrue);
   });
 }
 
