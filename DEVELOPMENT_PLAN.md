@@ -1,5 +1,30 @@
 # ThinkNote Development Plan
 
+## Experience Modernization Update - 2026-05-25
+
+### Completed in code
+
+- App launch now routes through a startup handoff screen that restores onboarding state, workspace identity, and cached notes before opening the product surface.
+- First-run onboarding is now implemented with workspace naming, workflow selection, theme preference capture, and completion persistence.
+- The main shell is now framed around Dashboard, Search, Workspace, and Profile instead of the older MVP-style home/folders/settings split.
+- The dashboard now surfaces workspace identity, quick actions, folder collections, top picks, recent work, and sync posture instead of behaving like a plain local notes list.
+- The auth entry flow now exposes password reset access and verification guidance using the Firebase email/password capabilities that actually exist in the app today.
+- The note editor has been rebuilt as a workspace-aware capture surface with faster note-start templates, richer metadata visibility, and a more deliberate writing area while preserving the existing save/sync controller behavior.
+- Focused widget coverage was added for launch routing, onboarding completion, dashboard rendering, and auth reset/verification guidance.
+
+### What changed in product direction
+
+- V1 no longer launches as a generic local note list. The product now has an actual startup journey: launch handoff, onboarding, auth entry when required, and a dashboard-centered shell.
+- The experience now matches the existing sync and account architecture more closely, but only for the capabilities already implemented in code.
+- Unsupported capabilities are still intentionally excluded from the UI. Social login, OTP/passwordless auth, and collaboration are not presented as available product features yet.
+
+### Next phase if product scope expands beyond current auth and personal workspaces
+
+- Social auth should be treated as a real auth-platform phase, not a UI-only phase. That means provider selection, Firebase console setup, backend token verification checks, account-linking rules, and fallback/recovery UX.
+- OTP or passwordless entry should only be added after deciding whether the product wants email link, phone OTP, or both. Each path needs abuse controls, retry UX, and backend assumptions reviewed before launch.
+- Collaboration should be treated as a separate architecture milestone. Shared workspaces require membership models, invitations, role checks, conflict rules, and likely non-trivial sync changes beyond the current personal-workspace design.
+- Attachments, comments, and multi-user presence should remain out of scope until shared-workspace ownership and sync semantics are proven first.
+
 ## Implementation Status Update - 2026-05-24
 
 ### Completed in code

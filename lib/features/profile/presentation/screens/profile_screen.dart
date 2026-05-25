@@ -16,6 +16,8 @@ import '../../../auth/auth_providers.dart';
 import '../../../auth/presentation/controllers/auth_controller.dart';
 import '../../../notes/data/models/app_preferences_model.dart';
 import '../../../notes/presentation/controllers/notes_controller.dart';
+import '../../../onboarding/data/models/onboarding_profile.dart';
+import '../../../onboarding/presentation/controllers/onboarding_controller.dart';
 import '../../../sync/presentation/controllers/sync_controller.dart';
 
 class ProfileScreen extends ConsumerWidget {
@@ -27,6 +29,7 @@ class ProfileScreen extends ConsumerWidget {
     final palette = context.palette;
     final syncEnabled = AppEnv.enableExperimentalSync;
     final showPrototypeTools = AppEnv.showPrototypeTools;
+    final onboardingProfile = ref.watch(onboardingControllerProvider).valueOrNull;
     final authSession =
         syncEnabled ? ref.watch(currentAuthSessionProvider) : null;
     final syncState = ref.watch(syncControllerProvider);
@@ -45,10 +48,10 @@ class ProfileScreen extends ConsumerWidget {
             ),
             children: [
               AppHeader(
-                title: 'Settings',
+                title: 'Profile',
                 subtitle: syncEnabled
-                    ? 'Manage your synced workspace, device preferences, and account.'
-                    : 'Manage local notes and device preferences.',
+                  ? 'Manage your account, workspace identity, sync posture, and device preferences.'
+                  : 'Manage your workspace identity, local notes, and device preferences.',
                 trailing: syncEnabled
                     ? HeaderActionButton(
                         icon: syncState.isSyncing
@@ -91,18 +94,17 @@ class ProfileScreen extends ConsumerWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            syncEnabled
-                                ? (authSession?.displayName ??
-                                    authSession?.email ??
-                                    'Cloud workspace')
-                                : 'Local Workspace',
+                            onboardingProfile?.effectiveWorkspaceName ??
+                                (syncEnabled
+                                    ? 'Cloud workspace'
+                                    : 'Local workspace'),
                             style: AppTypography.titleMedium,
                           ),
                           const SizedBox(height: AppSpacing.xs),
                           Text(
                             syncEnabled
-                                ? 'Notes save on this device first and sync to your account when you are online.'
-                                : 'Notes stay on this device and are available offline anytime.',
+                                ? '${onboardingProfile?.workspaceFocus.label ?? 'Cloud workspace'} · Notes save on this device first and sync to your account when you are online.'
+                                : '${onboardingProfile?.workspaceFocus.label ?? 'Device workspace'} · Notes stay on this device and are available offline anytime.',
                             style: AppTypography.bodyMedium.copyWith(
                               color: palette.textSecondary,
                             ),
@@ -114,6 +116,16 @@ class ProfileScreen extends ConsumerWidget {
                               style: AppTypography.bodySmall.copyWith(
                                 color: palette.textSecondary,
                               ),
+                            ),
+                          ],
+                          if (syncEnabled &&
+                              authSession != null &&
+                              !authSession.isEmailVerified) ...[
+                            const SizedBox(height: AppSpacing.sm),
+                            TextButton.icon(
+                              onPressed: () => _sendVerification(context, ref),
+                              icon: const Icon(Icons.mark_email_read_outlined),
+                              label: const Text('Resend verification email'),
                             ),
                           ],
                         ],
@@ -141,9 +153,18 @@ class ProfileScreen extends ConsumerWidget {
                     _SettingsTile(
                       icon: Icons.logout_rounded,
                       title: 'Sign out',
-                      subtitle: 'Stop syncing on this device until you sign in again',
+                      subtitle:
+                          'Stop syncing on this device until you sign in again or switch accounts',
                       onTap: () => _signOut(context, ref),
                     ),
+                    if (authSession != null && !authSession.isEmailVerified)
+                      _SettingsTile(
+                        icon: Icons.mark_email_read_outlined,
+                        title: 'Verify email',
+                        subtitle:
+                            'Resend a verification email for stronger account recovery',
+                        onTap: () => _sendVerification(context, ref),
+                      ),
                     _SettingsTile(
                       icon: Icons.person_remove_outlined,
                       title: 'Delete account',
@@ -337,6 +358,16 @@ class ProfileScreen extends ConsumerWidget {
             preferences.copyWith(defaultSortOrder: selected),
           );
     }
+  }
+
+  Future<void> _sendVerification(BuildContext context, WidgetRef ref) async {
+    await ref.read(authControllerProvider.notifier).sendEmailVerification();
+    if (!context.mounted) {
+      return;
+    }
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Verification email sent.')),
+    );
   }
 
   Future<void> _showPreviewDialog(

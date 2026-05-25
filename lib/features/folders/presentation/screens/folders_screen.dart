@@ -44,10 +44,10 @@ class FoldersScreen extends ConsumerWidget {
             ),
             children: [
               AppHeader(
-                title: 'Folders',
+                title: 'Workspace',
                 subtitle: syncEnabled
-                    ? 'Organize notes into folders, tags, and collections that sync with your account.'
-                    : 'Organize notes into folders, tags, and collections on this device.',
+                  ? 'Organize folders, tags, and collections that shape your synced workspace.'
+                  : 'Organize folders, tags, and collections that shape your local workspace.',
                 trailing: syncEnabled
                     ? HeaderActionButton(
                         icon: syncState.isSyncing

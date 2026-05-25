@@ -40,32 +40,47 @@ class MainBottomNav extends StatelessWidget {
             boxShadow: AppShadows.bottomNav,
           ),
           child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
-              _NavItem(
-                label: 'Home',
-                icon: Icons.home_rounded,
-                isActive: activeTab == ShellTab.home,
-                onTap: () => onTabSelected(ShellTab.home),
+              Expanded(
+                child: Center(
+                  child: _NavItem(
+                    label: 'Dashboard',
+                    icon: Icons.space_dashboard_rounded,
+                    isActive: activeTab == ShellTab.home,
+                    onTap: () => onTabSelected(ShellTab.home),
+                  ),
+                ),
               ),
-              _NavItem(
-                label: 'Search',
-                icon: Icons.search_rounded,
-                isActive: activeTab == ShellTab.search,
-                onTap: () => onTabSelected(ShellTab.search),
+              Expanded(
+                child: Center(
+                  child: _NavItem(
+                    label: 'Search',
+                    icon: Icons.search_rounded,
+                    isActive: activeTab == ShellTab.search,
+                    onTap: () => onTabSelected(ShellTab.search),
+                  ),
+                ),
               ),
               const SizedBox(width: 76),
-              _NavItem(
-                label: 'Folders',
-                icon: Icons.folder_outlined,
-                isActive: activeTab == ShellTab.folders,
-                onTap: () => onTabSelected(ShellTab.folders),
+              Expanded(
+                child: Center(
+                  child: _NavItem(
+                    label: 'Workspace',
+                    icon: Icons.folder_open_rounded,
+                    isActive: activeTab == ShellTab.folders,
+                    onTap: () => onTabSelected(ShellTab.folders),
+                  ),
+                ),
               ),
-              _NavItem(
-                label: 'Settings',
-                icon: Icons.settings_outlined,
-                isActive: activeTab == ShellTab.settings,
-                onTap: () => onTabSelected(ShellTab.settings),
+              Expanded(
+                child: Center(
+                  child: _NavItem(
+                    label: 'Profile',
+                    icon: Icons.person_outline_rounded,
+                    isActive: activeTab == ShellTab.profile,
+                    onTap: () => onTabSelected(ShellTab.profile),
+                  ),
+                ),
               ),
             ],
           ),

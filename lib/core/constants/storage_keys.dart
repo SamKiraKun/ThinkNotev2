@@ -1,5 +1,9 @@
 class StorageKeys {
   static const String hasCompletedOnboarding = 'has_completed_onboarding';
+  static const String onboardingWorkspaceName = 'onboarding_workspace_name';
+  static const String onboardingWorkspaceFocus = 'onboarding_workspace_focus';
+  static const String onboardingThemePreference =
+      'onboarding_theme_preference';
   static const String accessToken = 'access_token';
   static const String refreshToken = 'refresh_token';
   static const String notesStore = 'notes_store';

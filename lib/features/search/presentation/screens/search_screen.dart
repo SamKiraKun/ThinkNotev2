@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/constants/route_names.dart';
-import '../../../../core/constants/app_constants.dart';
 import '../../../../core/config/app_env.dart';
 import '../../../../core/extensions/context_extensions.dart';
 import '../../../../core/theme/app_colors.dart';
@@ -76,10 +75,10 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
             ),
             children: [
               AppHeader(
-                title: AppConstants.appName,
-                subtitle:
-                    'Search notes, folders, and tags instantly on this device.',
-                brandStyle: true,
+                title: 'Search',
+                subtitle: syncEnabled
+                  ? 'Search notes, folders, and tags instantly across your workspace while sync runs in the background.'
+                  : 'Search notes, folders, and tags instantly across this device.',
                 leading: const HeaderAvatar(label: 'T'),
                 trailing: syncEnabled
                     ? HeaderActionButton(

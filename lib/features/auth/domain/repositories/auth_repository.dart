@@ -4,6 +4,7 @@ abstract class AuthRepository {
   Stream<AuthSession?> authStateChanges();
   AuthSession? currentSession();
   Future<String> currentIdToken({bool forceRefresh = false});
+  Future<AuthSession> reloadSession();
   Future<AuthSession> signInWithEmail({
     required String email,
     required String password,
@@ -13,5 +14,7 @@ abstract class AuthRepository {
     required String password,
     String? displayName,
   });
+  Future<void> sendPasswordResetEmail({required String email});
+  Future<void> sendEmailVerification();
   Future<void> signOut();
 }

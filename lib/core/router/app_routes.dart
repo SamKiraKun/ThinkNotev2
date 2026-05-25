@@ -1,6 +1,8 @@
 import 'package:go_router/go_router.dart';
 
 import '../../features/auth/presentation/screens/auth_gate_screen.dart';
+import '../../features/onboarding/presentation/screens/app_launch_screen.dart';
+import '../../features/onboarding/presentation/screens/onboarding_experience_screen.dart';
 import '../../features/notes/presentation/screens/archived_notes_screen.dart';
 import '../../features/notes/presentation/screens/note_editor_screen.dart';
 import '../../features/notes/presentation/screens/trash_screen.dart';
@@ -14,6 +16,14 @@ import '../constants/route_names.dart';
 
 List<RouteBase> buildAppRoutes() {
   return <RouteBase>[
+    GoRoute(
+      path: RouteNames.launch,
+      builder: (context, state) => const AppLaunchScreen(),
+    ),
+    GoRoute(
+      path: RouteNames.onboarding,
+      builder: (context, state) => const OnboardingExperienceScreen(),
+    ),
     GoRoute(
       path: RouteNames.auth,
       builder: (context, state) => const AuthGateScreen(),

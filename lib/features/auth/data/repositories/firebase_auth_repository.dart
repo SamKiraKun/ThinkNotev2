@@ -10,7 +10,7 @@ class FirebaseAuthRepository implements AuthRepository {
 
   @override
   Stream<AuthSession?> authStateChanges() {
-    return _firebaseAuth.authStateChanges().map(_mapUser);
+    return _firebaseAuth.userChanges().map(_mapUser);
   }
 
   @override
@@ -31,6 +31,21 @@ class FirebaseAuthRepository implements AuthRepository {
     }
 
     return token;
+  }
+
+  @override
+  Future<AuthSession> reloadSession() async {
+    final user = _firebaseAuth.currentUser;
+    if (user == null) {
+      throw StateError('No authenticated Firebase user is available.');
+    }
+
+    await user.reload();
+    final session = _mapUser(_firebaseAuth.currentUser);
+    if (session == null) {
+      throw StateError('Firebase did not return an authenticated user.');
+    }
+    return session;
   }
 
   @override
@@ -70,8 +85,13 @@ class FirebaseAuthRepository implements AuthRepository {
     final trimmedDisplayName = displayName?.trim();
     if (trimmedDisplayName != null && trimmedDisplayName.isNotEmpty) {
       await user.updateDisplayName(trimmedDisplayName);
-      await user.reload();
     }
+
+    if (!user.emailVerified) {
+      await user.sendEmailVerification();
+    }
+
+    await user.reload();
 
     final session = _mapUser(_firebaseAuth.currentUser);
     if (session == null) {
@@ -79,6 +99,23 @@ class FirebaseAuthRepository implements AuthRepository {
     }
 
     return session;
+  }
+
+  @override
+  Future<void> sendPasswordResetEmail({required String email}) {
+    return _firebaseAuth.sendPasswordResetEmail(email: email.trim());
+  }
+
+  @override
+  Future<void> sendEmailVerification() async {
+    final user = _firebaseAuth.currentUser;
+    if (user == null) {
+      throw StateError('No authenticated Firebase user is available.');
+    }
+
+    if (!user.emailVerified) {
+      await user.sendEmailVerification();
+    }
   }
 
   @override
@@ -96,6 +133,7 @@ class FirebaseAuthRepository implements AuthRepository {
       email: user.email,
       displayName: user.displayName,
       photoUrl: user.photoURL,
+      isEmailVerified: user.emailVerified,
     );
   }
 }

@@ -12,7 +12,7 @@ import '../../../../core/constants/route_names.dart';
 import '../../../../core/extensions/context_extensions.dart';
 import '../../../auth/auth_providers.dart';
 import '../../../folders/presentation/screens/folders_screen.dart';
-import '../../../home/presentation/screens/home_screen.dart';
+import '../../../home/presentation/screens/dashboard_screen.dart';
 import '../../../profile/presentation/screens/profile_screen.dart';
 import '../../../search/presentation/screens/search_screen.dart';
 import '../../../sync/presentation/controllers/sync_controller.dart';
@@ -138,7 +138,7 @@ class _MainShellScreenState extends ConsumerState<MainShellScreen>
                 child: IndexedStack(
                   index: activeTab.index,
                   children: const [
-                    HomeScreen(),
+                    DashboardScreen(),
                     SearchScreen(),
                     FoldersScreen(),
                     ProfileScreen(),

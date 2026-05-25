@@ -42,6 +42,30 @@ class AuthController extends AsyncNotifier<void> {
     });
   }
 
+  Future<void> sendPasswordResetEmail({required String email}) async {
+    state = const AsyncLoading();
+    state = await AsyncValue.guard(() async {
+      await ref.read(authRepositoryProvider).sendPasswordResetEmail(
+            email: email,
+          );
+    });
+  }
+
+  Future<void> sendEmailVerification() async {
+    state = const AsyncLoading();
+    state = await AsyncValue.guard(() async {
+      await ref.read(authRepositoryProvider).sendEmailVerification();
+      await ref.read(authRepositoryProvider).reloadSession();
+    });
+  }
+
+  Future<void> refreshSession() async {
+    state = const AsyncLoading();
+    state = await AsyncValue.guard(() async {
+      await ref.read(authRepositoryProvider).reloadSession();
+    });
+  }
+
   Future<void> signOut() async {
     state = const AsyncLoading();
     state = await AsyncValue.guard(() async {

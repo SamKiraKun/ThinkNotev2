@@ -1,26 +1,39 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../features/auth/auth_providers.dart';
 import '../config/app_env.dart';
 import '../constants/route_names.dart';
+import '../../features/onboarding/presentation/controllers/onboarding_controller.dart';
 
 class RouteGuards {
   const RouteGuards._();
 
-  static String? authRedirect(Ref ref, GoRouterState state) {
-    if (!AppEnv.enableExperimentalSync) {
-      return state.matchedLocation == RouteNames.auth ? RouteNames.root : null;
+  static String? appRedirect(Ref ref, GoRouterState state) {
+    final location = state.matchedLocation;
+    final isLaunchRoute = location == RouteNames.launch;
+    final isOnboardingRoute = location == RouteNames.onboarding;
+    final isAuthRoute = location == RouteNames.auth;
+    final startupSnapshot = ref.read(appStartupSnapshotProvider);
+
+    if (startupSnapshot.isLoading) {
+      return isLaunchRoute ? null : RouteNames.launch;
     }
 
-    final session = ref.read(currentAuthSessionProvider);
-    final isAuthRoute = state.matchedLocation == RouteNames.auth;
-
-    if (session == null && !isAuthRoute) {
-      return RouteNames.auth;
+    if (startupSnapshot.hasError) {
+      return isLaunchRoute ? null : RouteNames.launch;
     }
 
-    if (session != null && isAuthRoute) {
+    final startup = startupSnapshot.requireValue;
+
+    if (!startup.onboardingProfile.hasCompletedOnboarding) {
+      return isOnboardingRoute ? null : RouteNames.onboarding;
+    }
+
+    if (AppEnv.enableExperimentalSync && startup.requiresAuthentication) {
+      return isAuthRoute ? null : RouteNames.auth;
+    }
+
+    if (isLaunchRoute || isOnboardingRoute || isAuthRoute) {
       return RouteNames.root;
     }
 

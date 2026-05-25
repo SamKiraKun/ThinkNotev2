@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/extensions/context_extensions.dart';
 import '../../../../core/constants/route_names.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_gradients.dart';
 import '../../../../core/theme/app_radius.dart';
 import '../../../../core/theme/app_shadows.dart';
 import '../../../../core/theme/app_spacing.dart';
@@ -13,6 +14,8 @@ import '../../../../core/utils/date_formatter.dart';
 import '../../../../shared/widgets/app_confirmation_dialog.dart';
 import '../../../folders/data/models/folder_model.dart';
 import '../../../notes/presentation/controllers/notes_controller.dart';
+import '../../../onboarding/data/models/onboarding_profile.dart';
+import '../../../onboarding/presentation/controllers/onboarding_controller.dart';
 import '../controllers/note_editor_controller.dart';
 import '../widgets/note_editor_toolbar.dart';
 
@@ -67,7 +70,18 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
     final editorController =
         ref.read(noteEditorControllerProvider(_args).notifier);
     final notesState = ref.watch(notesControllerProvider).valueOrNull;
+    final onboardingProfile = ref.watch(onboardingControllerProvider).valueOrNull;
     final folder = notesState?.folderById(editorState.folderId);
+    final workspaceName = onboardingProfile?.effectiveWorkspaceName ?? 'My Workspace';
+    final workspaceFocus = onboardingProfile?.workspaceFocus.label ?? 'Idea capture';
+    final isNewNote = editorState.noteId == null;
+    final wordCount = _countWords(editorState.content);
+    final readTime = DateFormatter.estimateReadTime(editorState.content);
+    final saveLabel = editorState.isSaving
+      ? 'Saving'
+      : editorState.lastSavedAt == null
+        ? 'Autosave ready'
+        : 'Saved ${DateFormatter.formatRelative(editorState.lastSavedAt!)}';
 
     ref.listen(noteEditorControllerProvider(_args), (previous, next) {
       if (previous?.errorMessage != next.errorMessage &&
@@ -116,7 +130,7 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
                         AppSpacing.xxl,
                         AppSpacing.xl,
                         AppSpacing.xxl,
-                        AppSpacing.lg,
+                        AppSpacing.md,
                       ),
                       child: Row(
                         children: [
@@ -130,70 +144,31 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
                             ),
                             icon: const Icon(Icons.arrow_back_rounded),
                           ),
-                          const SizedBox(width: AppSpacing.md),
                           Expanded(
-                            child: InkWell(
-                              onTap: () => _showFolderSelector(
-                                context,
-                                ref,
-                                notesState?.folders ?? const <FolderModel>[],
-                                editorState.folderId,
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: AppSpacing.md,
                               ),
-                              borderRadius:
-                                  BorderRadius.circular(AppRadius.pill),
-                              child: Container(
-                                height: 46,
-                                decoration: BoxDecoration(
-                                  color: palette.surfacePrimary,
-                                  borderRadius:
-                                      BorderRadius.circular(AppRadius.pill),
-                                  border: Border.all(color: palette.borderSoft),
-                                ),
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: AppSpacing.lg,
-                                ),
-                                child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    const Icon(
-                                      Icons.folder_open_rounded,
-                                      color: AppColors.brandPrimary,
-                                      size: 18,
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    isNewNote ? 'New note' : 'Editor',
+                                    style: AppTypography.titleMedium,
+                                  ),
+                                  const SizedBox(height: AppSpacing.xs),
+                                  Text(
+                                    '$workspaceName / $workspaceFocus',
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: AppTypography.bodyMedium.copyWith(
+                                      color: palette.textSecondary,
                                     ),
-                                    const SizedBox(width: AppSpacing.sm),
-                                    Flexible(
-                                      child: Text(
-                                        folder?.displayName ?? 'Select folder',
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                        style: AppTypography.bodyMedium,
-                                      ),
-                                    ),
-                                    const SizedBox(width: AppSpacing.sm),
-                                    Icon(
-                                      Icons.expand_more_rounded,
-                                      color: palette.textTertiary,
-                                    ),
-                                  ],
-                                ),
+                                  ),
+                                ],
                               ),
                             ),
                           ),
-                          const SizedBox(width: AppSpacing.md),
-                          FilledButton(
-                            onPressed: editorState.isSaving
-                                ? null
-                                : editorController.saveNow,
-                            style: FilledButton.styleFrom(
-                              backgroundColor: AppColors.brandPrimary,
-                              minimumSize: const Size(82, 48),
-                            ),
-                            child: Text(
-                              editorState.isSaving ? 'Saving' : 'Save',
-                              style: AppTypography.buttonLabel,
-                            ),
-                          ),
-                          const SizedBox(width: AppSpacing.sm),
                           PopupMenuButton<String>(
                             onSelected: (value) async {
                               if (value == 'favorite') {
@@ -261,20 +236,219 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
                                 ),
                             ],
                           ),
+                          const SizedBox(width: AppSpacing.sm),
+                          FilledButton(
+                            onPressed: editorState.isSaving
+                                ? null
+                                : editorController.saveNow,
+                            style: FilledButton.styleFrom(
+                              backgroundColor: AppColors.brandPrimary,
+                              minimumSize: const Size(88, 48),
+                            ),
+                            child: Text(
+                              editorState.isSaving ? 'Saving' : 'Done',
+                              style: AppTypography.buttonLabel,
+                            ),
+                          ),
                         ],
                       ),
                     ),
                     Expanded(
                       child: ListView(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: AppSpacing.xxl,
+                        padding: const EdgeInsets.fromLTRB(
+                          AppSpacing.xxl,
+                          AppSpacing.sm,
+                          AppSpacing.xxl,
+                          AppSpacing.xl,
                         ),
                         children: [
                           Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: AppSpacing.xl,
-                              vertical: AppSpacing.md,
+                            padding: const EdgeInsets.all(AppSpacing.xl),
+                            decoration: BoxDecoration(
+                              gradient: AppGradients.pinnedCard,
+                              borderRadius: BorderRadius.circular(28),
+                              boxShadow: AppShadows.floatingCard,
                             ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    _EditorSurfacePill(
+                                      label: isNewNote
+                                          ? 'Draft session'
+                                          : 'Live note',
+                                    ),
+                                    const SizedBox(width: AppSpacing.sm),
+                                    _EditorSurfacePill(label: saveLabel),
+                                  ],
+                                ),
+                                const SizedBox(height: AppSpacing.lg),
+                                Text(
+                                  isNewNote
+                                      ? 'Capture something clear enough to find later.'
+                                      : 'Keep this note moving without losing structure.',
+                                  style: AppTypography.headline.copyWith(
+                                    fontSize: 24,
+                                  ),
+                                ),
+                                const SizedBox(height: AppSpacing.sm),
+                                Text(
+                                  'This note lives in $workspaceName and stays ready for search, folders, and sync-aware follow-up.',
+                                  style: AppTypography.bodyLarge.copyWith(
+                                    color: palette.textSecondary,
+                                  ),
+                                ),
+                                const SizedBox(height: AppSpacing.xl),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: AppSpacing.lg,
+                                    vertical: AppSpacing.sm,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white.withValues(alpha: 0.72),
+                                    borderRadius:
+                                        BorderRadius.circular(AppRadius.formCard),
+                                  ),
+                                  child: TextField(
+                                    controller: _titleController,
+                                    focusNode: _titleFocusNode,
+                                    onChanged: editorController.updateTitle,
+                                    decoration: const InputDecoration(
+                                      border: InputBorder.none,
+                                      hintText: 'Untitled note',
+                                      counterText: '',
+                                    ),
+                                    maxLength: 120,
+                                    style: AppTypography.titleLarge,
+                                  ),
+                                ),
+                                const SizedBox(height: AppSpacing.lg),
+                                Wrap(
+                                  spacing: AppSpacing.sm,
+                                  runSpacing: AppSpacing.sm,
+                                  children: [
+                                    _EditorActionChip(
+                                      icon: Icons.folder_open_rounded,
+                                      label:
+                                          folder?.displayName ?? 'Choose folder',
+                                      onTap: () => _showFolderSelector(
+                                        context,
+                                        ref,
+                                        notesState?.folders ??
+                                            const <FolderModel>[],
+                                        editorState.folderId,
+                                      ),
+                                    ),
+                                    _EditorActionChip(
+                                      icon: Icons.sell_outlined,
+                                      label: editorState.tags.isEmpty
+                                          ? 'Add tags'
+                                          : '${editorState.tags.length} tags',
+                                      onTap: () => _showTagSelector(
+                                        context,
+                                        ref,
+                                        editorState.tags,
+                                      ),
+                                    ),
+                                    _EditorInfoChip(
+                                      icon: Icons.numbers_rounded,
+                                      label: '$wordCount words',
+                                    ),
+                                    _EditorInfoChip(
+                                      icon: Icons.auto_stories_rounded,
+                                      label: readTime,
+                                    ),
+                                  ],
+                                ),
+                                if (editorState.isPinned ||
+                                    editorState.isFavorite ||
+                                    editorState.isArchived ||
+                                    editorState.tags.isNotEmpty) ...[
+                                  const SizedBox(height: AppSpacing.lg),
+                                  Wrap(
+                                    spacing: AppSpacing.sm,
+                                    runSpacing: AppSpacing.sm,
+                                    children: [
+                                      if (editorState.isPinned)
+                                        const _StatusBadge(
+                                          icon: Icons.push_pin_rounded,
+                                          label: 'Pinned',
+                                        ),
+                                      if (editorState.isFavorite)
+                                        const _StatusBadge(
+                                          icon: Icons.star_rounded,
+                                          label: 'Favorite',
+                                        ),
+                                      if (editorState.isArchived)
+                                        const _StatusBadge(
+                                          icon: Icons.archive_rounded,
+                                          label: 'Archived',
+                                        ),
+                                      for (final tag in editorState.tags)
+                                        _TagBadge(label: '#$tag'),
+                                    ],
+                                  ),
+                                ],
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: AppSpacing.xl),
+                          const _SectionHeading(
+                            title: 'Start from a pattern',
+                            subtitle:
+                                'Drop in a structure instead of starting from a blank page.',
+                          ),
+                          const SizedBox(height: AppSpacing.md),
+                          SizedBox(
+                            height: 154,
+                            child: ListView(
+                              scrollDirection: Axis.horizontal,
+                              children: [
+                                _TemplateCard(
+                                  title: 'Brain dump',
+                                  subtitle:
+                                      'Context, tensions, and the next thing to do.',
+                                  icon: Icons.psychology_alt_outlined,
+                                  onTap: () => editorController.appendTemplate(
+                                    'Context\n\nWhat happened?\n\nWhat matters now?\n\nNext step\n',
+                                  ),
+                                ),
+                                const SizedBox(width: AppSpacing.md),
+                                _TemplateCard(
+                                  title: 'Meeting',
+                                  subtitle:
+                                      'Agenda, decisions, and follow-ups in one draft.',
+                                  icon: Icons.groups_rounded,
+                                  onTap: () => editorController.appendTemplate(
+                                    'Meeting notes\n\nAgenda\n- \n\nDecisions\n- \n\nFollow-ups\n- [ ] \n',
+                                  ),
+                                ),
+                                const SizedBox(width: AppSpacing.md),
+                                _TemplateCard(
+                                  title: 'Checklist',
+                                  subtitle:
+                                      'Turn the note into an action list immediately.',
+                                  icon: Icons.checklist_rounded,
+                                  onTap: () => editorController.appendTemplate(
+                                    '- [ ] First task\n- [ ] Second task\n- [ ] Third task\n',
+                                  ),
+                                ),
+                                const SizedBox(width: AppSpacing.md),
+                                _TemplateCard(
+                                  title: 'Journal',
+                                  subtitle:
+                                      'Capture the day, the signal, and what is next.',
+                                  icon: Icons.auto_stories_rounded,
+                                  onTap: () => editorController.appendTemplate(
+                                    'Today\n\nMood\n\nHighlight\n\nWhat I want to remember\n',
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: AppSpacing.xl),
+                          Container(
                             decoration: BoxDecoration(
                               color: palette.surfacePrimary,
                               borderRadius: BorderRadius.circular(
@@ -283,68 +457,34 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
                               border: Border.all(color: palette.borderPrimary),
                               boxShadow: AppShadows.softCard,
                             ),
-                            child: TextField(
-                              controller: _titleController,
-                              focusNode: _titleFocusNode,
-                              onChanged: editorController.updateTitle,
-                              decoration: const InputDecoration(
-                                border: InputBorder.none,
-                                hintText: 'Untitled note',
-                                counterText: '',
-                              ),
-                              maxLength: 120,
-                              style: AppTypography.titleLarge,
-                            ),
-                          ),
-                          const SizedBox(height: AppSpacing.sm),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Wrap(
-                                spacing: AppSpacing.sm,
-                                runSpacing: AppSpacing.sm,
-                                children: [
-                                  if (editorState.isPinned)
-                                    _StatusBadge(
-                                      icon: Icons.push_pin_rounded,
-                                      label: 'Pinned',
-                                    ),
-                                  if (editorState.isFavorite)
-                                    _StatusBadge(
-                                      icon: Icons.star_rounded,
-                                      label: 'Favorite',
-                                    ),
-                                  if (editorState.isArchived)
-                                    _StatusBadge(
-                                      icon: Icons.archive_rounded,
-                                      label: 'Archived',
-                                    ),
-                                  if (editorState.tags.isNotEmpty)
-                                    for (final tag in editorState.tags)
-                                      _TagBadge(label: '#$tag'),
-                                ],
-                              ),
-                              Text(
-                                editorState.lastSavedAt == null
-                                    ? 'Not saved yet'
-                                    : 'Saved ${DateFormatter.formatRelative(editorState.lastSavedAt!)}',
-                                style: AppTypography.bodySmall.copyWith(
-                                  color: palette.textTertiary,
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: AppSpacing.md),
-                          Container(
-                            decoration: BoxDecoration(
-                              color: palette.surfacePrimary,
-                              borderRadius: BorderRadius.circular(
-                                AppRadius.formCard,
-                              ),
-                              boxShadow: AppShadows.softCard,
-                            ),
                             child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
+                                Padding(
+                                  padding: const EdgeInsets.fromLTRB(
+                                    AppSpacing.xl,
+                                    AppSpacing.xl,
+                                    AppSpacing.xl,
+                                    AppSpacing.md,
+                                  ),
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        'Writing space',
+                                        style: AppTypography.titleMedium,
+                                      ),
+                                      const SizedBox(height: AppSpacing.xs),
+                                      Text(
+                                        'Shape the note fast, then let autosave keep up in the background.',
+                                        style: AppTypography.bodyMedium.copyWith(
+                                          color: palette.textSecondary,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
                                 NoteEditorToolbar(
                                   onBoldTap: () => _applyInlineWrap(
                                     editorController,
@@ -394,6 +534,10 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
                                     editorState.tags,
                                   ),
                                 ),
+                                Divider(
+                                  height: 1,
+                                  color: palette.borderSoft,
+                                ),
                                 TextField(
                                   controller: _bodyController,
                                   focusNode: _bodyFocusNode,
@@ -405,11 +549,15 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
                                       TextCapitalization.sentences,
                                   textAlignVertical: TextAlignVertical.top,
                                   decoration: InputDecoration(
-                                    contentPadding:
-                                        const EdgeInsets.all(AppSpacing.lg),
+                                    contentPadding: const EdgeInsets.fromLTRB(
+                                      AppSpacing.xl,
+                                      AppSpacing.xl,
+                                      AppSpacing.xl,
+                                      AppSpacing.xxl,
+                                    ),
                                     border: InputBorder.none,
                                     hintText:
-                                        'Start writing. This note saves automatically.',
+                                        'Start writing. This note stays ready for search, tags, and autosave.',
                                     hintStyle: AppTypography.bodyLarge.copyWith(
                                       color: palette.textPlaceholder,
                                     ),
@@ -472,6 +620,15 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
         ),
       ),
     );
+  }
+
+  int _countWords(String content) {
+    final trimmed = content.trim();
+    if (trimmed.isEmpty) {
+      return 0;
+    }
+
+    return trimmed.split(RegExp(r'\s+')).length;
   }
 
   Future<void> _saveAndClose(NoteEditorController controller) async {
@@ -781,6 +938,202 @@ class _BottomAction extends StatelessWidget {
             Text(
               label,
               style: AppTypography.bodyMedium.copyWith(
+                color: palette.textSecondary,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _SectionHeading extends StatelessWidget {
+  const _SectionHeading({
+    required this.title,
+    required this.subtitle,
+  });
+
+  final String title;
+  final String subtitle;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = context.palette;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(title, style: AppTypography.titleMedium),
+        const SizedBox(height: AppSpacing.xs),
+        Text(
+          subtitle,
+          style: AppTypography.bodyMedium.copyWith(
+            color: palette.textSecondary,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _EditorSurfacePill extends StatelessWidget {
+  const _EditorSurfacePill({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.md,
+        vertical: AppSpacing.sm,
+      ),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.72),
+        borderRadius: BorderRadius.circular(AppRadius.pill),
+      ),
+      child: Text(
+        label,
+        style: AppTypography.bodySmall.copyWith(
+          color: AppColors.brandPrimary,
+          fontWeight: FontWeight.w700,
+        ),
+      ),
+    );
+  }
+}
+
+class _EditorActionChip extends StatelessWidget {
+  const _EditorActionChip({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(AppRadius.pill),
+      child: Container(
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.md,
+          vertical: AppSpacing.sm,
+        ),
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.76),
+          borderRadius: BorderRadius.circular(AppRadius.pill),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.45)),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 16, color: AppColors.brandPrimary),
+            const SizedBox(width: AppSpacing.xs),
+            Text(
+              label,
+              style: AppTypography.bodySmall.copyWith(
+                color: context.colors.onSurface,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _EditorInfoChip extends StatelessWidget {
+  const _EditorInfoChip({
+    required this.icon,
+    required this.label,
+  });
+
+  final IconData icon;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = context.palette;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.md,
+        vertical: AppSpacing.sm,
+      ),
+      decoration: BoxDecoration(
+        color: palette.surfacePrimary.withValues(alpha: 0.72),
+        borderRadius: BorderRadius.circular(AppRadius.pill),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 16, color: palette.textSecondary),
+          const SizedBox(width: AppSpacing.xs),
+          Text(
+            label,
+            style: AppTypography.bodySmall.copyWith(
+              color: palette.textSecondary,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _TemplateCard extends StatelessWidget {
+  const _TemplateCard({
+    required this.title,
+    required this.subtitle,
+    required this.icon,
+    required this.onTap,
+  });
+
+  final String title;
+  final String subtitle;
+  final IconData icon;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = context.palette;
+
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(AppRadius.formCard),
+      child: Container(
+        width: 188,
+        padding: const EdgeInsets.all(AppSpacing.xl),
+        decoration: BoxDecoration(
+          color: palette.surfacePrimary,
+          borderRadius: BorderRadius.circular(AppRadius.formCard),
+          boxShadow: AppShadows.softCard,
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: AppColors.brandPrimary.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(16),
+              ),
+              alignment: Alignment.center,
+              child: Icon(icon, color: AppColors.brandPrimary),
+            ),
+            const SizedBox(height: AppSpacing.lg),
+            Text(title, style: AppTypography.titleSmall),
+            const SizedBox(height: AppSpacing.xs),
+            Text(
+              subtitle,
+              style: AppTypography.bodySmall.copyWith(
                 color: palette.textSecondary,
               ),
             ),

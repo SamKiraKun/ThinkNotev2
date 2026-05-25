@@ -4,7 +4,7 @@ enum ShellTab {
   home,
   search,
   folders,
-  settings,
+  profile,
 }
 
 final shellTabProvider = StateProvider<ShellTab>((ref) {
