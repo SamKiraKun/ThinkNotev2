@@ -150,9 +150,9 @@ class _ImportExportScreenState extends ConsumerState<ImportExportScreen> {
         Container(
           padding: const EdgeInsets.all(AppSpacing.xl),
           decoration: BoxDecoration(
-            color: Colors.amber.withOpacity(0.08),
+            color: Colors.amber.withValues(alpha: 0.08),
             borderRadius: BorderRadius.circular(AppRadius.formCard),
-            border: Border.all(color: Colors.amber.withOpacity(0.3)),
+            border: Border.all(color: Colors.amber.withValues(alpha: 0.3)),
           ),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -244,7 +244,7 @@ class _ImportExportScreenState extends ConsumerState<ImportExportScreen> {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                       decoration: BoxDecoration(
-                        color: Colors.green.withOpacity(0.1),
+                        color: Colors.green.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Text(
@@ -350,9 +350,9 @@ class _ImportExportScreenState extends ConsumerState<ImportExportScreen> {
         Container(
           padding: const EdgeInsets.all(AppSpacing.xl),
           decoration: BoxDecoration(
-            color: AppColors.textDanger.withOpacity(0.08),
+            color: AppColors.textDanger.withValues(alpha: 0.08),
             borderRadius: BorderRadius.circular(AppRadius.formCard),
-            border: Border.all(color: AppColors.textDanger.withOpacity(0.3)),
+            border: Border.all(color: AppColors.textDanger.withValues(alpha: 0.3)),
           ),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -474,9 +474,9 @@ class _ImportExportScreenState extends ConsumerState<ImportExportScreen> {
           Container(
             padding: const EdgeInsets.all(AppSpacing.xl),
             decoration: BoxDecoration(
-              color: AppColors.textDanger.withOpacity(0.08),
+              color: AppColors.textDanger.withValues(alpha: 0.08),
               borderRadius: BorderRadius.circular(AppRadius.formCard),
-              border: Border.all(color: AppColors.textDanger.withOpacity(0.3)),
+              border: Border.all(color: AppColors.textDanger.withValues(alpha: 0.3)),
             ),
             child: Row(
               children: [
@@ -501,9 +501,9 @@ class _ImportExportScreenState extends ConsumerState<ImportExportScreen> {
           Container(
             padding: const EdgeInsets.all(AppSpacing.xl),
             decoration: BoxDecoration(
-              color: Colors.green.withOpacity(0.08),
+              color: Colors.green.withValues(alpha: 0.08),
               borderRadius: BorderRadius.circular(AppRadius.formCard),
-              border: Border.all(color: Colors.green.withOpacity(0.3)),
+              border: Border.all(color: Colors.green.withValues(alpha: 0.3)),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,

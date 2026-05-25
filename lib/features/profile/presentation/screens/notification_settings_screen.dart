@@ -96,7 +96,7 @@ class _NotificationSettingsScreenState
                   'Receive push reminders on scheduled notes.',
                   style: AppTypography.bodyMedium.copyWith(color: palette.textSecondary),
                 ),
-                activeColor: Colors.white,
+                activeThumbColor: Colors.white,
                 activeTrackColor: AppColors.brandPrimary,
                 onChanged: (value) => _setNotificationsEnabled(value),
               ),
@@ -176,7 +176,7 @@ class _NotificationSettingsScreenState
         duration: const Duration(milliseconds: 150),
         padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl, vertical: AppSpacing.md),
         decoration: BoxDecoration(
-          color: isSelected ? AppColors.brandPrimary.withOpacity(0.06) : palette.surfacePrimary,
+          color: isSelected ? AppColors.brandPrimary.withValues(alpha: 0.06) : palette.surfacePrimary,
           borderRadius: BorderRadius.circular(AppRadius.sm),
           border: Border.all(
             color: isSelected ? AppColors.brandPrimary : palette.borderSoft,
@@ -250,7 +250,7 @@ class _NotificationSettingsScreenState
                   ),
                   Text(
                     'Don\'t forget to write your logs for today!',
-                    style: TextStyle(color: Colors.white.withOpacity(0.8)),
+                    style: TextStyle(color: Colors.white.withValues(alpha: 0.8)),
                   ),
                 ],
               ),
