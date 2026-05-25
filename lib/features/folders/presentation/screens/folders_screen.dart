@@ -17,7 +17,6 @@ import '../../../../shared/widgets/app_search_bar.dart';
 import '../../../../shared/widgets/tag_chip.dart';
 import '../../../notes/presentation/controllers/notes_controller.dart';
 import '../../../shell/presentation/controllers/shell_controller.dart';
-import '../../../sync/presentation/controllers/sync_controller.dart';
 import '../controllers/folders_controller.dart';
 import '../widgets/folder_visuals.dart';
 
@@ -29,7 +28,6 @@ class FoldersScreen extends ConsumerWidget {
     final notesAsync = ref.watch(notesControllerProvider);
     final segment = ref.watch(foldersSegmentProvider);
     final syncEnabled = AppEnv.enableExperimentalSync;
-    final syncState = ref.watch(syncControllerProvider);
 
     return SafeArea(
       bottom: false,
@@ -48,17 +46,6 @@ class FoldersScreen extends ConsumerWidget {
                 subtitle: syncEnabled
                   ? 'Organize folders, tags, and collections that shape your synced workspace.'
                   : 'Organize folders, tags, and collections that shape your local workspace.',
-                trailing: syncEnabled
-                    ? HeaderActionButton(
-                        icon: syncState.isSyncing
-                            ? Icons.sync_rounded
-                            : Icons.cloud_done_outlined,
-                        onPressed: () => _showSnack(
-                          context,
-                          'Folder and tag changes sync after they are saved locally.',
-                        ),
-                      )
-                    : null,
               ),
               const SizedBox(height: AppSpacing.headerToSearch),
               AppSearchBar(
@@ -170,12 +157,6 @@ class FoldersScreen extends ConsumerWidget {
           .read(notesControllerProvider.notifier)
           .createTag(controller.text);
     }
-  }
-
-  void _showSnack(BuildContext context, String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
-    );
   }
 }
 

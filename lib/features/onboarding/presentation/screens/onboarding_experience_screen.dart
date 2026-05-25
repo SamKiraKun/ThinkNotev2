@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
 import '../../../../core/config/app_env.dart';
 import '../../../../core/extensions/context_extensions.dart';
 import '../../../../core/theme/app_colors.dart';
@@ -10,6 +9,7 @@ import '../../../../core/theme/app_shadows.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../notes/data/models/app_preferences_model.dart';
+import '../../../notes/presentation/controllers/notes_controller.dart';
 import '../../data/models/onboarding_profile.dart';
 import '../controllers/onboarding_controller.dart';
 
@@ -57,13 +57,23 @@ class _OnboardingExperienceScreenState
       backgroundColor: palette.pageBackground,
       body: SafeArea(
         child: onboardingState.when(
-          loading: () => const Center(child: CircularProgressIndicator()),
+          loading: () => const Center(
+            child: CircularProgressIndicator(
+              color: AppColors.brandPrimary,
+            ),
+          ),
           error: (error, _) => Center(
             child: Padding(
               padding: const EdgeInsets.all(AppSpacing.xxl),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
+                  const Icon(
+                    Icons.error_outline_rounded,
+                    color: AppColors.textDanger,
+                    size: 48,
+                  ),
+                  const SizedBox(height: AppSpacing.md),
                   Text(
                     'Unable to load setup',
                     style: AppTypography.headlinePrimary,
@@ -130,6 +140,18 @@ class _OnboardingExperienceScreenState
                                 setState(() {
                                   _themePreference = value;
                                 });
+                                // Instantly preview the theme change in the UI
+                                final currentPrefs = ref
+                                    .read(notesControllerProvider)
+                                    .valueOrNull
+                                    ?.preferences;
+                                if (currentPrefs != null) {
+                                  ref
+                                      .read(notesControllerProvider.notifier)
+                                      .updatePreferences(
+                                        currentPrefs.copyWith(themePreference: value),
+                                      );
+                                }
                               },
                               onNotificationsChanged: (value) {
                                 setState(() {
@@ -155,7 +177,19 @@ class _OnboardingExperienceScreenState
                             Expanded(
                               child: OutlinedButton(
                                 onPressed: isBusy ? null : _goBack,
-                                child: const Text('Back'),
+                                style: OutlinedButton.styleFrom(
+                                  padding: const EdgeInsets.symmetric(vertical: 16),
+                                  side: BorderSide(color: palette.borderPrimary),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(AppRadius.button),
+                                  ),
+                                ),
+                                child: Text(
+                                  'Back',
+                                  style: AppTypography.titleSmall.copyWith(
+                                    color: palette.textSecondary,
+                                  ),
+                                ),
                               ),
                             )
                           else
@@ -163,16 +197,37 @@ class _OnboardingExperienceScreenState
                           const SizedBox(width: AppSpacing.md),
                           Expanded(
                             flex: 2,
-                            child: FilledButton(
-                              onPressed: isBusy ? null : _advance,
-                              child: Text(
-                                isBusy
-                                    ? 'Saving...'
-                                    : _pageIndex == _pageCount - 1
-                                        ? (AppEnv.enableExperimentalSync
-                                            ? 'Continue to account'
-                                            : 'Open dashboard')
-                                        : 'Continue',
+                            child: Container(
+                              decoration: BoxDecoration(
+                                gradient: isBusy
+                                    ? null
+                                    : AppGradients.authPrimaryButton,
+                                borderRadius: BorderRadius.circular(AppRadius.button),
+                                boxShadow: isBusy ? null : AppShadows.floatingCard,
+                              ),
+                              child: FilledButton(
+                                onPressed: isBusy ? null : _advance,
+                                style: FilledButton.styleFrom(
+                                  backgroundColor: Colors.transparent,
+                                  shadowColor: Colors.transparent,
+                                  padding: const EdgeInsets.symmetric(vertical: 16),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(AppRadius.button),
+                                  ),
+                                ),
+                                child: Text(
+                                  isBusy
+                                      ? 'Saving...'
+                                      : _pageIndex == _pageCount - 1
+                                          ? (AppEnv.enableExperimentalSync
+                                              ? 'Continue to Account'
+                                              : 'Open Dashboard')
+                                          : 'Continue',
+                                  style: AppTypography.titleSmall.copyWith(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
                               ),
                             ),
                           ),
@@ -192,8 +247,8 @@ class _OnboardingExperienceScreenState
   Future<void> _advance() async {
     if (_pageIndex < _pageCount - 1) {
       await _pageController.nextPage(
-        duration: const Duration(milliseconds: 220),
-        curve: Curves.easeOutCubic,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeInOutCubic,
       );
       return;
     }
@@ -208,8 +263,8 @@ class _OnboardingExperienceScreenState
 
   void _goBack() {
     _pageController.previousPage(
-      duration: const Duration(milliseconds: 220),
-      curve: Curves.easeOutCubic,
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeInOutCubic,
     );
   }
 
@@ -238,15 +293,21 @@ class _OnboardingProgress extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Workspace setup', style: AppTypography.titleMedium),
+        Text(
+          'Workspace Setup',
+          style: AppTypography.titleMedium.copyWith(
+            fontWeight: FontWeight.bold,
+            color: context.colors.onSurface,
+          ),
+        ),
         const SizedBox(height: AppSpacing.sm),
         Row(
           children: [
             for (var index = 0; index < pageCount; index++) ...[
               Expanded(
                 child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 180),
-                  height: 8,
+                  duration: const Duration(milliseconds: 250),
+                  height: 6,
                   decoration: BoxDecoration(
                     color: index <= pageIndex
                         ? AppColors.brandPrimary
@@ -274,70 +335,92 @@ class _WelcomePage extends StatelessWidget {
   Widget build(BuildContext context) {
     final palette = context.palette;
 
-    return ListView(
-      children: [
-        Container(
-          padding: const EdgeInsets.all(AppSpacing.xl),
-          decoration: BoxDecoration(
-            gradient: AppGradients.createAccountPanel,
-            borderRadius: BorderRadius.circular(AppRadius.formCard),
-            boxShadow: AppShadows.softCard,
+    return TweenAnimationBuilder<double>(
+      tween: Tween<double>(begin: 0.0, end: 1.0),
+      duration: const Duration(milliseconds: 400),
+      builder: (context, value, child) {
+        return Opacity(
+          opacity: value,
+          child: Transform.translate(
+            offset: Offset(0, 20 * (1 - value)),
+            child: child,
           ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                width: 64,
-                height: 64,
-                decoration: BoxDecoration(
-                  gradient: AppGradients.authPrimaryButton,
-                  borderRadius: BorderRadius.circular(22),
-                ),
-                alignment: Alignment.center,
-                child: const Icon(
-                  Icons.cloud_done_rounded,
-                  color: Colors.white,
-                  size: 28,
-                ),
+        );
+      },
+      child: ListView(
+        physics: const BouncingScrollPhysics(),
+        children: [
+          Container(
+            padding: const EdgeInsets.all(AppSpacing.xl),
+            decoration: BoxDecoration(
+              gradient: AppGradients.createAccountPanel,
+              borderRadius: BorderRadius.circular(AppRadius.formCard),
+              boxShadow: AppShadows.softCard,
+              border: Border.all(
+                color: AppColors.brandPrimary.withValues(alpha: 0.08),
               ),
-              const SizedBox(height: AppSpacing.xxl),
-              Text(
-                'ThinkNote now launches like a real workspace product.',
-                style: AppTypography.headlinePrimary,
-              ),
-              const SizedBox(height: AppSpacing.md),
-              Text(
-                syncEnabled
-                    ? 'Move between devices, keep your notes cached locally, and open into a dashboard that understands what matters right now.'
-                    : 'Keep your notes fast, organized, and ready offline with a setup flow that shapes the dashboard around your work.',
-                style: AppTypography.bodyLarge.copyWith(
-                  color: palette.textSecondary,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  width: 64,
+                  height: 64,
+                  decoration: BoxDecoration(
+                    gradient: AppGradients.authPrimaryButton,
+                    borderRadius: BorderRadius.circular(22),
+                    boxShadow: AppShadows.floatingCard,
+                  ),
+                  alignment: Alignment.center,
+                  child: const Icon(
+                    Icons.cloud_done_rounded,
+                    color: Colors.white,
+                    size: 32,
+                  ),
                 ),
-              ),
-            ],
+                const SizedBox(height: AppSpacing.xxl),
+                Text(
+                  'Welcome to a modern cloud notes platform',
+                  style: AppTypography.headlinePrimary.copyWith(
+                    fontWeight: FontWeight.bold,
+                    height: 1.25,
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.md),
+                Text(
+                  syncEnabled
+                      ? 'Experience a hybrid notes engine: write instantly with local caching, and let cloud sync keep all your notes backed up and synced automatically.'
+                      : 'Keep your notes fast, private, organized, and available fully offline with a modern workspace custom-tailored to you.',
+                  style: AppTypography.bodyLarge.copyWith(
+                    color: palette.textSecondary,
+                    height: 1.5,
+                  ),
+                ),
+              ],
+            ),
           ),
-        ),
-        const SizedBox(height: AppSpacing.xxl),
-        _SetupBenefit(
-          icon: Icons.flash_on_rounded,
-          title: 'Fast capture first',
-          subtitle: 'Quick actions and recent work stay visible the moment you open the app.',
-        ),
-        const SizedBox(height: AppSpacing.lg),
-        _SetupBenefit(
-          icon: Icons.sync_rounded,
-          title: syncEnabled ? 'Cloud-aware launch' : 'Offline-aware launch',
-          subtitle: syncEnabled
-              ? 'The app checks onboarding, account state, and your note cache before routing you in.'
-              : 'The app restores your note cache and setup choices before routing you in.',
-        ),
-        const SizedBox(height: AppSpacing.lg),
-        const _SetupBenefit(
-          icon: Icons.dashboard_customize_rounded,
-          title: 'Structured workspace',
-          subtitle: 'Dashboard, search, workspace, and profile now each have a clear job.',
-        ),
-      ],
+          const SizedBox(height: AppSpacing.xxl),
+          _SetupBenefit(
+            icon: Icons.bolt_rounded,
+            title: 'Optimistic local caching',
+            subtitle: 'Write notes instantly. The app persists changes locally first, ensuring zero lag.',
+          ),
+          const SizedBox(height: AppSpacing.lg),
+          _SetupBenefit(
+            icon: Icons.sync_rounded,
+            title: syncEnabled ? 'Automatic background sync' : 'Robust offline security',
+            subtitle: syncEnabled
+                ? 'Your note modifications, folders, and tags catch up with the server in the background.'
+                : 'All documents are encrypted at rest using local ciphers and stay exclusively on your device.',
+          ),
+          const SizedBox(height: AppSpacing.lg),
+          const _SetupBenefit(
+            icon: Icons.space_dashboard_rounded,
+            title: 'Workspaces and dashboard',
+            subtitle: 'A clean command center organizing recent work, quick searches, and templates.',
+          ),
+        ],
+      ),
     );
   }
 }
@@ -357,38 +440,68 @@ class _WorkspaceIdentityPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final palette = context.palette;
 
-    return ListView(
-      children: [
-        Text('Name your workspace', style: AppTypography.headlinePrimary),
-        const SizedBox(height: AppSpacing.sm),
-        Text(
-          'This title appears in your dashboard and profile so the app feels like your system, not a generic notes list.',
-          style: AppTypography.bodyLarge.copyWith(
-            color: palette.textSecondary,
+    return TweenAnimationBuilder<double>(
+      tween: Tween<double>(begin: 0.0, end: 1.0),
+      duration: const Duration(milliseconds: 400),
+      builder: (context, value, child) {
+        return Opacity(
+          opacity: value,
+          child: child,
+        );
+      },
+      child: ListView(
+        physics: const BouncingScrollPhysics(),
+        children: [
+          Text(
+            'Name your workspace',
+            style: AppTypography.headlinePrimary.copyWith(fontWeight: FontWeight.bold),
           ),
-        ),
-        const SizedBox(height: AppSpacing.xxl),
-        TextField(
-          controller: controller,
-          textCapitalization: TextCapitalization.words,
-          decoration: const InputDecoration(
-            labelText: 'Workspace name',
-            hintText: 'Product studio, Research lab, Daily log...',
+          const SizedBox(height: AppSpacing.sm),
+          Text(
+            'This title represents your command center in the dashboard and profile settings.',
+            style: AppTypography.bodyLarge.copyWith(
+              color: palette.textSecondary,
+            ),
           ),
-        ),
-        const SizedBox(height: AppSpacing.xxl),
-        Text('Primary workflow', style: AppTypography.titleMedium),
-        const SizedBox(height: AppSpacing.md),
-        for (final focus in WorkspaceFocus.values) ...[
-          _FocusCard(
-            focus: focus,
-            isSelected: selectedFocus == focus,
-            onTap: () => onFocusChanged(focus),
+          const SizedBox(height: AppSpacing.xxl),
+          Container(
+            decoration: BoxDecoration(
+              color: palette.surfacePrimary,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: palette.borderPrimary),
+              boxShadow: AppShadows.softCard,
+            ),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: TextField(
+              controller: controller,
+              textCapitalization: TextCapitalization.words,
+              style: AppTypography.bodyLarge.copyWith(fontWeight: FontWeight.w600),
+              decoration: InputDecoration(
+                labelText: 'Workspace Name',
+                labelStyle: TextStyle(color: AppColors.brandPrimary.withValues(alpha: 0.8)),
+                hintText: 'Product Studio, Personal Space, daily log...',
+                border: InputBorder.none,
+                floatingLabelBehavior: FloatingLabelBehavior.always,
+              ),
+            ),
           ),
-          if (focus != WorkspaceFocus.values.last)
-            const SizedBox(height: AppSpacing.md),
+          const SizedBox(height: AppSpacing.xxl),
+          Text(
+            'Select your primary target workflow',
+            style: AppTypography.titleMedium.copyWith(fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: AppSpacing.md),
+          for (final focus in WorkspaceFocus.values) ...[
+            _FocusCard(
+              focus: focus,
+              isSelected: selectedFocus == focus,
+              onTap: () => onFocusChanged(focus),
+            ),
+            if (focus != WorkspaceFocus.values.last)
+              const SizedBox(height: AppSpacing.md),
+          ],
         ],
-      ],
+      ),
     );
   }
 }
@@ -410,67 +523,94 @@ class _ExperienceSettingsPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final palette = context.palette;
 
-    return ListView(
-      children: [
-        Text('Tune the experience', style: AppTypography.headlinePrimary),
-        const SizedBox(height: AppSpacing.sm),
-        Text(
-          'Pick how the app should feel on this device. You can change these later from Profile.',
-          style: AppTypography.bodyLarge.copyWith(
-            color: palette.textSecondary,
+    return TweenAnimationBuilder<double>(
+      tween: Tween<double>(begin: 0.0, end: 1.0),
+      duration: const Duration(milliseconds: 400),
+      builder: (context, value, child) {
+        return Opacity(
+          opacity: value,
+          child: child,
+        );
+      },
+      child: ListView(
+        physics: const BouncingScrollPhysics(),
+        children: [
+          Text(
+            'Personalize your setup',
+            style: AppTypography.headlinePrimary.copyWith(fontWeight: FontWeight.bold),
           ),
-        ),
-        const SizedBox(height: AppSpacing.xxl),
-        Text('Theme', style: AppTypography.titleMedium),
-        const SizedBox(height: AppSpacing.md),
-        Row(
-          children: [
-            for (final preference in AppThemePreference.values) ...[
-              Expanded(
-                child: _ThemeCard(
-                  preference: preference,
-                  isSelected: themePreference == preference,
-                  onTap: () => onThemeChanged(preference),
-                ),
-              ),
-              if (preference != AppThemePreference.values.last)
-                const SizedBox(width: AppSpacing.md),
-            ],
-          ],
-        ),
-        const SizedBox(height: AppSpacing.xxl),
-        Container(
-          padding: const EdgeInsets.all(AppSpacing.xl),
-          decoration: BoxDecoration(
-            color: palette.surfacePrimary,
-            borderRadius: BorderRadius.circular(AppRadius.formCard),
-            boxShadow: AppShadows.softCard,
+          const SizedBox(height: AppSpacing.sm),
+          Text(
+            'Choose a look and feel for this device. These settings can be updated anytime in Profile.',
+            style: AppTypography.bodyLarge.copyWith(
+              color: palette.textSecondary,
+            ),
           ),
-          child: Row(
+          const SizedBox(height: AppSpacing.xxl),
+          Text(
+            'Theme Preference',
+            style: AppTypography.titleMedium.copyWith(fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: AppSpacing.md),
+          Row(
             children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('Reminders and nudges', style: AppTypography.titleMedium),
-                    const SizedBox(height: AppSpacing.xs),
-                    Text(
-                      'Keep reminders available for future task and notification features.',
-                      style: AppTypography.bodyMedium.copyWith(
-                        color: palette.textSecondary,
-                      ),
-                    ),
-                  ],
+              for (final preference in AppThemePreference.values) ...[
+                Expanded(
+                  child: _ThemeCard(
+                    preference: preference,
+                    isSelected: themePreference == preference,
+                    onTap: () => onThemeChanged(preference),
+                  ),
                 ),
-              ),
-              Switch.adaptive(
-                value: wantsNotifications,
-                onChanged: onNotificationsChanged,
-              ),
+                if (preference != AppThemePreference.values.last)
+                  const SizedBox(width: AppSpacing.md),
+              ],
             ],
           ),
-        ),
-      ],
+          const SizedBox(height: AppSpacing.xxl),
+          Container(
+            padding: const EdgeInsets.all(AppSpacing.xl),
+            decoration: BoxDecoration(
+              color: palette.surfacePrimary,
+              borderRadius: BorderRadius.circular(AppRadius.formCard),
+              boxShadow: AppShadows.softCard,
+              border: Border.all(
+                color: wantsNotifications
+                    ? AppColors.brandPrimary.withValues(alpha: 0.2)
+                    : palette.borderPrimary,
+              ),
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Reminders & Nudges',
+                        style: AppTypography.titleMedium.copyWith(fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height: AppSpacing.xs),
+                      Text(
+                        'Receive timed notifications and review tasks scheduling in settings.',
+                        style: AppTypography.bodyMedium.copyWith(
+                          color: palette.textSecondary,
+                          height: 1.4,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Switch.adaptive(
+                  value: wantsNotifications,
+                  activeTrackColor: AppColors.brandPrimary,
+                  onChanged: onNotificationsChanged,
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -494,58 +634,97 @@ class _ReadyToLaunchPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final palette = context.palette;
 
-    return ListView(
-      children: [
-        Text('Ready to launch', style: AppTypography.headlinePrimary),
-        const SizedBox(height: AppSpacing.sm),
-        Text(
-          syncEnabled
-              ? 'Finish setup and continue into account sign-in. Your dashboard will open with the workspace profile below.'
-              : 'Finish setup and continue straight into your dashboard with the workspace profile below.',
-          style: AppTypography.bodyLarge.copyWith(
-            color: palette.textSecondary,
+    return TweenAnimationBuilder<double>(
+      tween: Tween<double>(begin: 0.0, end: 1.0),
+      duration: const Duration(milliseconds: 400),
+      builder: (context, value, child) {
+        return Opacity(
+          opacity: value,
+          child: child,
+        );
+      },
+      child: ListView(
+        physics: const BouncingScrollPhysics(),
+        children: [
+          Text(
+            'Ready to launch',
+            style: AppTypography.headlinePrimary.copyWith(fontWeight: FontWeight.bold),
           ),
-        ),
-        const SizedBox(height: AppSpacing.xxl),
-        Container(
-          padding: const EdgeInsets.all(AppSpacing.xl),
-          decoration: BoxDecoration(
-            gradient: AppGradients.createAccountPanel,
-            borderRadius: BorderRadius.circular(AppRadius.formCard),
-            boxShadow: AppShadows.softCard,
+          const SizedBox(height: AppSpacing.sm),
+          Text(
+            syncEnabled
+                ? 'Finish setup and register your secure cloud account to start syncing across devices.'
+                : 'Setup is complete. Open your dashboard below to start journaling and task planning.',
+            style: AppTypography.bodyLarge.copyWith(
+              color: palette.textSecondary,
+            ),
           ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(workspaceName, style: AppTypography.titleLarge),
-              const SizedBox(height: AppSpacing.xs),
-              Text(
-                workspaceFocus.label,
-                style: AppTypography.bodyMedium.copyWith(
-                  color: AppColors.brandPrimary,
+          const SizedBox(height: AppSpacing.xxl),
+          Container(
+            padding: const EdgeInsets.all(AppSpacing.xl),
+            decoration: BoxDecoration(
+              gradient: AppGradients.pinnedCard,
+              borderRadius: BorderRadius.circular(AppRadius.formCard),
+              boxShadow: AppShadows.softCard,
+              border: Border.all(
+                color: AppColors.brandPrimary.withValues(alpha: 0.12),
+              ),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    const Icon(Icons.rocket_launch_rounded, color: AppColors.brandPrimary),
+                    const SizedBox(width: 8),
+                    Text(
+                      'WORKSPACE SUMMARY',
+                      style: AppTypography.labelMedium.copyWith(
+                        color: AppColors.brandPrimary,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 1.1,
+                      ),
+                    ),
+                  ],
                 ),
-              ),
-              const SizedBox(height: AppSpacing.md),
-              Text(
-                workspaceFocus.dashboardMessage,
-                style: AppTypography.bodyLarge.copyWith(
-                  color: palette.textSecondary,
+                const SizedBox(height: AppSpacing.lg),
+                Text(
+                  workspaceName,
+                  style: AppTypography.titleLarge.copyWith(fontWeight: FontWeight.bold),
                 ),
-              ),
-              const SizedBox(height: AppSpacing.lg),
-              _SummaryRow(label: 'Theme', value: themePreference.label),
-              _SummaryRow(
-                label: 'Reminders',
-                value: wantsNotifications ? 'Enabled' : 'Not now',
-              ),
-              _SummaryRow(
-                label: 'Launch mode',
-                value: syncEnabled ? 'Cloud-aware' : 'Device-first',
-              ),
-            ],
+                const SizedBox(height: AppSpacing.xs),
+                Text(
+                  workspaceFocus.label,
+                  style: AppTypography.bodyMedium.copyWith(
+                    color: AppColors.brandPrimary,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.md),
+                Text(
+                  workspaceFocus.dashboardMessage,
+                  style: AppTypography.bodyLarge.copyWith(
+                    color: palette.textSecondary,
+                    height: 1.4,
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.lg),
+                const Divider(color: AppColors.formDivider),
+                const SizedBox(height: AppSpacing.sm),
+                _SummaryRow(label: 'Theme Preferred', value: themePreference.label),
+                _SummaryRow(
+                  label: 'Notifications Reminders',
+                  value: wantsNotifications ? 'Enabled' : 'Disabled',
+                ),
+                _SummaryRow(
+                  label: 'Workspace Connection',
+                  value: syncEnabled ? 'Cloud Sync Sync-enabled' : 'Offline local-only',
+                ),
+              ],
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }
@@ -566,35 +745,43 @@ class _SetupBenefit extends StatelessWidget {
     final palette = context.palette;
 
     return Container(
-      padding: const EdgeInsets.all(AppSpacing.xl),
+      padding: const EdgeInsets.all(AppSpacing.lg),
       decoration: BoxDecoration(
         color: palette.surfacePrimary,
         borderRadius: BorderRadius.circular(AppRadius.formCard),
         boxShadow: AppShadows.softCard,
+        border: Border.all(
+          color: palette.borderPrimary,
+        ),
       ),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
             width: 48,
             height: 48,
             decoration: BoxDecoration(
-              color: AppColors.brandPrimary.withValues(alpha: 0.1),
+              color: AppColors.brandPrimary.withValues(alpha: 0.08),
               borderRadius: BorderRadius.circular(16),
             ),
             alignment: Alignment.center,
-            child: Icon(icon, color: AppColors.brandPrimary),
+            child: Icon(icon, color: AppColors.brandPrimary, size: 24),
           ),
           const SizedBox(width: AppSpacing.lg),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title, style: AppTypography.titleMedium),
+                Text(
+                  title,
+                  style: AppTypography.titleMedium.copyWith(fontWeight: FontWeight.bold),
+                ),
                 const SizedBox(height: AppSpacing.xs),
                 Text(
                   subtitle,
                   style: AppTypography.bodyMedium.copyWith(
                     color: palette.textSecondary,
+                    height: 1.4,
                   ),
                 ),
               ],
@@ -625,17 +812,18 @@ class _FocusCard extends StatelessWidget {
       onTap: onTap,
       borderRadius: BorderRadius.circular(AppRadius.formCard),
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 180),
+        duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.all(AppSpacing.xl),
         decoration: BoxDecoration(
           color: isSelected
-              ? AppColors.brandPrimary.withValues(alpha: 0.08)
+              ? AppColors.brandPrimary.withValues(alpha: 0.05)
               : palette.surfacePrimary,
           borderRadius: BorderRadius.circular(AppRadius.formCard),
           border: Border.all(
             color: isSelected ? AppColors.brandPrimary : palette.borderPrimary,
+            width: isSelected ? 2 : 1,
           ),
-          boxShadow: AppShadows.softCard,
+          boxShadow: isSelected ? AppShadows.floatingCard : AppShadows.softCard,
         ),
         child: Row(
           children: [
@@ -644,15 +832,15 @@ class _FocusCard extends StatelessWidget {
               height: 48,
               decoration: BoxDecoration(
                 color: isSelected
-                    ? AppColors.brandPrimary.withValues(alpha: 0.16)
+                    ? AppColors.brandPrimary.withValues(alpha: 0.12)
                     : palette.surfaceSecondary,
                 borderRadius: BorderRadius.circular(16),
               ),
               alignment: Alignment.center,
               child: Icon(
                 focus.icon,
-                color:
-                    isSelected ? AppColors.brandPrimary : palette.textSecondary,
+                color: isSelected ? AppColors.brandPrimary : palette.textSecondary,
+                size: 24,
               ),
             ),
             const SizedBox(width: AppSpacing.lg),
@@ -660,22 +848,33 @@ class _FocusCard extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(focus.label, style: AppTypography.titleMedium),
+                  Text(
+                    focus.label,
+                    style: AppTypography.titleMedium.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: isSelected ? AppColors.brandPrimary : context.colors.onSurface,
+                    ),
+                  ),
                   const SizedBox(height: AppSpacing.xs),
                   Text(
                     focus.description,
                     style: AppTypography.bodyMedium.copyWith(
                       color: palette.textSecondary,
+                      height: 1.3,
                     ),
                   ),
                 ],
               ),
             ),
-            if (isSelected)
-              const Icon(
+            AnimatedScale(
+              scale: isSelected ? 1.0 : 0.0,
+              duration: const Duration(milliseconds: 180),
+              child: const Icon(
                 Icons.check_circle_rounded,
                 color: AppColors.brandPrimary,
+                size: 24,
               ),
+            ),
           ],
         ),
       ),
@@ -702,32 +901,39 @@ class _ThemeCard extends StatelessWidget {
       onTap: onTap,
       borderRadius: BorderRadius.circular(AppRadius.formCard),
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 180),
+        duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.all(AppSpacing.lg),
         decoration: BoxDecoration(
           color: isSelected
-              ? AppColors.brandPrimary.withValues(alpha: 0.08)
+              ? AppColors.brandPrimary.withValues(alpha: 0.05)
               : palette.surfacePrimary,
           borderRadius: BorderRadius.circular(AppRadius.formCard),
           border: Border.all(
             color: isSelected ? AppColors.brandPrimary : palette.borderPrimary,
+            width: isSelected ? 2 : 1,
           ),
-          boxShadow: AppShadows.softCard,
+          boxShadow: isSelected ? AppShadows.floatingCard : AppShadows.softCard,
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Icon(
               switch (preference) {
-                AppThemePreference.system => Icons.devices_rounded,
+                AppThemePreference.system => Icons.settings_brightness_rounded,
                 AppThemePreference.light => Icons.light_mode_rounded,
                 AppThemePreference.dark => Icons.dark_mode_rounded,
               },
-              color:
-                  isSelected ? AppColors.brandPrimary : palette.textSecondary,
+              color: isSelected ? AppColors.brandPrimary : palette.textSecondary,
+              size: 24,
             ),
             const SizedBox(height: AppSpacing.md),
-            Text(preference.label, style: AppTypography.titleSmall),
+            Text(
+              preference.label,
+              style: AppTypography.titleSmall.copyWith(
+                fontWeight: FontWeight.bold,
+                color: isSelected ? AppColors.brandPrimary : context.colors.onSurface,
+              ),
+            ),
           ],
         ),
       ),
@@ -749,18 +955,27 @@ class _SummaryRow extends StatelessWidget {
     final palette = context.palette;
 
     return Padding(
-      padding: const EdgeInsets.only(top: AppSpacing.sm),
+      padding: const EdgeInsets.only(top: AppSpacing.md),
       child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
+          Text(
+            label,
+            style: AppTypography.bodyMedium.copyWith(
+              color: palette.textSecondary,
+            ),
+          ),
+          const SizedBox(width: AppSpacing.md),
           Expanded(
             child: Text(
-              label,
-              style: AppTypography.bodyMedium.copyWith(
-                color: palette.textSecondary,
+              value,
+              textAlign: TextAlign.end,
+              style: AppTypography.titleSmall.copyWith(
+                fontWeight: FontWeight.bold,
+                color: context.colors.onSurface,
               ),
             ),
           ),
-          Text(value, style: AppTypography.titleSmall),
         ],
       ),
     );

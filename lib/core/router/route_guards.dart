@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../config/app_env.dart';
 import '../constants/route_names.dart';
 import '../../features/onboarding/presentation/controllers/onboarding_controller.dart';
+import '../../features/auth/presentation/screens/app_passcode_unlock_screen.dart';
 
 class RouteGuards {
   const RouteGuards._();
@@ -13,6 +14,7 @@ class RouteGuards {
     final isLaunchRoute = location == RouteNames.launch;
     final isOnboardingRoute = location == RouteNames.onboarding;
     final isAuthRoute = location == RouteNames.auth;
+    final isUnlockRoute = location == RouteNames.unlock;
     final startupSnapshot = ref.read(appStartupSnapshotProvider);
 
     if (startupSnapshot.isLoading) {
@@ -33,7 +35,13 @@ class RouteGuards {
       return isAuthRoute ? null : RouteNames.auth;
     }
 
-    if (isLaunchRoute || isOnboardingRoute || isAuthRoute) {
+    // Enforce passcode lock gate if configured and session is locked
+    final isUnlocked = ref.read(appUnlockedProvider);
+    if (!isUnlocked) {
+      return isUnlockRoute ? null : RouteNames.unlock;
+    }
+
+    if (isLaunchRoute || isOnboardingRoute || isAuthRoute || isUnlockRoute) {
       return RouteNames.root;
     }
 

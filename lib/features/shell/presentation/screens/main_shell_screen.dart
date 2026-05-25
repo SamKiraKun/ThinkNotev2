@@ -11,6 +11,9 @@ import '../../../../shared/widgets/responsive_centered_shell.dart';
 import '../../../../core/constants/route_names.dart';
 import '../../../../core/extensions/context_extensions.dart';
 import '../../../auth/auth_providers.dart';
+import '../../../../core/constants/storage_keys.dart';
+import '../../../../core/storage/local_storage.dart';
+import '../../../auth/presentation/screens/app_passcode_unlock_screen.dart';
 import '../../../folders/presentation/screens/folders_screen.dart';
 import '../../../home/presentation/screens/dashboard_screen.dart';
 import '../../../profile/presentation/screens/profile_screen.dart';
@@ -41,11 +44,12 @@ class _MainShellScreenState extends ConsumerState<MainShellScreen>
   void initState() {
     super.initState();
 
+    WidgetsBinding.instance.addObserver(this);
+
     if (!AppEnv.enableExperimentalSync) {
       return;
     }
 
-    WidgetsBinding.instance.addObserver(this);
     _startConnectivityListener();
     _startPeriodicSyncTimer();
   }
@@ -54,17 +58,19 @@ class _MainShellScreenState extends ConsumerState<MainShellScreen>
   void dispose() {
     _connectivitySubscription?.cancel();
     _periodicSyncTimer?.cancel();
-
-    if (AppEnv.enableExperimentalSync) {
-      WidgetsBinding.instance.removeObserver(this);
-    }
-
+    WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed) {
+    if (state == AppLifecycleState.paused) {
+      final sharedPreferences = ref.read(sharedPreferencesProvider);
+      final hasPin = sharedPreferences.getString(StorageKeys.lockPinHash) != null;
+      if (hasPin) {
+        ref.read(appUnlockedProvider.notifier).state = false;
+      }
+    } else if (state == AppLifecycleState.resumed) {
       _triggerSyncIfAuthenticated();
     }
   }

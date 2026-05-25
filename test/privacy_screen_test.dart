@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:thinknote/core/config/app_env.dart';
 import 'package:thinknote/core/theme/app_theme.dart';
 import 'package:thinknote/features/profile/presentation/screens/privacy_screen.dart';
+import 'package:thinknote/features/auth/auth_providers.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -16,6 +18,9 @@ void main() {
       (tester) async {
     await tester.pumpWidget(
       ProviderScope(
+        overrides: [
+          currentAuthSessionProvider.overrideWithValue(null),
+        ],
         child: MaterialApp(
           theme: AppTheme.lightTheme,
           home: const PrivacyScreen(),
@@ -23,9 +28,10 @@ void main() {
       ),
     );
 
+    final syncEnabled = AppEnv.enableExperimentalSync;
     expect(find.text('Privacy and storage'), findsOneWidget);
-    expect(find.text('Local-only workspace'), findsOneWidget);
-    expect(find.textContaining('does not create accounts'), findsOneWidget);
+    expect(find.text(syncEnabled ? 'Account and sync' : 'Local-only workspace'), findsOneWidget);
+    expect(find.textContaining(syncEnabled ? 'uses Firebase Authentication' : 'does not create accounts'), findsOneWidget);
     expect(find.text('Device storage'), findsOneWidget);
     expect(find.textContaining('encrypted before they are stored'), findsOneWidget);
     expect(find.text('Backup behavior'), findsOneWidget);
@@ -34,8 +40,8 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Diagnostics and analytics'), findsOneWidget);
-    expect(find.textContaining('client Firebase SDK'), findsOneWidget);
-    expect(find.text('Deleting local data'), findsOneWidget);
-    expect(find.textContaining('Uninstalling the app'), findsOneWidget);
+    expect(find.textContaining(syncEnabled ? 'uses the Firebase client SDK' : 'does not include analytics'), findsOneWidget);
+    expect(find.text(syncEnabled ? 'Deleting account data' : 'Deleting local data'), findsOneWidget);
+    expect(find.textContaining(syncEnabled ? 'remove your ThinkNote account' : 'Uninstalling the app'), findsOneWidget);
   });
 }

@@ -1,6 +1,7 @@
 import 'package:go_router/go_router.dart';
 
 import '../../features/auth/presentation/screens/auth_gate_screen.dart';
+import '../../features/auth/presentation/screens/app_passcode_unlock_screen.dart';
 import '../../features/onboarding/presentation/screens/app_launch_screen.dart';
 import '../../features/onboarding/presentation/screens/onboarding_experience_screen.dart';
 import '../../features/notes/presentation/screens/archived_notes_screen.dart';
@@ -27,6 +28,10 @@ List<RouteBase> buildAppRoutes() {
     GoRoute(
       path: RouteNames.auth,
       builder: (context, state) => const AuthGateScreen(),
+    ),
+    GoRoute(
+      path: RouteNames.unlock,
+      builder: (context, state) => const AppPasscodeUnlockScreen(),
     ),
     GoRoute(
       path: RouteNames.root,

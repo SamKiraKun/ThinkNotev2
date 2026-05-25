@@ -64,16 +64,6 @@ class DashboardScreen extends ConsumerWidget {
                 leading: HeaderAvatar(
                   label: authSession?.initials ?? onboardingProfile.initials,
                 ),
-                trailing: syncEnabled
-                    ? HeaderActionButton(
-                        icon: syncState.isSyncing
-                            ? Icons.sync_rounded
-                            : syncState.lastError == null
-                                ? Icons.cloud_done_outlined
-                                : Icons.cloud_off_outlined,
-                        onPressed: () => _syncNow(context, ref),
-                      )
-                    : null,
               ),
               const SizedBox(height: AppSpacing.xxl),
               _WorkspaceHero(
@@ -274,16 +264,6 @@ class DashboardScreen extends ConsumerWidget {
           ),
         ),
       ),
-    );
-  }
-
-  Future<void> _syncNow(BuildContext context, WidgetRef ref) async {
-    await ref.read(syncControllerProvider.notifier).syncNow(forceFullPull: true);
-    if (!context.mounted) {
-      return;
-    }
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Workspace sync started.')),
     );
   }
 

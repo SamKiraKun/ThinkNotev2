@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/config/app_env.dart';
 import '../../../../core/extensions/context_extensions.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_radius.dart';
@@ -9,6 +10,7 @@ import '../../../../core/theme/app_typography.dart';
 import '../../../folders/data/models/folder_model.dart';
 import '../../../folders/presentation/widgets/folder_visuals.dart';
 import '../../data/models/note_model.dart';
+import '../../domain/entities/note_entity.dart';
 
 class NoteCard extends StatelessWidget {
   const NoteCard({
@@ -109,6 +111,42 @@ class NoteCard extends StatelessWidget {
                             color: palette.textTertiary,
                           ),
                         ),
+                      if (AppEnv.enableExperimentalSync) ...[
+                        Icon(
+                          switch (note.syncStatus) {
+                            NoteSyncStatus.synced => Icons.cloud_done_outlined,
+                            NoteSyncStatus.pendingCreate ||
+                            NoteSyncStatus.pendingUpdate ||
+                            NoteSyncStatus.pendingDelete =>
+                              Icons.cloud_upload_outlined,
+                            NoteSyncStatus.failed => Icons.cloud_off_outlined,
+                          },
+                          size: 13,
+                          color: switch (note.syncStatus) {
+                            NoteSyncStatus.synced => const Color(0xFF10B981),
+                            NoteSyncStatus.pendingCreate ||
+                            NoteSyncStatus.pendingUpdate ||
+                            NoteSyncStatus.pendingDelete =>
+                              AppColors.brandPrimary,
+                            NoteSyncStatus.failed => AppColors.textDanger,
+                          },
+                        ),
+                        Text(
+                          note.syncStatus.label,
+                          style: AppTypography.bodySmall.copyWith(
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                            color: switch (note.syncStatus) {
+                              NoteSyncStatus.synced => const Color(0xFF10B981),
+                              NoteSyncStatus.pendingCreate ||
+                              NoteSyncStatus.pendingUpdate ||
+                              NoteSyncStatus.pendingDelete =>
+                                AppColors.brandPrimary,
+                              NoteSyncStatus.failed => AppColors.textDanger,
+                            },
+                          ),
+                        ),
+                      ],
                     ],
                   ),
                 ],

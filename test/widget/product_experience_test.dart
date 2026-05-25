@@ -4,8 +4,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:thinknote/core/router/app_router.dart';
+import 'package:thinknote/core/storage/local_storage.dart';
 import 'package:thinknote/core/theme/app_theme.dart';
+import 'package:thinknote/features/auth/auth_providers.dart';
 import 'package:thinknote/features/auth/presentation/controllers/auth_controller.dart';
 import 'package:thinknote/features/auth/presentation/screens/auth_gate_screen.dart';
 import 'package:thinknote/features/folders/data/models/folder_model.dart';
@@ -18,11 +21,15 @@ import 'package:thinknote/features/onboarding/data/models/onboarding_profile.dar
 import 'package:thinknote/features/onboarding/presentation/controllers/onboarding_controller.dart';
 import 'package:thinknote/features/onboarding/presentation/screens/onboarding_experience_screen.dart';
 
+late SharedPreferences sharedPreferences;
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  setUpAll(() {
+  setUpAll(() async {
     GoogleFonts.config.allowRuntimeFetching = false;
+    SharedPreferences.setMockInitialValues({});
+    sharedPreferences = await SharedPreferences.getInstance();
   });
 
   testWidgets('launch routing sends incomplete workspaces to onboarding',
@@ -43,9 +50,9 @@ void main() {
       ],
     );
 
-    expect(find.text('Workspace setup'), findsOneWidget);
+    expect(find.text('Workspace Setup'), findsOneWidget);
     expect(
-      find.text('ThinkNote now launches like a real workspace product.'),
+      find.text('Welcome to a modern cloud notes platform'),
       findsOneWidget,
     );
   });
@@ -107,7 +114,12 @@ void main() {
     await tester.tap(find.text('Continue'));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Open dashboard'));
+    final finishBtnFinder = find.byWidgetPredicate((widget) =>
+        widget is Text &&
+        (widget.data == 'Continue to Account' ||
+            widget.data == 'Open Dashboard' ||
+            widget.data == 'Open dashboard'));
+    await tester.tap(finishBtnFinder);
     await tester.pumpAndSettle();
 
     expect(onboardingController.completedWorkspaceName, 'Studio HQ');
@@ -128,29 +140,29 @@ void main() {
       ],
     );
 
-    await tester.ensureVisible(find.text('Forgot password?'));
-    await tester.tap(find.text('Forgot password?'));
+    await tester.ensureVisible(find.text('Forgot Password?'));
+    await tester.tap(find.text('Forgot Password?'));
     await tester.pumpAndSettle();
 
     await tester.enterText(find.byType(TextField).last, 'sam@example.com');
-    await tester.tap(find.widgetWithText(FilledButton, 'Send reset link'));
+    await tester.tap(find.widgetWithText(FilledButton, 'Send Reset Link'));
     await tester.pumpAndSettle();
 
     expect(authController.passwordResetEmail, 'sam@example.com');
     expect(find.text('Reset password'), findsNothing);
 
-    await tester.tap(find.text('Create account').first);
+    await tester.tap(find.text('Create Account').first);
     await tester.pumpAndSettle();
 
     expect(
-      find.textContaining('verification email is sent after sign-up'),
+      find.textContaining('verification link'),
       findsOneWidget,
     );
 
     await tester.enterText(find.byType(TextField).at(0), 'Sam');
     await tester.enterText(find.byType(TextField).at(1), 'sam@example.com');
     await tester.enterText(find.byType(TextField).at(2), 'password123');
-    await tester.tap(find.widgetWithText(FilledButton, 'Create account'));
+    await tester.tap(find.widgetWithText(FilledButton, 'Register Workspace'));
     await tester.pumpAndSettle();
 
     expect(authController.signUpEmail, 'sam@example.com');
@@ -168,7 +180,11 @@ Future<void> _pumpScreen(
 
   await tester.pumpWidget(
     ProviderScope(
-      overrides: overrides,
+      overrides: [
+        sharedPreferencesProvider.overrideWithValue(sharedPreferences),
+        currentAuthSessionProvider.overrideWithValue(null),
+        ...overrides,
+      ],
       child: MaterialApp(
         theme: AppTheme.lightTheme,
         home: child,
@@ -187,7 +203,11 @@ Future<void> _pumpRouter(
 
   await tester.pumpWidget(
     ProviderScope(
-      overrides: overrides,
+      overrides: [
+        sharedPreferencesProvider.overrideWithValue(sharedPreferences),
+        currentAuthSessionProvider.overrideWithValue(null),
+        ...overrides,
+      ],
       child: Consumer(
         builder: (context, ref, _) {
           final router = ref.watch(appRouterProvider);

@@ -26,6 +26,9 @@ class _AuthGateScreenState extends ConsumerState<AuthGateScreen>
   late final TextEditingController _signUpEmailController;
   late final TextEditingController _signUpPasswordController;
 
+  final _signInFormKey = GlobalKey<FormState>();
+  final _signUpFormKey = GlobalKey<FormState>();
+
   @override
   void initState() {
     super.initState();
@@ -60,9 +63,7 @@ class _AuthGateScreenState extends ConsumerState<AuthGateScreen>
         final message = error is Exception
             ? error.toString().replaceFirst('Exception: ', '')
             : 'Authentication failed.';
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(message)),
-        );
+        _showErrorDialog(message);
       }
     });
 
@@ -72,122 +73,166 @@ class _AuthGateScreenState extends ConsumerState<AuthGateScreen>
         child: Center(
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 420),
-            child: ListView(
-              padding: const EdgeInsets.all(AppSpacing.xxl),
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(AppSpacing.xl),
-                  decoration: BoxDecoration(
-                    gradient: AppGradients.createAccountPanel,
-                    borderRadius: BorderRadius.circular(AppRadius.formCard),
-                    boxShadow: AppShadows.floatingCard,
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+            child: SingleChildScrollView(
+              physics: const BouncingScrollPhysics(),
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.xxl,
+                vertical: AppSpacing.xl,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  // App branding header
+                  Column(
                     children: [
                       Container(
                         width: 76,
                         height: 76,
                         decoration: BoxDecoration(
-                          gradient: AppGradients.authPrimaryButton,
+                          gradient: AppGradients.authAppIcon,
                           borderRadius: BorderRadius.circular(24),
                           boxShadow: AppShadows.floatingCard,
+                          border: Border.all(
+                            color: Colors.white.withValues(alpha: 0.2),
+                          ),
                         ),
                         alignment: Alignment.center,
                         child: const Icon(
-                          Icons.cloud_done_rounded,
+                          Icons.auto_awesome_rounded,
                           color: Colors.white,
-                          size: 34,
+                          size: 38,
                         ),
                       ),
-                      const SizedBox(height: AppSpacing.xl),
-                      Text('ThinkNote', style: AppTypography.headlinePrimary),
-                      const SizedBox(height: AppSpacing.sm),
+                      const SizedBox(height: AppSpacing.lg),
                       Text(
-                        'Move between devices without losing the speed of a local-first notes app.',
-                        style: AppTypography.bodyLarge.copyWith(
+                        'ThinkNote Workspace',
+                        style: AppTypography.headlinePrimary.copyWith(
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: -0.5,
+                        ),
+                      ),
+                      const SizedBox(height: AppSpacing.xs),
+                      Text(
+                        'Fast caching local notes with automated cloud sync.',
+                        style: AppTypography.bodyMedium.copyWith(
                           color: palette.textSecondary,
                         ),
-                      ),
-                      const SizedBox(height: AppSpacing.xl),
-                      const _FeatureRow(
-                        icon: Icons.sync_rounded,
-                        title: 'Cloud sync when you want it',
-                        subtitle:
-                            'Local changes save first, then the workspace catches up in the background.',
-                      ),
-                      const SizedBox(height: AppSpacing.md),
-                      const _FeatureRow(
-                        icon: Icons.mark_email_read_outlined,
-                        title: 'Recovery-ready access',
-                        subtitle:
-                            'Password reset and verification emails are available from this sign-in flow.',
+                        textAlign: TextAlign.center,
                       ),
                     ],
                   ),
-                ),
-                const SizedBox(height: AppSpacing.xxl),
-                Container(
-                  decoration: BoxDecoration(
-                    color: palette.surfacePrimary,
-                    borderRadius: BorderRadius.circular(AppRadius.formCard),
-                    boxShadow: AppShadows.softCard,
-                  ),
-                  child: Column(
-                    children: [
-                      Padding(
-                        padding: const EdgeInsets.all(AppSpacing.md),
-                        child: TabBar(
+                  const SizedBox(height: AppSpacing.xxl),
+
+                  // Tabs & Forms Card
+                  Container(
+                    decoration: BoxDecoration(
+                      color: palette.surfacePrimary,
+                      borderRadius: BorderRadius.circular(AppRadius.formCard),
+                      border: Border.all(color: palette.borderPrimary),
+                      boxShadow: AppShadows.softCard,
+                    ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        TabBar(
                           controller: _tabController,
                           indicatorSize: TabBarIndicatorSize.tab,
                           labelColor: AppColors.brandPrimary,
+                          unselectedLabelColor: palette.textSecondary,
                           dividerColor: Colors.transparent,
+                          indicatorColor: AppColors.brandPrimary,
+                          labelStyle: AppTypography.titleSmall.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
                           tabs: const [
-                            Tab(text: 'Sign in'),
-                            Tab(text: 'Create account'),
+                            Tab(text: 'Sign In'),
+                            Tab(text: 'Create Account'),
                           ],
                         ),
-                      ),
-                      SizedBox(
-                        height: 430,
-                        child: TabBarView(
-                          controller: _tabController,
+                        const Divider(height: 1, color: AppColors.formDivider),
+                        AnimatedContainer(
+                          duration: const Duration(milliseconds: 200),
+                          height: _tabController.index == 0 ? 370 : 450,
+                          child: TabBarView(
+                            controller: _tabController,
+                            children: [
+                              // Sign In Form
+                              Form(
+                                key: _signInFormKey,
+                                child: _AuthForm(
+                                  isBusy: isBusy,
+                                  emailController: _signInEmailController,
+                                  passwordController: _signInPasswordController,
+                                  onSubmit: _submitSignIn,
+                                  primaryLabel: 'Sign In',
+                                  secondaryActionLabel: 'Forgot Password?',
+                                  onSecondaryAction: _showResetPasswordDialog,
+                                  footer: 'Verify details to access your secure note vaults.',
+                                ),
+                              ),
+                              // Sign Up Form
+                              Form(
+                                key: _signUpFormKey,
+                                child: _AuthForm(
+                                  isBusy: isBusy,
+                                  nameController: _signUpNameController,
+                                  emailController: _signUpEmailController,
+                                  passwordController: _signUpPasswordController,
+                                  onSubmit: _submitSignUp,
+                                  primaryLabel: 'Register Workspace',
+                                  footer: 'A verification link will be emailed to secure your access.',
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.xxl),
+
+                  // Trust Badges Center
+                  Container(
+                    padding: const EdgeInsets.all(AppSpacing.lg),
+                    decoration: BoxDecoration(
+                      color: palette.surfaceSecondary,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: palette.borderSoft),
+                    ),
+                    child: Column(
+                      children: [
+                        Row(
                           children: [
-                            _AuthForm(
-                              isBusy: isBusy,
-                              emailController: _signInEmailController,
-                              passwordController: _signInPasswordController,
-                              onSubmit: _submitSignIn,
-                              primaryLabel: 'Sign in',
-                              secondaryActionLabel: 'Forgot password?',
-                              onSecondaryAction: _showResetPasswordDialog,
-                              footer:
-                                  'Use your account to unlock synced notes and cross-device continuity.',
+                            const Icon(
+                              Icons.security_rounded,
+                              size: 18,
+                              color: AppColors.brandPrimary,
                             ),
-                            _AuthForm(
-                              isBusy: isBusy,
-                              nameController: _signUpNameController,
-                              emailController: _signUpEmailController,
-                              passwordController: _signUpPasswordController,
-                              onSubmit: _submitSignUp,
-                              primaryLabel: 'Create account',
-                              footer:
-                                  'A verification email is sent after sign-up so recovery and account trust are easier to manage.',
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                'SECURITY & PRIVACY GUARANTEE',
+                                style: AppTypography.labelMedium.copyWith(
+                                  color: AppColors.brandPrimary,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
                             ),
                           ],
                         ),
-                      ),
-                    ],
+                        const SizedBox(height: 8),
+                        Text(
+                          'Local data is encrypted with AES-256 ciphers at rest. Communication with our servers is secured over TLS HTTPS protocols.',
+                          style: AppTypography.bodySmall.copyWith(
+                            color: palette.textTertiary,
+                            height: 1.4,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-                const SizedBox(height: AppSpacing.lg),
-                Text(
-                  'Email/password sign-in, password reset, and verification emails are enabled in this release. Account deletion remains available from Profile after sign-in.',
-                  style: AppTypography.bodySmall.copyWith(
-                    color: palette.textSecondary,
-                  ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),
@@ -196,31 +241,63 @@ class _AuthGateScreenState extends ConsumerState<AuthGateScreen>
   }
 
   Future<void> _submitSignIn() async {
-    FocusScope.of(context).unfocus();
-    await ref.read(authControllerProvider.notifier).signInWithEmail(
-          email: _signInEmailController.text,
-          password: _signInPasswordController.text,
-        );
+    if (_signInFormKey.currentState?.validate() ?? false) {
+      FocusScope.of(context).unfocus();
+      await ref.read(authControllerProvider.notifier).signInWithEmail(
+            email: _signInEmailController.text.trim(),
+            password: _signInPasswordController.text,
+          );
+    }
   }
 
   Future<void> _submitSignUp() async {
-    FocusScope.of(context).unfocus();
-    await ref.read(authControllerProvider.notifier).signUpWithEmail(
-          email: _signUpEmailController.text,
-          password: _signUpPasswordController.text,
-          displayName: _signUpNameController.text,
-        );
+    if (_signUpFormKey.currentState?.validate() ?? false) {
+      FocusScope.of(context).unfocus();
+      await ref.read(authControllerProvider.notifier).signUpWithEmail(
+            email: _signUpEmailController.text.trim(),
+            password: _signUpPasswordController.text,
+            displayName: _signUpNameController.text.trim(),
+          );
 
-    if (!mounted) {
-      return;
-    }
+      if (!mounted) {
+        return;
+      }
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text(
-          'Account created. Check your inbox for a verification email.',
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Account registration successful! Check your inbox for a verification email.',
+          ),
         ),
-      ),
+      );
+    }
+  }
+
+  void _showErrorDialog(String message) {
+    showDialog<void>(
+      context: context,
+      builder: (context) {
+        final palette = context.palette;
+        return AlertDialog(
+          title: Row(
+            children: [
+              const Icon(Icons.error_outline_rounded, color: AppColors.textDanger),
+              const SizedBox(width: 8),
+              Text('Auth Error', style: AppTypography.titleMedium.copyWith(color: AppColors.textDanger)),
+            ],
+          ),
+          content: Text(
+            message,
+            style: AppTypography.bodyMedium.copyWith(color: palette.textSecondary),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Dismiss'),
+            ),
+          ],
+        );
+      },
     );
   }
 
@@ -247,12 +324,12 @@ class _AuthGateScreenState extends ConsumerState<AuthGateScreen>
     }
 
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Password reset email sent to ${email.trim()}.')),
+      SnackBar(content: Text('Password reset instructions sent to ${email.trim()}.')),
     );
   }
 }
 
-class _AuthForm extends StatelessWidget {
+class _AuthForm extends StatefulWidget {
   const _AuthForm({
     required this.emailController,
     required this.passwordController,
@@ -276,129 +353,151 @@ class _AuthForm extends StatelessWidget {
   final VoidCallback? onSecondaryAction;
 
   @override
-  Widget build(BuildContext context) {
-    final palette = context.palette;
-
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(
-        AppSpacing.xl,
-        AppSpacing.sm,
-        AppSpacing.xl,
-        AppSpacing.xl,
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          if (nameController != null) ...[
-            TextField(
-              controller: nameController,
-              textCapitalization: TextCapitalization.words,
-              decoration: const InputDecoration(
-                labelText: 'Display name',
-                hintText: 'How your workspace should be labeled',
-              ),
-            ),
-            const SizedBox(height: AppSpacing.lg),
-          ],
-          TextField(
-            controller: emailController,
-            keyboardType: TextInputType.emailAddress,
-            autocorrect: false,
-            decoration: const InputDecoration(
-              labelText: 'Email',
-              hintText: 'name@example.com',
-            ),
-          ),
-          const SizedBox(height: AppSpacing.lg),
-          TextField(
-            controller: passwordController,
-            obscureText: true,
-            autocorrect: false,
-            decoration: const InputDecoration(
-              labelText: 'Password',
-              hintText: 'At least 6 characters',
-            ),
-          ),
-          const SizedBox(height: AppSpacing.xxl),
-          SizedBox(
-            width: double.infinity,
-            child: FilledButton(
-              onPressed: isBusy ? null : onSubmit,
-              style: FilledButton.styleFrom(
-                backgroundColor: AppColors.brandPrimary,
-                minimumSize: const Size.fromHeight(52),
-              ),
-              child: Text(isBusy ? 'Working...' : primaryLabel),
-            ),
-          ),
-          if (secondaryActionLabel != null && onSecondaryAction != null) ...[
-            const SizedBox(height: AppSpacing.sm),
-            Align(
-              alignment: Alignment.centerRight,
-              child: TextButton(
-                onPressed: isBusy ? null : onSecondaryAction,
-                child: Text(secondaryActionLabel!),
-              ),
-            ),
-          ],
-          const SizedBox(height: AppSpacing.md),
-          Text(
-            footer,
-            style: AppTypography.bodySmall.copyWith(
-              color: palette.textSecondary,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+  State<_AuthForm> createState() => _AuthFormState();
 }
 
-class _FeatureRow extends StatelessWidget {
-  const _FeatureRow({
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-  });
-
-  final IconData icon;
-  final String title;
-  final String subtitle;
+class _AuthFormState extends State<_AuthForm> {
+  bool _obscurePassword = true;
 
   @override
   Widget build(BuildContext context) {
     final palette = context.palette;
 
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Container(
-          width: 44,
-          height: 44,
-          decoration: BoxDecoration(
-            color: AppColors.brandPrimary.withValues(alpha: 0.1),
-            borderRadius: BorderRadius.circular(14),
+    return SingleChildScrollView(
+      physics: const ClampingScrollPhysics(),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.xl,
+        vertical: AppSpacing.lg,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          if (widget.nameController != null) ...[
+            TextFormField(
+              controller: widget.nameController,
+              textCapitalization: TextCapitalization.words,
+              style: AppTypography.bodyLarge.copyWith(fontWeight: FontWeight.w600),
+              decoration: const InputDecoration(
+                labelText: 'Display Name',
+                hintText: 'e.g., Alex Carter',
+                floatingLabelBehavior: FloatingLabelBehavior.always,
+              ),
+              validator: (value) {
+                if (value == null || value.trim().isEmpty) {
+                  return 'Please enter a display name';
+                }
+                return null;
+              },
+            ),
+            const SizedBox(height: AppSpacing.lg),
+          ],
+          TextFormField(
+            controller: widget.emailController,
+            keyboardType: TextInputType.emailAddress,
+            autocorrect: false,
+            style: AppTypography.bodyLarge.copyWith(fontWeight: FontWeight.w600),
+            decoration: const InputDecoration(
+              labelText: 'Email Address',
+              hintText: 'name@example.com',
+              floatingLabelBehavior: FloatingLabelBehavior.always,
+            ),
+            validator: (value) {
+              if (value == null || value.trim().isEmpty) {
+                return 'Please enter your email';
+              }
+              final regex = RegExp(r'^[^@]+@[^@]+\.[^@]+$');
+              if (!regex.hasMatch(value.trim())) {
+                return 'Please enter a valid email address';
+              }
+              return null;
+            },
           ),
-          alignment: Alignment.center,
-          child: Icon(icon, color: AppColors.brandPrimary),
-        ),
-        const SizedBox(width: AppSpacing.lg),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(title, style: AppTypography.titleSmall),
-              const SizedBox(height: AppSpacing.xs),
-              Text(
-                subtitle,
-                style: AppTypography.bodyMedium.copyWith(
-                  color: palette.textSecondary,
+          const SizedBox(height: AppSpacing.lg),
+          TextFormField(
+            controller: widget.passwordController,
+            obscureText: _obscurePassword,
+            autocorrect: false,
+            style: AppTypography.bodyLarge.copyWith(fontWeight: FontWeight.w600),
+            decoration: InputDecoration(
+              labelText: 'Password',
+              hintText: 'At least 6 characters',
+              floatingLabelBehavior: FloatingLabelBehavior.always,
+              suffixIcon: IconButton(
+                icon: Icon(
+                  _obscurePassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                  size: 20,
+                  color: palette.textTertiary,
+                ),
+                onPressed: () {
+                  setState(() {
+                    _obscurePassword = !_obscurePassword;
+                  });
+                },
+              ),
+            ),
+            validator: (value) {
+              if (value == null || value.isEmpty) {
+                return 'Please enter your password';
+              }
+              if (value.length < 6) {
+                return 'Password must be at least 6 characters';
+              }
+              return null;
+            },
+          ),
+          const SizedBox(height: AppSpacing.xxl),
+          Container(
+            decoration: BoxDecoration(
+              gradient: widget.isBusy ? null : AppGradients.authPrimaryButton,
+              borderRadius: BorderRadius.circular(AppRadius.button),
+              boxShadow: widget.isBusy ? null : AppShadows.floatingCard,
+            ),
+            child: FilledButton(
+              onPressed: widget.isBusy ? null : widget.onSubmit,
+              style: FilledButton.styleFrom(
+                backgroundColor: Colors.transparent,
+                shadowColor: Colors.transparent,
+                minimumSize: const Size.fromHeight(52),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(AppRadius.button),
                 ),
               ),
-            ],
+              child: Text(
+                widget.isBusy ? 'Authenticating...' : widget.primaryLabel,
+                style: AppTypography.titleSmall.copyWith(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
           ),
-        ),
-      ],
+          if (widget.secondaryActionLabel != null && widget.onSecondaryAction != null) ...[
+            const SizedBox(height: AppSpacing.xs),
+            Align(
+              alignment: Alignment.centerRight,
+              child: TextButton(
+                onPressed: widget.isBusy ? null : widget.onSecondaryAction,
+                style: TextButton.styleFrom(
+                  foregroundColor: AppColors.brandPrimary,
+                ),
+                child: Text(
+                  widget.secondaryActionLabel!,
+                  style: AppTypography.bodyMedium.copyWith(fontWeight: FontWeight.bold),
+                ),
+              ),
+            ),
+          ],
+          const SizedBox(height: AppSpacing.md),
+          Text(
+            widget.footer,
+            style: AppTypography.bodySmall.copyWith(
+              color: palette.textSecondary,
+              height: 1.3,
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
     );
   }
 }
@@ -414,6 +513,7 @@ class _ResetPasswordDialog extends StatefulWidget {
 
 class _ResetPasswordDialogState extends State<_ResetPasswordDialog> {
   late final TextEditingController _controller;
+  final _formKey = GlobalKey<FormState>();
 
   @override
   void initState() {
@@ -429,25 +529,53 @@ class _ResetPasswordDialogState extends State<_ResetPasswordDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final palette = context.palette;
+
     return AlertDialog(
-      title: const Text('Reset password'),
-      content: TextField(
-        controller: _controller,
-        keyboardType: TextInputType.emailAddress,
-        autofocus: true,
-        decoration: const InputDecoration(
-          labelText: 'Email',
-          hintText: 'name@example.com',
+      title: Row(
+        children: [
+          const Icon(Icons.lock_reset_rounded, color: AppColors.brandPrimary),
+          const SizedBox(width: 8),
+          Text('Reset Password', style: AppTypography.titleMedium),
+        ],
+      ),
+      content: Form(
+        key: _formKey,
+        child: TextFormField(
+          controller: _controller,
+          keyboardType: TextInputType.emailAddress,
+          autofocus: true,
+          style: AppTypography.bodyLarge.copyWith(fontWeight: FontWeight.w600),
+          decoration: const InputDecoration(
+            labelText: 'Email Address',
+            hintText: 'name@example.com',
+            floatingLabelBehavior: FloatingLabelBehavior.always,
+          ),
+          validator: (value) {
+            if (value == null || value.trim().isEmpty) {
+              return 'Please enter your email';
+            }
+            final regex = RegExp(r'^[^@]+@[^@]+\.[^@]+$');
+            if (!regex.hasMatch(value.trim())) {
+              return 'Please enter a valid email address';
+            }
+            return null;
+          },
         ),
       ),
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Cancel'),
+          child: Text('Cancel', style: TextStyle(color: palette.textSecondary)),
         ),
         FilledButton(
-          onPressed: () => Navigator.of(context).pop(_controller.text),
-          child: const Text('Send reset link'),
+          onPressed: () {
+            if (_formKey.currentState?.validate() ?? false) {
+              Navigator.of(context).pop(_controller.text.trim());
+            }
+          },
+          style: FilledButton.styleFrom(backgroundColor: AppColors.brandPrimary),
+          child: const Text('Send Reset Link'),
         ),
       ],
     );

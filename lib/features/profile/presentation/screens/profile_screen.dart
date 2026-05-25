@@ -28,7 +28,6 @@ class ProfileScreen extends ConsumerWidget {
     final notesAsync = ref.watch(notesControllerProvider);
     final palette = context.palette;
     final syncEnabled = AppEnv.enableExperimentalSync;
-    final showPrototypeTools = AppEnv.showPrototypeTools;
     final onboardingProfile = ref.watch(onboardingControllerProvider).valueOrNull;
     final authSession =
         syncEnabled ? ref.watch(currentAuthSessionProvider) : null;
@@ -52,16 +51,6 @@ class ProfileScreen extends ConsumerWidget {
                 subtitle: syncEnabled
                   ? 'Manage your account, workspace identity, sync posture, and device preferences.'
                   : 'Manage your workspace identity, local notes, and device preferences.',
-                trailing: syncEnabled
-                    ? HeaderActionButton(
-                        icon: syncState.isSyncing
-                            ? Icons.sync_rounded
-                            : syncState.lastError == null
-                                ? Icons.cloud_done_outlined
-                                : Icons.cloud_off_outlined,
-                        onPressed: () => _syncNow(context, ref),
-                      )
-                    : null,
               ),
               const SizedBox(height: AppSpacing.xxl),
               Container(
@@ -217,21 +206,19 @@ class ProfileScreen extends ConsumerWidget {
                     ),
                     onTap: () => _showPreviewDialog(context, ref, preferences),
                   ),
-                  if (showPrototypeTools) ...[
-                    _SettingsTile(
-                      icon: Icons.notifications_none_rounded,
-                      title: 'Notifications',
-                      subtitle: 'Manage experimental reminder preferences',
-                      onTap: () =>
-                          context.push(RouteNames.notificationSettings),
-                    ),
-                    _SettingsTile(
-                      icon: Icons.lock_outline_rounded,
-                      title: 'Lock notes',
-                      subtitle: 'Test local passcode preferences',
-                      onTap: () => context.push(RouteNames.lockNotes),
-                    ),
-                  ],
+                  _SettingsTile(
+                    icon: Icons.notifications_none_rounded,
+                    title: 'Notifications',
+                    subtitle: 'Configure note notification and task reminder alerts',
+                    onTap: () =>
+                        context.push(RouteNames.notificationSettings),
+                  ),
+                  _SettingsTile(
+                    icon: Icons.lock_outline_rounded,
+                    title: 'Lock notes',
+                    subtitle: 'Secure note databases with local passcode lock',
+                    onTap: () => context.push(RouteNames.lockNotes),
+                  ),
                 ],
               ),
               const SizedBox(height: AppSpacing.xxl),
@@ -253,13 +240,12 @@ class ProfileScreen extends ConsumerWidget {
                         '${notesState.trashedNotes.length} deleted notes waiting for action',
                     onTap: () => context.push(RouteNames.trash),
                   ),
-                  if (showPrototypeTools)
-                    _SettingsTile(
-                      icon: Icons.import_export_rounded,
-                      title: 'Import and export',
-                      subtitle: 'Test local JSON backup tools',
-                      onTap: () => context.push(RouteNames.importExport),
-                    ),
+                  _SettingsTile(
+                    icon: Icons.import_export_rounded,
+                    title: 'Import and export',
+                    subtitle: 'Export and restore note databases via JSON files',
+                    onTap: () => context.push(RouteNames.importExport),
+                  ),
                   if (!syncEnabled)
                     _SettingsTile(
                       icon: Icons.delete_forever_rounded,
