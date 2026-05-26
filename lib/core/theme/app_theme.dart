@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import 'app_colors.dart';
+import 'app_radius.dart';
 import 'app_typography.dart';
 import 'app_theme_palette.dart';
 
@@ -76,6 +77,40 @@ class AppTheme {
           borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
         ),
       ),
+      filledButtonTheme: FilledButtonThemeData(
+        style: FilledButton.styleFrom(
+          backgroundColor: colorScheme.primary,
+          foregroundColor: colorScheme.onPrimary,
+          textStyle: AppTypography.titleSmall.copyWith(
+            fontWeight: FontWeight.w800,
+          ),
+          minimumSize: const Size(0, 52),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppRadius.button),
+          ),
+        ),
+      ),
+      outlinedButtonTheme: OutlinedButtonThemeData(
+        style: OutlinedButton.styleFrom(
+          foregroundColor: colorScheme.onSurface,
+          side: BorderSide(color: palette.borderPrimary),
+          textStyle: AppTypography.titleSmall.copyWith(
+            fontWeight: FontWeight.w700,
+          ),
+          minimumSize: const Size(0, 52),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppRadius.button),
+          ),
+        ),
+      ),
+      textButtonTheme: TextButtonThemeData(
+        style: TextButton.styleFrom(
+          foregroundColor: AppColors.brandPrimary,
+          textStyle: AppTypography.bodyMedium.copyWith(
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+      ),
       dialogTheme: DialogThemeData(
         backgroundColor: palette.surfacePrimary,
         surfaceTintColor: Colors.transparent,
@@ -91,10 +126,38 @@ class AppTheme {
       splashColor: Colors.transparent,
       highlightColor: Colors.transparent,
       inputDecorationTheme: InputDecorationTheme(
+        filled: true,
+        fillColor: palette.surfacePrimary,
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 16,
+        ),
+        labelStyle: AppTypography.bodyMedium.copyWith(
+          color: palette.textSecondary,
+        ),
+        floatingLabelStyle: AppTypography.bodyMedium.copyWith(
+          color: colorScheme.primary,
+          fontWeight: FontWeight.w700,
+        ),
         hintStyle: AppTypography.bodyLarge.copyWith(
           color: palette.textPlaceholder,
         ),
-        border: InputBorder.none,
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(AppRadius.formCard),
+          borderSide: BorderSide(color: palette.borderPrimary),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(AppRadius.formCard),
+          borderSide: BorderSide(color: colorScheme.primary, width: 1.4),
+        ),
+        errorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(AppRadius.formCard),
+          borderSide: BorderSide(color: colorScheme.error),
+        ),
+        focusedErrorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(AppRadius.formCard),
+          borderSide: BorderSide(color: colorScheme.error, width: 1.4),
+        ),
       ),
       textSelectionTheme: TextSelectionThemeData(
         cursorColor: colorScheme.primary,

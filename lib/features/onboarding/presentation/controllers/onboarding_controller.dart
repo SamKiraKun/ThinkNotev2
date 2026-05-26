@@ -95,9 +95,6 @@ class AppStartupSnapshot {
     if (!onboardingProfile.hasCompletedOnboarding) {
       return RouteNames.onboarding;
     }
-    if (requiresAuthentication) {
-      return RouteNames.auth;
-    }
     return RouteNames.root;
   }
 
@@ -113,9 +110,6 @@ final appStartupSnapshotProvider =
   final onboardingProfile = await ref.watch(onboardingControllerProvider.future);
   await ref.read(notesControllerProvider.future);
 
-  final sharedPrefs = ref.watch(sharedPreferencesProvider);
-  final isGuest = sharedPrefs.getBool('is_guest_mode') ?? false;
-
   final elapsed = DateTime.now().difference(startTime);
   const minDelay = Duration(seconds: 1);
   if (elapsed < minDelay) {
@@ -124,6 +118,6 @@ final appStartupSnapshotProvider =
 
   return AppStartupSnapshot(
     onboardingProfile: onboardingProfile,
-    requiresAuthentication: AppEnv.enableExperimentalSync && session == null && !isGuest,
+    requiresAuthentication: session == null,
   );
 });

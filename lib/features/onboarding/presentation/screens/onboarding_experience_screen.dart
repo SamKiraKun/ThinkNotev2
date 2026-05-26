@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 import '../../../../core/extensions/context_extensions.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_gradients.dart';
@@ -22,6 +23,26 @@ class OnboardingExperienceScreen extends ConsumerStatefulWidget {
 class _OnboardingExperienceScreenState
     extends ConsumerState<OnboardingExperienceScreen> {
   static const int _pageCount = 3;
+  static const List<_OnboardingPageContent> _slides = [
+    _OnboardingPageContent(
+      eyebrow: 'Start fast',
+      headline: 'Write anything instantly.',
+      description:
+          'Capture ideas, tasks, and journal thoughts without setup friction. Your first note is always one tap away.',
+    ),
+    _OnboardingPageContent(
+      eyebrow: 'Stay organized',
+      headline: 'Designed for your ideas.',
+      description:
+          'Keep notes easy to find with folders, tags, quick search, and local-first performance that never feels heavy.',
+    ),
+    _OnboardingPageContent(
+      eyebrow: 'Built for trust',
+      headline: 'Private and secure.',
+      description:
+          'ThinkNote stays calm by default: local-first storage, contextual permissions, and optional sync only when you want it.',
+    ),
+  ];
 
   late final PageController _pageController;
   int _pageIndex = 0;
@@ -43,234 +64,279 @@ class _OnboardingExperienceScreenState
     final palette = context.palette;
     final onboardingState = ref.watch(onboardingControllerProvider);
     final isBusy = onboardingState.isLoading;
+    final currentSlide = _slides[_pageIndex];
 
     return Scaffold(
       backgroundColor: palette.pageBackground,
       body: SafeArea(
-        child: onboardingState.when(
-          loading: () => const Center(
-            child: CircularProgressIndicator(
-              color: AppColors.brandPrimary,
-            ),
-          ),
-          error: (error, _) => Center(
-            child: Padding(
-              padding: const EdgeInsets.all(AppSpacing.xxl),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(
-                    Icons.error_outline_rounded,
-                    color: AppColors.textDanger,
-                    size: 48,
-                  ),
-                  const SizedBox(height: AppSpacing.md),
-                  Text(
-                    'Unable to load setup',
-                    style: AppTypography.headlinePrimary,
-                  ),
-                  const SizedBox(height: AppSpacing.sm),
-                  Text(
-                    error.toString().replaceFirst('Exception: ', ''),
-                    style: AppTypography.bodyLarge.copyWith(
-                      color: palette.textSecondary,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                ],
+        child: Stack(
+          children: [
+            const Positioned.fill(child: _OnboardingBackdrop()),
+            onboardingState.when(
+              loading: () => const Center(
+                child: CircularProgressIndicator(color: AppColors.brandPrimary),
               ),
-            ),
-          ),
-          data: (profile) {
-            return Center(
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 430),
+              error: (error, _) => Center(
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: AppSpacing.xxl,
-                    vertical: AppSpacing.xl,
-                  ),
+                  padding: const EdgeInsets.all(AppSpacing.xxl),
                   child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      // Header Branding
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Row(
-                            children: [
-                              Container(
-                                width: 28,
-                                height: 28,
-                                decoration: BoxDecoration(
-                                  gradient: AppGradients.authPrimaryButton,
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                alignment: Alignment.center,
-                                child: const Icon(
-                                  Icons.auto_awesome_rounded,
-                                  color: Colors.white,
-                                  size: 14,
-                                ),
-                              ),
-                              const SizedBox(width: AppSpacing.sm),
-                              Text(
-                                'ThinkNote',
-                                style: AppTypography.titleSmall.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ],
-                          ),
-                          if (_pageIndex < _pageCount - 1)
-                            TextButton(
-                              onPressed: isBusy ? null : _skipToFinal,
-                              child: Text(
-                                'Skip',
-                                style: AppTypography.bodyMedium.copyWith(
-                                  color: palette.textSecondary,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ),
-                        ],
+                      const Icon(
+                        Icons.error_outline_rounded,
+                        color: AppColors.textDanger,
+                        size: 48,
                       ),
-                      const SizedBox(height: AppSpacing.xl),
-
-                      // Carousel Content
-                      Expanded(
-                        child: PageView(
-                          controller: _pageController,
-                          onPageChanged: (index) {
-                            setState(() {
-                              _pageIndex = index;
-                            });
-                          },
-                          children: [
-                            _OnboardingSlide(
-                              headline: 'Write anything instantly.',
-                              description:
-                                  'Capture ideas, quick lists, and daily logs in a flash. Optimistic local caching ensures you never experience lag.',
-                              visual: _buildMockNoteEditor(context),
-                            ),
-                            _OnboardingSlide(
-                              headline: 'Designed for your ideas.',
-                              description:
-                                  'Keep your thoughts structured. Filter and organize notes dynamically using folders and customizable hashtags.',
-                              visual: _buildMockFeaturesList(context),
-                            ),
-                            _OnboardingSlide(
-                              headline: 'Private and secure.',
-                              description:
-                                  'Your notes stay yours. We protect local databases with secure device encryption, without cookies, ads, or tracking.',
-                              visual: _buildMockSecurityPanel(context),
-                            ),
-                          ],
+                      const SizedBox(height: AppSpacing.md),
+                      Text(
+                        'Unable to load setup',
+                        style: AppTypography.headlinePrimary,
+                      ),
+                      const SizedBox(height: AppSpacing.sm),
+                      Text(
+                        error.toString().replaceFirst('Exception: ', ''),
+                        style: AppTypography.bodyLarge.copyWith(
+                          color: palette.textSecondary,
                         ),
-                      ),
-                      const SizedBox(height: AppSpacing.lg),
-
-                      // Pagination Dots Indicator
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: List.generate(_pageCount, (index) {
-                          final isActive = _pageIndex == index;
-                          return AnimatedContainer(
-                            duration: const Duration(milliseconds: 250),
-                            margin: const EdgeInsets.symmetric(horizontal: 4),
-                            height: 6,
-                            width: isActive ? 20 : 6,
-                            decoration: BoxDecoration(
-                              color: isActive
-                                  ? AppColors.brandPrimary
-                                  : palette.textPlaceholder.withValues(alpha: 0.5),
-                              borderRadius: BorderRadius.circular(3),
-                            ),
-                          );
-                        }),
-                      ),
-                      const SizedBox(height: AppSpacing.xl),
-
-                      // Buttons Row
-                      Row(
-                        children: [
-                          if (_pageIndex > 0)
-                            Expanded(
-                              child: OutlinedButton(
-                                onPressed: isBusy ? null : _goBack,
-                                style: OutlinedButton.styleFrom(
-                                  padding: const EdgeInsets.symmetric(vertical: 16),
-                                  side: BorderSide(color: palette.borderPrimary),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(AppRadius.button),
-                                  ),
-                                ),
-                                child: Text(
-                                  'Back',
-                                  style: AppTypography.titleSmall.copyWith(
-                                    color: palette.textSecondary,
-                                  ),
-                                ),
-                              ),
-                            )
-                          else
-                            const Spacer(),
-                          const SizedBox(width: AppSpacing.md),
-                          Expanded(
-                            flex: 2,
-                            child: Container(
-                              decoration: BoxDecoration(
-                                gradient: isBusy
-                                    ? null
-                                    : AppGradients.authPrimaryButton,
-                                borderRadius: BorderRadius.circular(AppRadius.button),
-                                boxShadow: isBusy ? null : AppShadows.floatingCard,
-                              ),
-                              child: FilledButton(
-                                onPressed: isBusy ? null : _advance,
-                                style: FilledButton.styleFrom(
-                                  backgroundColor: Colors.transparent,
-                                  shadowColor: Colors.transparent,
-                                  padding: const EdgeInsets.symmetric(vertical: 16),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(AppRadius.button),
-                                  ),
-                                ),
-                                child: Text(
-                                  isBusy
-                                      ? 'Initializing...'
-                                      : _pageIndex == _pageCount - 1
-                                          ? 'Get Started'
-                                          : 'Continue',
-                                  style: AppTypography.titleSmall.copyWith(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
+                        textAlign: TextAlign.center,
                       ),
                     ],
                   ),
                 ),
               ),
-            );
-          },
+              data: (_) => Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 430),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.xxl,
+                      vertical: AppSpacing.xl,
+                    ),
+                    child: Column(
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Row(
+                              children: [
+                                Container(
+                                  width: 30,
+                                  height: 30,
+                                  decoration: BoxDecoration(
+                                    gradient: AppGradients.authPrimaryButton,
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  alignment: Alignment.center,
+                                  child: const Icon(
+                                    Icons.auto_awesome_rounded,
+                                    color: Colors.white,
+                                    size: 16,
+                                  ),
+                                ),
+                                const SizedBox(width: AppSpacing.sm),
+                                Text(
+                                  'ThinkNote',
+                                  style: AppTypography.titleSmall.copyWith(
+                                    fontWeight: FontWeight.w800,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            if (_pageIndex < _pageCount - 1)
+                              TextButton(
+                                onPressed: isBusy ? null : _skipToFinal,
+                                child: Text(
+                                  'Skip',
+                                  style: AppTypography.bodyMedium.copyWith(
+                                    color: palette.textSecondary,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ),
+                          ],
+                        ),
+                        const SizedBox(height: AppSpacing.xl),
+                        Expanded(
+                          child: PageView.builder(
+                            controller: _pageController,
+                            itemCount: _pageCount,
+                            onPageChanged: (index) {
+                              setState(() {
+                                _pageIndex = index;
+                              });
+                            },
+                            itemBuilder: (context, index) {
+                              final slide = _slides[index];
+                              return _OnboardingSlide(
+                                eyebrow: slide.eyebrow,
+                                headline: slide.headline,
+                                description: slide.description,
+                                visual: switch (index) {
+                                  0 => _buildComposerPreview(context),
+                                  1 => _buildFeaturePreview(context),
+                                  _ => _buildTrustPreview(context),
+                                },
+                              );
+                            },
+                          ),
+                        ),
+                        const SizedBox(height: AppSpacing.lg),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: List.generate(_pageCount, (index) {
+                            final isActive = _pageIndex == index;
+                            return AnimatedContainer(
+                              duration: const Duration(milliseconds: 220),
+                              margin: const EdgeInsets.symmetric(
+                                horizontal: AppSpacing.xs,
+                              ),
+                              height: 6,
+                              width: isActive ? 24 : 6,
+                              decoration: BoxDecoration(
+                                color: isActive
+                                    ? AppColors.brandPrimary
+                                    : palette.textPlaceholder.withValues(
+                                        alpha: 0.45,
+                                      ),
+                                borderRadius: BorderRadius.circular(999),
+                              ),
+                            );
+                          }),
+                        ),
+                        const SizedBox(height: AppSpacing.lg),
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: AppSpacing.lg,
+                            vertical: AppSpacing.md,
+                          ),
+                          decoration: BoxDecoration(
+                            color: palette.surfacePrimary.withValues(alpha: 0.88),
+                            borderRadius: BorderRadius.circular(AppRadius.formCard),
+                            border: Border.all(color: palette.borderSoft),
+                          ),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Padding(
+                                padding: EdgeInsets.only(top: 1),
+                                child: Icon(
+                                  Icons.lock_outline_rounded,
+                                  size: 16,
+                                  color: AppColors.brandPrimary,
+                                ),
+                              ),
+                              const SizedBox(width: AppSpacing.sm),
+                              Expanded(
+                                child: Text(
+                                  _helperTextFor(currentSlide),
+                                  style: AppTypography.bodySmall.copyWith(
+                                    color: palette.textSecondary,
+                                    height: 1.35,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: AppSpacing.lg),
+                        Row(
+                          children: [
+                            if (_pageIndex > 0) ...[
+                              Expanded(
+                                child: OutlinedButton(
+                                  onPressed: isBusy ? null : _goBack,
+                                  style: OutlinedButton.styleFrom(
+                                    minimumSize: const Size.fromHeight(54),
+                                    side: BorderSide(color: palette.borderPrimary),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(
+                                        AppRadius.button,
+                                      ),
+                                    ),
+                                  ),
+                                  child: Text(
+                                    'Back',
+                                    style: AppTypography.titleSmall.copyWith(
+                                      color: palette.textSecondary,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: AppSpacing.md),
+                            ],
+                            Expanded(
+                              flex: _pageIndex > 0 ? 2 : 1,
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  gradient: isBusy
+                                      ? null
+                                      : AppGradients.authPrimaryButton,
+                                  borderRadius: BorderRadius.circular(
+                                    AppRadius.button,
+                                  ),
+                                  boxShadow:
+                                      isBusy ? null : AppShadows.floatingCard,
+                                ),
+                                child: FilledButton(
+                                  onPressed: isBusy ? null : _advance,
+                                  style: FilledButton.styleFrom(
+                                    backgroundColor: Colors.transparent,
+                                    shadowColor: Colors.transparent,
+                                    minimumSize: const Size.fromHeight(54),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(
+                                        AppRadius.button,
+                                      ),
+                                    ),
+                                  ),
+                                  child: Text(
+                                    isBusy
+                                        ? 'Preparing...'
+                                        : _pageIndex == _pageCount - 1
+                                            ? 'Get Started'
+                                            : 'Continue',
+                                    style: AppTypography.titleSmall.copyWith(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.w800,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );
   }
 
-  Widget _buildMockNoteEditor(BuildContext context) {
+  String _helperTextFor(_OnboardingPageContent slide) {
+    return switch (slide.headline) {
+      'Private and secure.' =>
+        'No account is required. Permissions only appear when you use reminders, voice, or attachments.',
+      _ => 'Start writing now. Sync and cloud backup can be added later from Profile.',
+    };
+  }
+
+  Widget _buildComposerPreview(BuildContext context) {
     final palette = context.palette;
+
     return Container(
-      padding: const EdgeInsets.all(AppSpacing.lg),
+      constraints: const BoxConstraints(maxWidth: 320),
+      padding: const EdgeInsets.all(AppSpacing.xl),
       decoration: BoxDecoration(
-        color: palette.surfacePrimary,
-        borderRadius: BorderRadius.circular(AppRadius.formCard),
+        gradient: AppGradients.createAccountPanel,
+        borderRadius: BorderRadius.circular(32),
         border: Border.all(color: palette.borderPrimary),
-        boxShadow: AppShadows.softCard,
+        boxShadow: AppShadows.floatingCard,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -279,89 +345,146 @@ class _OnboardingExperienceScreenState
           Row(
             children: [
               Container(
-                width: 10,
-                height: 10,
-                decoration: const BoxDecoration(
-                  color: Colors.green,
-                  shape: BoxShape.circle,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.md,
+                  vertical: AppSpacing.sm,
                 ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Container(
-                  height: 12,
-                  decoration: BoxDecoration(
-                    color: palette.borderSoft,
-                    borderRadius: BorderRadius.circular(6),
+                decoration: BoxDecoration(
+                  color: palette.surfacePrimary.withValues(alpha: 0.9),
+                  borderRadius: BorderRadius.circular(AppRadius.pill),
+                ),
+                child: Text(
+                  'Quick capture',
+                  style: AppTypography.labelMedium.copyWith(
+                    color: AppColors.brandPrimary,
                   ),
                 ),
               ),
+              const Spacer(),
+              Icon(
+                Icons.bolt_rounded,
+                color: AppColors.brandPrimary.withValues(alpha: 0.9),
+              ),
             ],
           ),
-          const SizedBox(height: 16),
-          Container(
-            height: 18,
-            width: 140,
-            decoration: BoxDecoration(
-              color: AppColors.brandPrimary.withValues(alpha: 0.15),
-              borderRadius: BorderRadius.circular(4),
+          const SizedBox(height: AppSpacing.xl),
+          Text(
+            'Idea drop',
+            style: AppTypography.titleSmall.copyWith(
+              color: AppColors.brandPrimary,
             ),
           ),
-          const SizedBox(height: 10),
-          Container(
-            height: 10,
-            decoration: BoxDecoration(
-              color: palette.borderSoft,
-              borderRadius: BorderRadius.circular(5),
-            ),
+          const SizedBox(height: AppSpacing.sm),
+          Text(
+            'Draft fast, then shape it later.',
+            style: AppTypography.headline.copyWith(fontSize: 24),
           ),
-          const SizedBox(height: 6),
-          Container(
-            height: 10,
-            width: 180,
-            decoration: BoxDecoration(
-              color: palette.borderSoft,
-              borderRadius: BorderRadius.circular(5),
-            ),
+          const SizedBox(height: AppSpacing.md),
+          _PreviewLine(widthFactor: 1, color: palette.borderSoft),
+          const SizedBox(height: AppSpacing.sm),
+          _PreviewLine(widthFactor: 0.82, color: palette.borderSoft),
+          const SizedBox(height: AppSpacing.sm),
+          _PreviewLine(widthFactor: 0.9, color: palette.borderSoft),
+          const SizedBox(height: AppSpacing.xl),
+          Wrap(
+            spacing: AppSpacing.sm,
+            runSpacing: AppSpacing.sm,
+            children: [
+              _MiniTag(
+                label: 'Pinned',
+                backgroundColor: AppColors.brandPrimary.withValues(alpha: 0.12),
+                textColor: AppColors.brandPrimary,
+              ),
+              _MiniTag(
+                label: 'Offline ready',
+                backgroundColor: palette.surfacePrimary.withValues(alpha: 0.82),
+                textColor: palette.textSecondary,
+              ),
+            ],
           ),
         ],
       ),
     );
   }
 
-  Widget _buildMockFeaturesList(BuildContext context) {
+  Widget _buildFeaturePreview(BuildContext context) {
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        _buildFeatureItem(context, Icons.sync_rounded, 'Sync across devices'),
-        const SizedBox(height: AppSpacing.sm),
-        _buildFeatureItem(context, Icons.text_fields_rounded, 'Rich text support'),
-        const SizedBox(height: AppSpacing.sm),
-        _buildFeatureItem(context, Icons.folder_open_rounded, 'Folders and hashtags'),
+        _buildFeatureItem(
+          context,
+          icon: Icons.sync_rounded,
+          title: 'Sync when you need it',
+          subtitle: 'Local-first notes stay fast, then sync once you choose an account.',
+        ),
+        const SizedBox(height: AppSpacing.md),
+        _buildFeatureItem(
+          context,
+          icon: Icons.folder_open_rounded,
+          title: 'Folders and tags',
+          subtitle: 'Organize work, study, and personal notes without clutter.',
+        ),
+        const SizedBox(height: AppSpacing.md),
+        _buildFeatureItem(
+          context,
+          icon: Icons.search_rounded,
+          title: 'Instant search',
+          subtitle: 'Find what matters quickly with lightweight, readable structure.',
+        ),
       ],
     );
   }
 
-  Widget _buildFeatureItem(BuildContext context, IconData icon, String label) {
+  Widget _buildFeatureItem(
+    BuildContext context, {
+    required IconData icon,
+    required String title,
+    required String subtitle,
+  }) {
     final palette = context.palette;
+
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg, vertical: AppSpacing.md),
+      constraints: const BoxConstraints(maxWidth: 320),
+      padding: const EdgeInsets.all(AppSpacing.lg),
       decoration: BoxDecoration(
-        color: palette.surfacePrimary,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: palette.borderPrimary),
+        color: palette.surfacePrimary.withValues(alpha: 0.94),
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: palette.borderSoft),
         boxShadow: AppShadows.softCard,
       ),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, color: AppColors.brandPrimary, size: 20),
+          Container(
+            width: 42,
+            height: 42,
+            decoration: BoxDecoration(
+              color: AppColors.brandPrimary.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(14),
+            ),
+            alignment: Alignment.center,
+            child: Icon(icon, color: AppColors.brandPrimary, size: 20),
+          ),
           const SizedBox(width: AppSpacing.md),
           Expanded(
-            child: Text(
-              label,
-              style: AppTypography.titleSmall.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: AppTypography.titleSmall.copyWith(
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.xs),
+                Text(
+                  subtitle,
+                  style: AppTypography.bodySmall.copyWith(
+                    color: palette.textSecondary,
+                    height: 1.4,
+                  ),
+                ),
+              ],
             ),
           ),
         ],
@@ -369,35 +492,56 @@ class _OnboardingExperienceScreenState
     );
   }
 
-  Widget _buildMockSecurityPanel(BuildContext context) {
+  Widget _buildTrustPreview(BuildContext context) {
     final palette = context.palette;
+
     return Container(
-      padding: const EdgeInsets.all(AppSpacing.lg),
+      constraints: const BoxConstraints(maxWidth: 320),
+      padding: const EdgeInsets.all(AppSpacing.xl),
       decoration: BoxDecoration(
-        gradient: AppGradients.createAccountPanel,
-        borderRadius: BorderRadius.circular(AppRadius.formCard),
-        border: Border.all(color: AppColors.brandPrimary.withValues(alpha: 0.1)),
-        boxShadow: AppShadows.softCard,
+        color: palette.surfacePrimary.withValues(alpha: 0.92),
+        borderRadius: BorderRadius.circular(32),
+        border: Border.all(color: palette.borderSoft),
+        boxShadow: AppShadows.floatingCard,
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(Icons.security_rounded, color: AppColors.brandPrimary, size: 40),
-          const SizedBox(height: AppSpacing.md),
-          Text(
-            'Secure & Private',
-            style: AppTypography.titleSmall.copyWith(
+          Container(
+            width: 72,
+            height: 72,
+            decoration: BoxDecoration(
+              gradient: AppGradients.createAccountPanel,
+              borderRadius: BorderRadius.circular(24),
+            ),
+            alignment: Alignment.center,
+            child: const Icon(
+              Icons.lock_outline_rounded,
               color: AppColors.brandPrimary,
-              fontWeight: FontWeight.bold,
+              size: 34,
             ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: AppSpacing.lg),
           Text(
-            'AES-256 Local Encryption\nNo tracking · Zero ads',
-            style: AppTypography.bodySmall.copyWith(
-              color: palette.textSecondary,
+            'Calm by default',
+            style: AppTypography.titleMedium.copyWith(
+              color: palette.textPrimary,
             ),
-            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          const _TrustRow(
+            icon: Icons.smartphone_rounded,
+            label: 'Notes save on this device first.',
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          const _TrustRow(
+            icon: Icons.notifications_none_rounded,
+            label: 'Permissions appear only when the feature needs them.',
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          const _TrustRow(
+            icon: Icons.visibility_off_outlined,
+            label: 'No ads and no noisy setup wall before writing.',
           ),
         ],
       ),
@@ -407,7 +551,7 @@ class _OnboardingExperienceScreenState
   Future<void> _advance() async {
     if (_pageIndex < _pageCount - 1) {
       await _pageController.nextPage(
-        duration: const Duration(milliseconds: 300),
+        duration: const Duration(milliseconds: 280),
         curve: Curves.easeInOutCubic,
       );
       return;
@@ -418,7 +562,7 @@ class _OnboardingExperienceScreenState
 
   void _goBack() {
     _pageController.previousPage(
-      duration: const Duration(milliseconds: 300),
+      duration: const Duration(milliseconds: 280),
       curve: Curves.easeInOutCubic,
     );
   }
@@ -426,7 +570,7 @@ class _OnboardingExperienceScreenState
   Future<void> _skipToFinal() async {
     await _pageController.animateToPage(
       _pageCount - 1,
-      duration: const Duration(milliseconds: 300),
+      duration: const Duration(milliseconds: 280),
       curve: Curves.easeInOutCubic,
     );
   }
@@ -441,13 +585,99 @@ class _OnboardingExperienceScreenState
   }
 }
 
+class _OnboardingBackdrop extends StatelessWidget {
+  const _OnboardingBackdrop();
+
+  @override
+  Widget build(BuildContext context) {
+    return IgnorePointer(
+      child: Stack(
+        children: const [
+          Positioned(
+            top: -72,
+            right: -28,
+            child: _BackdropGlow(
+              size: 220,
+              colors: [
+                Color(0x206F63FF),
+                Color(0x10B69BFF),
+                Color(0x00FFFFFF),
+              ],
+            ),
+          ),
+          Positioned(
+            top: 240,
+            left: -52,
+            child: _BackdropGlow(
+              size: 180,
+              colors: [
+                Color(0x18F3A7D8),
+                Color(0x106F63FF),
+                Color(0x00FFFFFF),
+              ],
+            ),
+          ),
+          Positioned(
+            bottom: -94,
+            right: 18,
+            child: _BackdropGlow(
+              size: 260,
+              colors: [
+                Color(0x16B69BFF),
+                Color(0x126F63FF),
+                Color(0x00FFFFFF),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _BackdropGlow extends StatelessWidget {
+  const _BackdropGlow({
+    required this.size,
+    required this.colors,
+  });
+
+  final double size;
+  final List<Color> colors;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        gradient: RadialGradient(colors: colors),
+      ),
+    );
+  }
+}
+
+class _OnboardingPageContent {
+  const _OnboardingPageContent({
+    required this.eyebrow,
+    required this.headline,
+    required this.description,
+  });
+
+  final String eyebrow;
+  final String headline;
+  final String description;
+}
+
 class _OnboardingSlide extends StatelessWidget {
   const _OnboardingSlide({
+    required this.eyebrow,
     required this.headline,
     required this.description,
     required this.visual,
   });
 
+  final String eyebrow;
   final String headline;
   final String description;
   final Widget visual;
@@ -462,16 +692,22 @@ class _OnboardingSlide extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Expanded(
-            child: Center(
-              child: visual,
-            ),
+            child: Center(child: visual),
           ),
           const SizedBox(height: AppSpacing.xl),
           Text(
+            eyebrow.toUpperCase(),
+            style: AppTypography.labelMedium.copyWith(
+              color: AppColors.brandPrimary,
+              letterSpacing: 0.5,
+            ),
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          Text(
             headline,
-            style: AppTypography.headline.copyWith(
-              fontWeight: FontWeight.bold,
-              letterSpacing: -0.5,
+            style: AppTypography.headlinePrimary.copyWith(
+              fontSize: 30,
+              fontWeight: FontWeight.w800,
             ),
             textAlign: TextAlign.center,
           ),
@@ -480,12 +716,110 @@ class _OnboardingSlide extends StatelessWidget {
             description,
             style: AppTypography.bodyLarge.copyWith(
               color: palette.textSecondary,
-              height: 1.4,
+              height: 1.45,
             ),
             textAlign: TextAlign.center,
           ),
         ],
       ),
+    );
+  }
+}
+
+class _PreviewLine extends StatelessWidget {
+  const _PreviewLine({
+    required this.widthFactor,
+    required this.color,
+  });
+
+  final double widthFactor;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return FractionallySizedBox(
+      widthFactor: widthFactor,
+      child: Container(
+        height: 10,
+        decoration: BoxDecoration(
+          color: color,
+          borderRadius: BorderRadius.circular(999),
+        ),
+      ),
+    );
+  }
+}
+
+class _MiniTag extends StatelessWidget {
+  const _MiniTag({
+    required this.label,
+    required this.backgroundColor,
+    required this.textColor,
+  });
+
+  final String label;
+  final Color backgroundColor;
+  final Color textColor;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.md,
+        vertical: AppSpacing.sm,
+      ),
+      decoration: BoxDecoration(
+        color: backgroundColor,
+        borderRadius: BorderRadius.circular(AppRadius.pill),
+      ),
+      child: Text(
+        label,
+        style: AppTypography.bodySmall.copyWith(
+          color: textColor,
+          fontWeight: FontWeight.w700,
+        ),
+      ),
+    );
+  }
+}
+
+class _TrustRow extends StatelessWidget {
+  const _TrustRow({
+    required this.icon,
+    required this.label,
+  });
+
+  final IconData icon;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = context.palette;
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          width: 32,
+          height: 32,
+          decoration: BoxDecoration(
+            color: AppColors.brandPrimary.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          alignment: Alignment.center,
+          child: Icon(icon, size: 16, color: AppColors.brandPrimary),
+        ),
+        const SizedBox(width: AppSpacing.md),
+        Expanded(
+          child: Text(
+            label,
+            style: AppTypography.bodySmall.copyWith(
+              color: palette.textSecondary,
+              height: 1.4,
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

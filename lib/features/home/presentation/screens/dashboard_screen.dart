@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/config/app_env.dart';
+import '../../../../core/constants/app_constants.dart';
 import '../../../../core/constants/route_names.dart';
 import '../../../../core/extensions/context_extensions.dart';
 import '../../../../core/theme/app_colors.dart';
@@ -22,7 +23,7 @@ import '../../../notes/presentation/widgets/note_card.dart';
 import '../../../onboarding/data/models/onboarding_profile.dart';
 import '../../../onboarding/presentation/controllers/onboarding_controller.dart';
 import '../../../shell/presentation/controllers/shell_controller.dart';
-import '../../../sync/presentation/controllers/sync_controller.dart';
+import '../../../search/presentation/controllers/search_controller.dart';
 
 class DashboardScreen extends ConsumerWidget {
   const DashboardScreen({super.key});
@@ -36,7 +37,6 @@ class DashboardScreen extends ConsumerWidget {
     final syncEnabled = AppEnv.enableExperimentalSync;
     final authSession =
         syncEnabled ? ref.watch(currentAuthSessionProvider) : null;
-    final syncState = ref.watch(syncControllerProvider);
 
     return SafeArea(
       bottom: false,
@@ -49,6 +49,7 @@ class DashboardScreen extends ConsumerWidget {
               .where((summary) => summary.noteCount > 0)
               .take(5)
               .toList(growable: false);
+          final isEmptyWorkspace = activeNotes.isEmpty;
 
           return ListView(
             padding: const EdgeInsets.fromLTRB(
@@ -59,150 +60,34 @@ class DashboardScreen extends ConsumerWidget {
             ),
             children: [
               AppHeader(
-                title: 'Dashboard',
-                subtitle: onboardingProfile.workspaceFocus.dashboardMessage,
+                title: isEmptyWorkspace ? AppConstants.appName : 'Dashboard',
+                subtitle: isEmptyWorkspace
+                    ? 'Start with a note. Everything saves on this device first.'
+                    : onboardingProfile.workspaceFocus.dashboardMessage,
                 leading: HeaderAvatar(
                   label: authSession?.initials ?? onboardingProfile.initials,
                 ),
+                brandStyle: isEmptyWorkspace,
               ),
               const SizedBox(height: AppSpacing.xxl),
-              _WorkspaceHero(
-                workspaceName: onboardingProfile.effectiveWorkspaceName,
-                workspaceFocus: onboardingProfile.workspaceFocus,
-                ownerLabel: authSession?.displayName ??
-                    authSession?.email ??
-                    'Private workspace',
-                syncState: syncState,
-                syncEnabled: syncEnabled,
-                onCreateTap: () => context.push(RouteNames.editor),
-                onSearchTap: () =>
-                    ref.read(shellTabProvider.notifier).state = ShellTab.search,
-                onWorkspaceTap: () => ref.read(shellTabProvider.notifier).state =
-                    ShellTab.folders,
-              ),
-              if (syncEnabled &&
-                  authSession != null &&
-                  !authSession.isEmailVerified) ...[
-                const SizedBox(height: AppSpacing.xl),
-                _VerificationCard(
-                  email: authSession.email,
-                  onResend: () => _resendVerification(context, ref),
-                ),
-              ],
-              const SizedBox(height: AppSpacing.xl),
-              _StatsGrid(
-                activeNotes: activeNotes.length,
-                folders: notesState.folders.length,
-                favorites: notesState.favoriteNotes.length,
-                archived: notesState.archivedNotes.length,
-              ),
-              const SizedBox(height: AppSpacing.xxl),
-              Text('Quick actions', style: AppTypography.titleMedium),
-              const SizedBox(height: AppSpacing.md),
-              Row(
-                children: [
-                  Expanded(
-                    child: _QuickActionCard(
-                      icon: Icons.edit_note_rounded,
-                      title: 'Capture',
-                      subtitle: 'Open a fresh note instantly',
-                      onTap: () => context.push(RouteNames.editor),
-                    ),
-                  ),
-                  const SizedBox(width: AppSpacing.md),
-                  Expanded(
-                    child: _QuickActionCard(
-                      icon: Icons.search_rounded,
-                      title: 'Search',
-                      subtitle: 'Jump into notes, tags, and folders',
-                      onTap: () =>
-                          ref.read(shellTabProvider.notifier).state = ShellTab.search,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: AppSpacing.md),
-              Row(
-                children: [
-                  Expanded(
-                    child: _QuickActionCard(
-                      icon: Icons.folder_open_rounded,
-                      title: 'Workspace',
-                      subtitle: 'Organize folders, tags, and collections',
-                      onTap: () => ref.read(shellTabProvider.notifier).state =
-                          ShellTab.folders,
-                    ),
-                  ),
-                  const SizedBox(width: AppSpacing.md),
-                  Expanded(
-                    child: _QuickActionCard(
-                      icon: Icons.archive_outlined,
-                      title: 'Archive',
-                      subtitle: 'Review stored-away notes',
-                      onTap: () => context.push(RouteNames.archive),
-                    ),
-                  ),
-                ],
-              ),
-              if (folderHighlights.isNotEmpty) ...[
-                const SizedBox(height: AppSpacing.xxl),
-                Text('Workspace collections', style: AppTypography.titleMedium),
-                const SizedBox(height: AppSpacing.md),
-                SizedBox(
-                  height: 148,
-                  child: ListView.separated(
-                    scrollDirection: Axis.horizontal,
-                    itemBuilder: (context, index) {
-                      final summary = folderHighlights[index];
-                      return _CollectionCard(
-                        label: summary.folder.displayName,
-                        noteCount: summary.noteCount,
-                        colorKey: summary.folder.colorKey,
-                      );
-                    },
-                    separatorBuilder: (_, __) =>
-                        const SizedBox(width: AppSpacing.md),
-                    itemCount: folderHighlights.length,
-                  ),
-                ),
-              ],
-              if (topPicks.isNotEmpty) ...[
-                const SizedBox(height: AppSpacing.xxl),
-                Text('Top picks', style: AppTypography.titleMedium),
-                const SizedBox(height: AppSpacing.md),
-                for (final note in topPicks) ...[
-                  NoteCard(
-                    note: note,
-                    folder: notesState.folderById(note.folderId),
-                    subtitle:
-                        'Updated ${DateFormatter.formatRelative(note.updatedAt)}',
-                    previewLines: notesState.preferences.previewLines,
-                    onTap: () => context.push(
-                      RouteNames.editor,
-                      extra: <String, dynamic>{'noteId': note.id},
-                    ),
-                    onPinTap: () => ref
-                        .read(notesControllerProvider.notifier)
-                        .togglePin(note.id),
-                    onFavoriteTap: () => ref
-                        .read(notesControllerProvider.notifier)
-                        .toggleFavorite(note.id),
-                  ),
-                  if (note != topPicks.last)
-                    const SizedBox(height: AppSpacing.md),
-                ],
-              ],
-              const SizedBox(height: AppSpacing.xxl),
-              if (recentNotes.isEmpty)
+              if (isEmptyWorkspace)
                 AppEmptyState(
                   icon: Icons.edit_note_rounded,
-                  title: 'Your workspace is ready for its first note',
+                  eyebrow: 'Ready to write',
+                  title: 'No notes yet',
                   message:
-                      'Use quick capture to create the first note, then the dashboard will keep recent work, favorites, and collections visible here.',
+                      'Create your first note in one tap. Organize it later with folders, tags, and search when your workspace grows.',
+                  supportingNote: 'You are writing in secure mode. Sync matches your active session status.',
+                  highlights: const <String>[
+                    'Local-first',
+                    'Folders later',
+                    'Search anytime',
+                  ],
                   actionLabel: 'Create your first note',
                   onAction: () => context.push(RouteNames.editor),
                 )
               else ...[
+                // Recent work section at the very top of Dashboard scrollview
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -235,6 +120,90 @@ class DashboardScreen extends ConsumerWidget {
                   ),
                   if (note != recentNotes.last)
                     const SizedBox(height: AppSpacing.md),
+                ],
+
+                if (syncEnabled &&
+                    authSession != null &&
+                    !authSession.isEmailVerified) ...[
+                  const SizedBox(height: AppSpacing.xxl),
+                  _VerificationCard(
+                    email: authSession.email,
+                    onResend: () => _resendVerification(context, ref),
+                  ),
+                ],
+                
+                const SizedBox(height: AppSpacing.xxl),
+                _StatsGrid(
+                  activeNotes: activeNotes.length,
+                  folders: notesState.folders.length,
+                  favorites: notesState.favoriteNotes.length,
+                  archived: notesState.archivedNotes.length,
+                  onActiveNotesTap: () {
+                    ref.read(searchControllerProvider.notifier).setMode(SearchMode.notes);
+                    ref.read(shellTabProvider.notifier).state = ShellTab.search;
+                  },
+                  onFoldersTap: () {
+                    ref.read(shellTabProvider.notifier).state = ShellTab.folders;
+                  },
+                  onFavoritesTap: () {
+                    ref.read(searchControllerProvider.notifier).setMode(SearchMode.favorites);
+                    ref.read(shellTabProvider.notifier).state = ShellTab.search;
+                  },
+                  onArchivedTap: () {
+                    context.push(RouteNames.archive);
+                  },
+                ),
+
+                if (folderHighlights.isNotEmpty) ...[
+                  const SizedBox(height: AppSpacing.xxl),
+                  Text(
+                    'Workspace collections',
+                    style: AppTypography.titleMedium,
+                  ),
+                  const SizedBox(height: AppSpacing.md),
+                  SizedBox(
+                    height: 160,
+                    child: ListView.separated(
+                      scrollDirection: Axis.horizontal,
+                      itemBuilder: (context, index) {
+                        final summary = folderHighlights[index];
+                        return _CollectionCard(
+                          label: summary.folder.displayName,
+                          noteCount: summary.noteCount,
+                          colorKey: summary.folder.colorKey,
+                        );
+                      },
+                      separatorBuilder: (_, __) =>
+                          const SizedBox(width: AppSpacing.md),
+                      itemCount: folderHighlights.length,
+                    ),
+                  ),
+                ],
+                if (topPicks.isNotEmpty) ...[
+                  const SizedBox(height: AppSpacing.xxl),
+                  Text('Top picks', style: AppTypography.titleMedium),
+                  const SizedBox(height: AppSpacing.md),
+                  for (final note in topPicks) ...[
+                    NoteCard(
+                      note: note,
+                      folder: notesState.folderById(note.folderId),
+                      subtitle:
+                          'Updated ${DateFormatter.formatRelative(note.updatedAt)}',
+                      previewLines: notesState.preferences.previewLines,
+                      onTap: () => context.push(
+                        RouteNames.editor,
+                        extra: <String, dynamic>{'noteId': note.id},
+                      ),
+                      onPinTap: () => ref
+                          .read(notesControllerProvider.notifier)
+                          .togglePin(note.id),
+                      onFavoriteTap: () => ref
+                          .read(notesControllerProvider.notifier)
+                          .toggleFavorite(note.id),
+                    ),
+                    if (note != topPicks.last)
+                      const SizedBox(height: AppSpacing.md),
+                  ],
                 ],
               ],
             ],
@@ -278,132 +247,6 @@ class DashboardScreen extends ConsumerWidget {
   }
 }
 
-class _WorkspaceHero extends StatelessWidget {
-  const _WorkspaceHero({
-    required this.workspaceName,
-    required this.workspaceFocus,
-    required this.ownerLabel,
-    required this.syncState,
-    required this.syncEnabled,
-    required this.onCreateTap,
-    required this.onSearchTap,
-    required this.onWorkspaceTap,
-  });
-
-  final String workspaceName;
-  final WorkspaceFocus workspaceFocus;
-  final String ownerLabel;
-  final SyncState syncState;
-  final bool syncEnabled;
-  final VoidCallback onCreateTap;
-  final VoidCallback onSearchTap;
-  final VoidCallback onWorkspaceTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final palette = context.palette;
-
-    return Container(
-      padding: const EdgeInsets.all(AppSpacing.xl),
-      decoration: BoxDecoration(
-        gradient: AppGradients.pinnedCard,
-        borderRadius: BorderRadius.circular(28),
-        boxShadow: AppShadows.floatingCard,
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _StatusPill(
-            label: syncEnabled
-                ? (syncState.isSyncing
-                    ? 'Sync in progress'
-                    : syncState.lastError == null
-                        ? 'Cloud workspace online'
-                        : 'Sync attention needed')
-                : 'Device-first workspace',
-          ),
-          const SizedBox(height: AppSpacing.lg),
-          Text(workspaceName, style: AppTypography.titleLarge),
-          const SizedBox(height: AppSpacing.xs),
-          Text(
-            workspaceFocus.headline,
-            style: AppTypography.bodyLarge.copyWith(
-              color: palette.textSecondary,
-            ),
-          ),
-          const SizedBox(height: AppSpacing.lg),
-          Row(
-            children: [
-              Icon(Icons.person_outline_rounded, color: palette.textSecondary),
-              const SizedBox(width: AppSpacing.sm),
-              Expanded(
-                child: Text(
-                  ownerLabel,
-                  style: AppTypography.bodyMedium.copyWith(
-                    color: palette.textSecondary,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: AppSpacing.sm),
-          Row(
-            children: [
-              Icon(Icons.schedule_rounded, color: palette.textSecondary),
-              const SizedBox(width: AppSpacing.sm),
-              Expanded(
-                child: Text(
-                  _syncSummary(syncEnabled, syncState),
-                  style: AppTypography.bodyMedium.copyWith(
-                    color: palette.textSecondary,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: AppSpacing.xl),
-          Wrap(
-            spacing: AppSpacing.md,
-            runSpacing: AppSpacing.md,
-            children: [
-              FilledButton.icon(
-                onPressed: onCreateTap,
-                icon: const Icon(Icons.add_rounded),
-                label: const Text('New note'),
-              ),
-              OutlinedButton.icon(
-                onPressed: onSearchTap,
-                icon: const Icon(Icons.search_rounded),
-                label: const Text('Search'),
-              ),
-              OutlinedButton.icon(
-                onPressed: onWorkspaceTap,
-                icon: const Icon(Icons.folder_open_rounded),
-                label: const Text('Workspace'),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  String _syncSummary(bool syncEnabled, SyncState syncState) {
-    if (!syncEnabled) {
-      return 'All notes stay local on this device and remain available offline.';
-    }
-    if (syncState.isSyncing) {
-      return 'Pushing local changes and checking for updates now.';
-    }
-    if (syncState.lastError != null && syncState.nextRetryAt != null) {
-      return 'Retry scheduled ${DateFormatter.formatRelative(syncState.nextRetryAt!)}.';
-    }
-    if (syncState.lastSyncedAt != null) {
-      return 'Last synced ${DateFormatter.formatRelative(syncState.lastSyncedAt!)}.';
-    }
-    return 'Cloud sync is ready for your first connected session.';
-  }
-}
 
 class _VerificationCard extends StatelessWidget {
   const _VerificationCard({
@@ -478,12 +321,20 @@ class _StatsGrid extends StatelessWidget {
     required this.folders,
     required this.favorites,
     required this.archived,
+    required this.onActiveNotesTap,
+    required this.onFoldersTap,
+    required this.onFavoritesTap,
+    required this.onArchivedTap,
   });
 
   final int activeNotes;
   final int folders;
   final int favorites;
   final int archived;
+  final VoidCallback onActiveNotesTap;
+  final VoidCallback onFoldersTap;
+  final VoidCallback onFavoritesTap;
+  final VoidCallback onArchivedTap;
 
   @override
   Widget build(BuildContext context) {
@@ -496,6 +347,7 @@ class _StatsGrid extends StatelessWidget {
                 label: 'Active notes',
                 value: '$activeNotes',
                 icon: Icons.description_outlined,
+                onTap: onActiveNotesTap,
               ),
             ),
             const SizedBox(width: AppSpacing.md),
@@ -504,6 +356,7 @@ class _StatsGrid extends StatelessWidget {
                 label: 'Folders',
                 value: '$folders',
                 icon: Icons.folder_outlined,
+                onTap: onFoldersTap,
               ),
             ),
           ],
@@ -516,6 +369,7 @@ class _StatsGrid extends StatelessWidget {
                 label: 'Favorites',
                 value: '$favorites',
                 icon: Icons.star_border_rounded,
+                onTap: onFavoritesTap,
               ),
             ),
             const SizedBox(width: AppSpacing.md),
@@ -524,6 +378,7 @@ class _StatsGrid extends StatelessWidget {
                 label: 'Archived',
                 value: '$archived',
                 icon: Icons.archive_outlined,
+                onTap: onArchivedTap,
               ),
             ),
           ],
@@ -538,88 +393,53 @@ class _MetricTile extends StatelessWidget {
     required this.label,
     required this.value,
     required this.icon,
+    required this.onTap,
   });
 
   final String label;
   final String value;
   final IconData icon;
-
-  @override
-  Widget build(BuildContext context) {
-    final palette = context.palette;
-
-    return Container(
-      padding: const EdgeInsets.all(AppSpacing.xl),
-      decoration: BoxDecoration(
-        color: palette.surfacePrimary,
-        borderRadius: BorderRadius.circular(AppRadius.formCard),
-        boxShadow: AppShadows.softCard,
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(icon, color: AppColors.brandPrimary),
-          const SizedBox(height: AppSpacing.lg),
-          Text(value, style: AppTypography.titleLarge),
-          const SizedBox(height: AppSpacing.xs),
-          Text(
-            label,
-            style: AppTypography.bodyMedium.copyWith(
-              color: palette.textSecondary,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _QuickActionCard extends StatelessWidget {
-  const _QuickActionCard({
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-    required this.onTap,
-  });
-
-  final IconData icon;
-  final String title;
-  final String subtitle;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     final palette = context.palette;
 
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(AppRadius.formCard),
-      child: Container(
-        padding: const EdgeInsets.all(AppSpacing.xl),
-        decoration: BoxDecoration(
-          color: palette.surfacePrimary,
+    return Container(
+      decoration: BoxDecoration(
+        color: palette.surfacePrimary,
+        borderRadius: BorderRadius.circular(AppRadius.formCard),
+        boxShadow: AppShadows.softCard,
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
           borderRadius: BorderRadius.circular(AppRadius.formCard),
-          boxShadow: AppShadows.softCard,
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Icon(icon, color: AppColors.brandPrimary),
-            const SizedBox(height: AppSpacing.md),
-            Text(title, style: AppTypography.titleSmall),
-            const SizedBox(height: AppSpacing.xs),
-            Text(
-              subtitle,
-              style: AppTypography.bodySmall.copyWith(
-                color: palette.textSecondary,
-              ),
+          child: Padding(
+            padding: const EdgeInsets.all(AppSpacing.xl),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(icon, color: AppColors.brandPrimary),
+                const SizedBox(height: AppSpacing.lg),
+                Text(value, style: AppTypography.titleLarge),
+                const SizedBox(height: AppSpacing.xs),
+                Text(
+                  label,
+                  style: AppTypography.bodyMedium.copyWith(
+                    color: palette.textSecondary,
+                  ),
+                ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );
   }
 }
+
 
 class _CollectionCard extends StatelessWidget {
   const _CollectionCard({
@@ -639,7 +459,7 @@ class _CollectionCard extends StatelessWidget {
 
     return Container(
       width: 180,
-      padding: const EdgeInsets.all(AppSpacing.xl),
+      padding: const EdgeInsets.all(AppSpacing.lg),
       decoration: BoxDecoration(
         color: palette.surfacePrimary,
         borderRadius: BorderRadius.circular(AppRadius.formCard),
@@ -658,7 +478,7 @@ class _CollectionCard extends StatelessWidget {
             alignment: Alignment.center,
             child: Icon(visuals.icon, color: visuals.accentColor),
           ),
-          const SizedBox(height: AppSpacing.lg),
+          const SizedBox(height: AppSpacing.md),
           Text(label, style: AppTypography.titleSmall),
           const Spacer(),
           Text(
@@ -673,32 +493,6 @@ class _CollectionCard extends StatelessWidget {
   }
 }
 
-class _StatusPill extends StatelessWidget {
-  const _StatusPill({required this.label});
-
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.md,
-        vertical: AppSpacing.sm,
-      ),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.72),
-        borderRadius: BorderRadius.circular(AppRadius.pill),
-      ),
-      child: Text(
-        label,
-        style: AppTypography.bodySmall.copyWith(
-          color: AppColors.brandPrimary,
-          fontWeight: FontWeight.w700,
-        ),
-      ),
-    );
-  }
-}
 
 class _DashboardLoadingState extends StatelessWidget {
   const _DashboardLoadingState();

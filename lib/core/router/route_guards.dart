@@ -1,7 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../config/app_env.dart';
 import '../constants/route_names.dart';
 import '../../features/onboarding/presentation/controllers/onboarding_controller.dart';
 import '../../features/auth/presentation/screens/app_passcode_unlock_screen.dart';
@@ -31,7 +30,7 @@ class RouteGuards {
       return isOnboardingRoute ? null : RouteNames.onboarding;
     }
 
-    if (AppEnv.enableExperimentalSync && startup.requiresAuthentication) {
+    if (startup.requiresAuthentication) {
       return isAuthRoute ? null : RouteNames.auth;
     }
 

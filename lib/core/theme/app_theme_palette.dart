@@ -43,17 +43,17 @@ class AppThemePalette extends ThemeExtension<AppThemePalette> {
   );
 
   static const AppThemePalette dark = AppThemePalette(
-    pageBackground: Color(0xFF131625),
-    surfacePrimary: Color(0xFF1B1F30),
-    surfaceSecondary: Color(0xFF23283A),
-    surfaceAccent: Color(0xFF2B2842),
-    glassSurface: Color(0xE61E2233),
-    borderPrimary: Color(0xFF353A50),
-    borderSoft: Color(0xFF2A3044),
-    textPrimary: Color(0xFFF5F7FF),
-    textSecondary: Color(0xFFC0C5DD),
-    textTertiary: Color(0xFF8F96B3),
-    textPlaceholder: Color(0xFF727A97),
+    pageBackground: Color(0xFF0F1320),
+    surfacePrimary: Color(0xFF171B28),
+    surfaceSecondary: Color(0xFF1F2535),
+    surfaceAccent: Color(0xFF262E43),
+    glassSurface: Color(0xE6171C2A),
+    borderPrimary: Color(0xFF313950),
+    borderSoft: Color(0xFF232A3C),
+    textPrimary: Color(0xFFF7F8FC),
+    textSecondary: Color(0xFFC8CFDD),
+    textTertiary: Color(0xFF99A2B8),
+    textPlaceholder: Color(0xFF7A849C),
   );
 
   @override

@@ -8,8 +8,6 @@ import '../../../../core/theme/app_radius.dart';
 import '../../../../core/theme/app_shadows.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
-import '../../../../core/storage/local_storage.dart';
-import '../../../onboarding/presentation/controllers/onboarding_controller.dart';
 import '../controllers/auth_controller.dart';
 
 class AuthGateScreen extends ConsumerStatefulWidget {
@@ -107,15 +105,16 @@ class _AuthGateScreenState extends ConsumerState<AuthGateScreen>
                       ),
                       const SizedBox(height: AppSpacing.lg),
                       Text(
-                        'ThinkNote Workspace',
+                        'Start writing now. Sync later.',
                         style: AppTypography.headlinePrimary.copyWith(
                           fontWeight: FontWeight.bold,
                           letterSpacing: -0.5,
                         ),
+                        textAlign: TextAlign.center,
                       ),
                       const SizedBox(height: AppSpacing.xs),
                       Text(
-                        'Fast caching local notes with automated cloud sync.',
+                        'Email sign-in unlocks cloud backup for this workspace. Your notes already work locally without an account.',
                         style: AppTypography.bodyMedium.copyWith(
                           color: palette.textSecondary,
                         ),
@@ -181,8 +180,8 @@ class _AuthGateScreenState extends ConsumerState<AuthGateScreen>
                                   emailController: _signUpEmailController,
                                   passwordController: _signUpPasswordController,
                                   onSubmit: _submitSignUp,
-                                  primaryLabel: 'Register Workspace',
-                                  footer: 'A verification link will be emailed to secure your access.',
+                                  primaryLabel: 'Create account',
+                                  footer: 'We will email a verification link before sync becomes fully trusted on this device.',
                                 ),
                               ),
                             ],
@@ -193,27 +192,7 @@ class _AuthGateScreenState extends ConsumerState<AuthGateScreen>
                   ),
                   const SizedBox(height: AppSpacing.lg),
 
-                  // Guest Mode/Deferred Auth CTA
-                  OutlinedButton.icon(
-                    onPressed: isBusy
-                        ? null
-                        : () async {
-                            final sharedPrefs = ref.read(sharedPreferencesProvider);
-                            await sharedPrefs.setBool('is_guest_mode', true);
-                            ref.invalidate(appStartupSnapshotProvider);
-                          },
-                    icon: const Icon(Icons.edit_note_rounded),
-                    label: const Text('Start writing now (Guest Mode)'),
-                    style: OutlinedButton.styleFrom(
-                      minimumSize: const Size.fromHeight(52),
-                      foregroundColor: AppColors.brandPrimary,
-                      side: const BorderSide(color: AppColors.brandPrimary),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(AppRadius.button),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: AppSpacing.xxl),
+                  const SizedBox(height: AppSpacing.md),
 
                   // Trust Badges Center
                   Container(

@@ -84,8 +84,37 @@ void main() {
     );
 
     expect(find.text('Dashboard'), findsWidgets);
-    expect(find.text('Studio HQ'), findsOneWidget);
-    expect(find.text('Quick actions'), findsOneWidget);
+    expect(find.text('Recent work'), findsOneWidget);
+    expect(
+      find.text('Track active work, decisions, and reference notes in one workspace.'),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('completed workspaces redirect to auth gate at launch when unauthenticated',
+      (tester) async {
+    final onboardingProfile = _completedProfile();
+
+    await _pumpRouter(
+      tester,
+      overrides: [
+        appStartupSnapshotProvider.overrideWith(
+          (ref) async => AppStartupSnapshot(
+            onboardingProfile: onboardingProfile,
+            requiresAuthentication: true,
+          ),
+        ),
+        onboardingControllerProvider.overrideWith(
+          () => _FakeOnboardingController(onboardingProfile),
+        ),
+        notesControllerProvider.overrideWith(
+          () => _FakeNotesController(_sampleNotesState()),
+        ),
+      ],
+    );
+
+    expect(find.byType(AuthGateScreen), findsOneWidget);
+    expect(find.text('Dashboard'), findsNothing);
   });
 
   testWidgets('onboarding completion submits default workspace choices',
@@ -156,24 +185,11 @@ void main() {
     await tester.enterText(find.byType(TextField).at(0), 'Sam');
     await tester.enterText(find.byType(TextField).at(1), 'sam@example.com');
     await tester.enterText(find.byType(TextField).at(2), 'password123');
-    await tester.tap(find.widgetWithText(FilledButton, 'Register Workspace'));
+    await tester.tap(find.widgetWithText(FilledButton, 'Create account'));
     await tester.pumpAndSettle();
 
     expect(authController.signUpEmail, 'sam@example.com');
     expect(authController.signUpDisplayName, 'Sam');
-  });
-
-  testWidgets('auth screen supports guest mode activation', (tester) async {
-    await _pumpScreen(
-      tester,
-      const AuthGateScreen(),
-    );
-
-    expect(find.text('Start writing now (Guest Mode)'), findsOneWidget);
-    await tester.tap(find.text('Start writing now (Guest Mode)'));
-    await tester.pumpAndSettle();
-
-    expect(sharedPreferences.getBool('is_guest_mode'), isTrue);
   });
 }
 

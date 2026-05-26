@@ -15,6 +15,10 @@ class AppEmptyState extends StatelessWidget {
     required this.message,
     this.actionLabel,
     this.onAction,
+    this.eyebrow,
+    this.supportingNote,
+    this.highlights = const <String>[],
+    this.actionIcon,
   });
 
   final IconData icon;
@@ -22,6 +26,10 @@ class AppEmptyState extends StatelessWidget {
   final String message;
   final String? actionLabel;
   final VoidCallback? onAction;
+  final String? eyebrow;
+  final String? supportingNote;
+  final List<String> highlights;
+  final IconData? actionIcon;
 
   @override
   Widget build(BuildContext context) {
@@ -29,148 +37,253 @@ class AppEmptyState extends StatelessWidget {
 
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.xxl,
-        vertical: 36,
-      ),
+      padding: const EdgeInsets.all(AppSpacing.xxl),
       decoration: BoxDecoration(
-        color: palette.surfacePrimary,
-        borderRadius: BorderRadius.circular(AppRadius.xl),
+        gradient: LinearGradient(
+          colors: [
+            palette.surfacePrimary,
+            palette.surfaceSecondary,
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(28),
         border: Border.all(color: palette.borderSoft),
         boxShadow: AppShadows.softCard,
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // Custom Pure Flutter Visual Mockup Illustration
-          SizedBox(
-            height: 120,
-            width: 160,
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                // Soft background glow
-                Container(
-                  width: 90,
-                  height: 90,
-                  decoration: BoxDecoration(
-                    color: AppColors.brandPrimary.withValues(alpha: 0.05),
-                    shape: BoxShape.circle,
-                  ),
+          if (eyebrow != null) ...[
+            Container(
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.md,
+                vertical: AppSpacing.sm,
+              ),
+              decoration: BoxDecoration(
+                color: AppColors.brandPrimary.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(AppRadius.pill),
+              ),
+              child: Text(
+                eyebrow!,
+                style: AppTypography.labelMedium.copyWith(
+                  color: AppColors.brandPrimary,
                 ),
-                // Rotated background note sheet card
-                Transform.rotate(
-                  angle: -0.12,
-                  child: Container(
-                    width: 52,
-                    height: 68,
-                    decoration: BoxDecoration(
-                      color: palette.surfaceSecondary,
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: palette.borderPrimary),
-                    ),
-                  ),
-                ),
-                // Rotated background note sheet card #2
-                Transform.rotate(
-                  angle: 0.08,
-                  child: Container(
-                    width: 52,
-                    height: 68,
-                    decoration: BoxDecoration(
-                      color: palette.surfaceSecondary,
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: palette.borderPrimary),
-                    ),
-                  ),
-                ),
-                // Central main note sheet card
-                Container(
-                  width: 52,
-                  height: 68,
-                  decoration: BoxDecoration(
-                    color: palette.surfacePrimary,
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: palette.borderPrimary),
-                    boxShadow: AppShadows.floatingCard,
-                  ),
-                  alignment: Alignment.center,
-                  child: Icon(
-                    icon,
-                    size: 24,
-                    color: AppColors.brandPrimary,
-                  ),
-                ),
-                // Sparkle decoration #1
-                Positioned(
-                  top: 14,
-                  right: 24,
-                  child: Icon(
-                    Icons.auto_awesome_rounded,
-                    color: AppColors.brandLavender.withValues(alpha: 0.8),
-                    size: 16,
-                  ),
-                ),
-                // Sparkle decoration #2
-                Positioned(
-                  bottom: 18,
-                  left: 20,
-                  child: const Icon(
-                    Icons.auto_awesome_rounded,
-                    color: AppColors.brandPrimaryLight,
-                    size: 12,
-                  ),
-                ),
-              ],
+              ),
             ),
-          ),
-          const SizedBox(height: AppSpacing.lg),
-
-          // Headline Title
+            const SizedBox(height: AppSpacing.lg),
+          ],
+          _EmptyStateIllustration(icon: icon),
+          const SizedBox(height: AppSpacing.xl),
           Text(
             title,
-            style: AppTypography.titleMedium.copyWith(
-              fontWeight: FontWeight.bold,
-              fontSize: 18,
-            ),
+            style: AppTypography.titleLarge,
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: AppSpacing.sm),
-
-          // Description Message
           Text(
             message,
             style: AppTypography.bodyMedium.copyWith(
               color: palette.textSecondary,
-              height: 1.4,
+              height: 1.5,
             ),
             textAlign: TextAlign.center,
           ),
-
-          // Massive Action Button
-          if (actionLabel != null && onAction != null) ...[
-            const SizedBox(height: 28),
-            FilledButton.icon(
-              onPressed: onAction,
-              icon: const Icon(Icons.add_rounded, color: Colors.white),
-              label: Text(
-                actionLabel!,
-                style: AppTypography.bodyLarge.copyWith(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                ),
+          if (highlights.isNotEmpty) ...[
+            const SizedBox(height: AppSpacing.lg),
+            Wrap(
+              spacing: AppSpacing.sm,
+              runSpacing: AppSpacing.sm,
+              alignment: WrapAlignment.center,
+              children: [
+                for (final highlight in highlights)
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.md,
+                      vertical: AppSpacing.sm,
+                    ),
+                    decoration: BoxDecoration(
+                      color: palette.surfacePrimary.withValues(alpha: 0.88),
+                      borderRadius: BorderRadius.circular(AppRadius.pill),
+                      border: Border.all(color: palette.borderSoft),
+                    ),
+                    child: Text(
+                      highlight,
+                      style: AppTypography.bodySmall.copyWith(
+                        color: palette.textSecondary,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ],
+          if (supportingNote != null) ...[
+            const SizedBox(height: AppSpacing.lg),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(AppSpacing.lg),
+              decoration: BoxDecoration(
+                color: palette.surfacePrimary.withValues(alpha: 0.9),
+                borderRadius: BorderRadius.circular(AppRadius.formCard),
+                border: Border.all(color: palette.borderSoft),
               ),
-              style: FilledButton.styleFrom(
-                minimumSize: const Size.fromHeight(50),
-                backgroundColor: AppColors.brandPrimary,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(AppRadius.button),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Padding(
+                    padding: EdgeInsets.only(top: 1),
+                    child: Icon(
+                      Icons.info_outline_rounded,
+                      size: 16,
+                      color: AppColors.brandPrimary,
+                    ),
+                  ),
+                  const SizedBox(width: AppSpacing.sm),
+                  Expanded(
+                    child: Text(
+                      supportingNote!,
+                      style: AppTypography.bodySmall.copyWith(
+                        color: palette.textSecondary,
+                        height: 1.4,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+          if (actionLabel != null && onAction != null) ...[
+            const SizedBox(height: AppSpacing.xl),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton.icon(
+                onPressed: onAction,
+                icon: Icon(actionIcon ?? Icons.add_rounded, color: Colors.white),
+                label: Text(
+                  actionLabel!,
+                  style: AppTypography.titleSmall.copyWith(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w800,
+                  ),
                 ),
-                elevation: 1,
+                style: FilledButton.styleFrom(
+                  minimumSize: const Size.fromHeight(54),
+                  backgroundColor: AppColors.brandPrimary,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(AppRadius.button),
+                  ),
+                ),
               ),
             ),
           ],
         ],
+      ),
+    );
+  }
+}
+
+class _EmptyStateIllustration extends StatelessWidget {
+  const _EmptyStateIllustration({required this.icon});
+
+  final IconData icon;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = context.palette;
+
+    return SizedBox(
+      height: 120,
+      width: 180,
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          Container(
+            width: 112,
+            height: 112,
+            decoration: BoxDecoration(
+              color: AppColors.brandPrimary.withValues(alpha: 0.05),
+              shape: BoxShape.circle,
+            ),
+          ),
+          Transform.translate(
+            offset: const Offset(-22, 12),
+            child: Transform.rotate(
+              angle: -0.18,
+              child: _PaperCard(
+                color: palette.surfaceSecondary,
+                borderColor: palette.borderSoft,
+              ),
+            ),
+          ),
+          Transform.translate(
+            offset: const Offset(22, 10),
+            child: Transform.rotate(
+              angle: 0.16,
+              child: _PaperCard(
+                color: palette.surfaceSecondary,
+                borderColor: palette.borderSoft,
+              ),
+            ),
+          ),
+          Container(
+            width: 72,
+            height: 92,
+            decoration: BoxDecoration(
+              color: palette.surfacePrimary,
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(color: palette.borderPrimary),
+              boxShadow: AppShadows.floatingCard,
+            ),
+            alignment: Alignment.center,
+            child: Icon(
+              icon,
+              size: 30,
+              color: AppColors.brandPrimary,
+            ),
+          ),
+          Positioned(
+            top: 16,
+            right: 28,
+            child: Icon(
+              Icons.auto_awesome_rounded,
+              size: 16,
+              color: AppColors.brandLavender.withValues(alpha: 0.8),
+            ),
+          ),
+          const Positioned(
+            bottom: 20,
+            left: 26,
+            child: Icon(
+              Icons.circle,
+              size: 8,
+              color: AppColors.brandPrimaryLight,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PaperCard extends StatelessWidget {
+  const _PaperCard({
+    required this.color,
+    required this.borderColor,
+  });
+
+  final Color color;
+  final Color borderColor;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 62,
+      height: 82,
+      decoration: BoxDecoration(
+        color: color,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: borderColor),
       ),
     );
   }

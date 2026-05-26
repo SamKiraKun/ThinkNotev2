@@ -11,18 +11,42 @@ import '../../../../core/theme/app_radius.dart';
 import '../../../../core/theme/app_shadows.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
-import '../../../../shared/widgets/app_confirmation_dialog.dart';
-import '../../../../shared/widgets/app_header.dart';
 import '../../../auth/auth_providers.dart';
 import '../../../auth/presentation/controllers/auth_controller.dart';
-import '../../../notes/data/models/app_preferences_model.dart';
 import '../../../notes/presentation/controllers/notes_controller.dart';
+import '../../../notes/data/models/app_preferences_model.dart';
 import '../../../onboarding/data/models/onboarding_profile.dart';
 import '../../../onboarding/presentation/controllers/onboarding_controller.dart';
 import '../../../sync/presentation/controllers/sync_controller.dart';
+import '../../../../core/constants/storage_keys.dart';
 
 class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});
+
+  String _focusBioText(WorkspaceFocus? focus) {
+    if (focus == null) return '💜 Dreamer • Planner • Creator';
+    switch (focus) {
+      case WorkspaceFocus.capture:
+        return '⚡ Capture • Speed • Ideas';
+      case WorkspaceFocus.planning:
+        return '💜 Dreamer • Planner • Creator';
+      case WorkspaceFocus.research:
+        return '📚 Research • Learn • Analyze';
+      case WorkspaceFocus.journal:
+        return '✍️ Reflection • Mindful • Daily';
+    }
+  }
+
+  bool _isNotesLockOn(WidgetRef ref) {
+    final sharedPrefs = ref.read(sharedPreferencesProvider);
+    return sharedPrefs.getString(StorageKeys.lockPinHash) != null;
+  }
+
+  void _showComingSoonSnackBar(BuildContext context, String featureName) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('$featureName coming soon.')),
+    );
+  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -32,7 +56,6 @@ class ProfileScreen extends ConsumerWidget {
     final onboardingProfile = ref.watch(onboardingControllerProvider).valueOrNull;
     final authSession =
         syncEnabled ? ref.watch(currentAuthSessionProvider) : null;
-    final syncState = ref.watch(syncControllerProvider);
 
     return SafeArea(
       bottom: false,
@@ -47,13 +70,60 @@ class ProfileScreen extends ConsumerWidget {
               AppSpacing.bottomNavReserved,
             ),
             children: [
-              AppHeader(
-                title: 'Profile',
-                subtitle: syncEnabled
-                  ? 'Manage your account, workspace identity, sync posture, and device preferences.'
-                  : 'Manage your workspace identity, local notes, and device preferences.',
+              // Custom Header to match visual specification (Title, Subtitle, Bell Trailing)
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Profile',
+                        style: AppTypography.headlinePrimary.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: AppSpacing.xs),
+                      Text(
+                        'Manage your account and preferences.',
+                        style: AppTypography.bodyMedium.copyWith(
+                          color: palette.textSecondary,
+                        ),
+                      ),
+                    ],
+                  ),
+                  Container(
+                    width: 48,
+                    height: 48,
+                    decoration: BoxDecoration(
+                      color: palette.surfacePrimary,
+                      shape: BoxShape.circle,
+                      boxShadow: AppShadows.softCard,
+                    ),
+                    alignment: Alignment.center,
+                    child: Stack(
+                      children: [
+                        Icon(Icons.notifications_none_rounded, color: palette.textPrimary),
+                        Positioned(
+                          right: 2,
+                          top: 2,
+                          child: Container(
+                            width: 8,
+                            height: 8,
+                            decoration: const BoxDecoration(
+                              color: AppColors.brandLavender,
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                        )
+                      ],
+                    ),
+                  )
+                ],
               ),
               const SizedBox(height: AppSpacing.xxl),
+
+              // User Identity Profile Card
               Container(
                 padding: const EdgeInsets.all(AppSpacing.xl),
                 decoration: BoxDecoration(
@@ -63,250 +133,234 @@ class ProfileScreen extends ConsumerWidget {
                 ),
                 child: Row(
                   children: [
-                    Container(
-                      width: 68,
-                      height: 68,
-                      decoration: const BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: AppColors.brandLavender,
-                      ),
-                      alignment: Alignment.center,
-                      child: Text(
-                        authSession?.initials ?? 'G',
-                        style: AppTypography.titleLarge.copyWith(
-                          color: AppColors.surfaceWhite,
+                    Stack(
+                      children: [
+                        Container(
+                          width: 76,
+                          height: 76,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: AppColors.brandLavender,
+                            image: authSession?.photoUrl != null
+                                ? DecorationImage(
+                                    image: NetworkImage(authSession!.photoUrl!),
+                                    fit: BoxFit.cover,
+                                  )
+                                : null,
+                          ),
+                          alignment: Alignment.center,
+                          child: authSession?.photoUrl == null
+                              ? Text(
+                                  authSession?.initials ?? 'G',
+                                  style: AppTypography.titleLarge.copyWith(
+                                    color: AppColors.surfaceWhite,
+                                    fontSize: 24,
+                                  ),
+                                )
+                              : null,
                         ),
-                      ),
+                        Positioned(
+                          right: 0,
+                          bottom: 0,
+                          child: Container(
+                            width: 24,
+                            height: 24,
+                            decoration: BoxDecoration(
+                              color: AppColors.surfaceWhite,
+                              shape: BoxShape.circle,
+                              border: Border.all(color: palette.borderPrimary),
+                              boxShadow: AppShadows.softCard,
+                            ),
+                            alignment: Alignment.center,
+                            child: const Icon(
+                              Icons.camera_alt_outlined,
+                              size: 14,
+                              color: AppColors.brandPrimary,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                     const SizedBox(width: AppSpacing.lg),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
-                            onboardingProfile?.effectiveWorkspaceName ??
-                                (syncEnabled
-                                    ? 'Cloud workspace'
-                                    : 'Local workspace'),
-                            style: AppTypography.titleMedium,
+                          Row(
+                            children: [
+                              Text(
+                                authSession?.displayName ?? onboardingProfile?.workspaceName ?? 'Guest User',
+                                style: AppTypography.titleMedium,
+                              ),
+                              const SizedBox(width: 4),
+                              const Icon(
+                                Icons.auto_awesome_rounded,
+                                color: AppColors.brandLavender,
+                                size: 16,
+                              ),
+                            ],
                           ),
                           const SizedBox(height: AppSpacing.xs),
                           Text(
-                            syncEnabled
-                                ? (authSession == null
-                                    ? '${onboardingProfile?.workspaceFocus.label ?? 'Guest workspace'} · Writing as Guest. Notes are stored locally on this device.'
-                                    : '${onboardingProfile?.workspaceFocus.label ?? 'Cloud workspace'} · Notes save on this device first and sync to your account when you are online.')
-                                : '${onboardingProfile?.workspaceFocus.label ?? 'Device workspace'} · Notes stay on this device and are available offline anytime.',
+                            authSession?.email ?? 'local-workspace@thinknote.app',
                             style: AppTypography.bodyMedium.copyWith(
                               color: palette.textSecondary,
                             ),
                           ),
-                          if (syncEnabled && authSession?.email != null) ...[
-                            const SizedBox(height: AppSpacing.xs),
-                            Text(
-                              authSession!.email!,
+                          const SizedBox(height: AppSpacing.sm),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: AppSpacing.md,
+                              vertical: AppSpacing.xs,
+                            ),
+                            decoration: BoxDecoration(
+                              color: palette.surfaceAccent,
+                              borderRadius: BorderRadius.circular(AppRadius.pill),
+                            ),
+                            child: Text(
+                              _focusBioText(onboardingProfile?.workspaceFocus),
                               style: AppTypography.bodySmall.copyWith(
-                                color: palette.textSecondary,
+                                color: AppColors.brandPrimary,
+                                fontWeight: FontWeight.bold,
                               ),
                             ),
-                          ],
-                          if (syncEnabled &&
-                              authSession != null &&
-                              !authSession.isEmailVerified) ...[
-                            const SizedBox(height: AppSpacing.sm),
-                            TextButton.icon(
-                              onPressed: () => _sendVerification(context, ref),
-                              icon: const Icon(Icons.mark_email_read_outlined),
-                              label: const Text('Resend verification email'),
-                            ),
-                          ],
+                          ),
                         ],
                       ),
+                    ),
+                    Icon(
+                      Icons.chevron_right_rounded,
+                      color: palette.textTertiary,
                     ),
                   ],
                 ),
               ),
-              if (syncEnabled) ...[
-                const SizedBox(height: AppSpacing.xxl),
-                Text('Account', style: AppTypography.titleMedium),
-                const SizedBox(height: AppSpacing.md),
-                if (authSession == null)
-                  _SettingsGroup(
-                    children: [
-                      _SettingsTile(
-                        icon: Icons.login_rounded,
-                        title: 'Link Cloud Account',
-                        subtitle: 'Sign in or register to enable real-time cloud synchronization and backups',
-                        onTap: () async {
-                          final sharedPrefs = ref.read(sharedPreferencesProvider);
-                          await sharedPrefs.setBool('is_guest_mode', false);
-                          ref.invalidate(appStartupSnapshotProvider);
-                        },
-                      ),
-                    ],
-                  )
-                else
-                  _SettingsGroup(
-                    children: [
-                      _SettingsTile(
-                        icon: Icons.cloud_sync_outlined,
-                        title: 'Sync now',
-                        subtitle: syncState.lastError == null
-                            ? (syncState.lastSyncedAt == null
-                                ? 'Push local changes and pull latest notes'
-                                : 'Last sync ${syncState.lastSyncedAt}')
-                            : 'Last sync failed. Tap to retry.',
-                        onTap: () => _syncNow(context, ref),
-                      ),
-                      _SettingsTile(
-                        icon: Icons.logout_rounded,
-                        title: 'Sign out',
-                        subtitle:
-                            'Stop syncing on this device until you sign in again or switch accounts',
-                        onTap: () => _signOut(context, ref),
-                      ),
-                      if (!authSession.isEmailVerified)
-                        _SettingsTile(
-                          icon: Icons.mark_email_read_outlined,
-                          title: 'Verify email',
-                          subtitle:
-                              'Resend a verification email for stronger account recovery',
-                          onTap: () => _sendVerification(context, ref),
-                        ),
-                      _SettingsTile(
-                        icon: Icons.person_remove_outlined,
-                        title: 'Delete account',
-                        subtitle:
-                            'Remove your account and synced note data from ThinkNote',
-                        onTap: () => _confirmDeleteAccount(context, ref),
-                        isDestructive: true,
-                      ),
-                    ],
-                  ),
-              ],
-              const SizedBox(height: AppSpacing.xxl),
-              Text('Preferences', style: AppTypography.titleMedium),
-              const SizedBox(height: AppSpacing.md),
+
+              // Appearance Settings Group
+              _SectionHeader('Appearance'),
               _SettingsGroup(
                 children: [
                   _SettingsTile(
-                    icon: Icons.dark_mode_outlined,
-                    title: 'Theme mode',
-                    subtitle: 'Choose the appearance for this device',
-                    trailing: Text(
-                      preferences.themePreference.label,
-                      style: AppTypography.bodyMedium.copyWith(
-                        color: palette.textSecondary,
-                      ),
-                    ),
+                    icon: Icons.palette_outlined,
+                    iconColor: AppColors.brandPrimary,
+                    iconBgColor: AppColors.brandPrimary.withValues(alpha: 0.1),
+                    title: 'Theme',
+                    subtitle: 'Choose your preferred theme',
+                    trailingText: preferences.themePreference.label,
                     onTap: () => context.push(RouteNames.themeSettings),
                   ),
+                  const Divider(height: 1, indent: 68, endIndent: 16),
                   _SettingsTile(
-                    icon: Icons.sort_rounded,
-                    title: 'Default sort',
-                    subtitle: 'Choose how notes are organized in lists',
-                    trailing: Text(
-                      preferences.defaultSortOrder.label,
-                      style: AppTypography.bodyMedium.copyWith(
-                        color: palette.textSecondary,
-                      ),
-                    ),
-                    onTap: () => _showSortDialog(context, ref, preferences),
-                  ),
-                  _SettingsTile(
-                    icon: Icons.short_text_rounded,
-                    title: 'Preview lines',
-                    subtitle: 'Set how many lines appear in note cards',
-                    trailing: Text(
-                      '${preferences.previewLines}',
-                      style: AppTypography.bodyMedium.copyWith(
-                        color: palette.textSecondary,
-                      ),
-                    ),
-                    onTap: () => _showPreviewDialog(context, ref, preferences),
-                  ),
-                  _SettingsTile(
-                    icon: Icons.notifications_none_rounded,
-                    title: 'Notifications',
-                    subtitle: 'Configure note notification and task reminder alerts',
-                    onTap: () =>
-                        context.push(RouteNames.notificationSettings),
-                  ),
-                  _SettingsTile(
-                    icon: Icons.lock_outline_rounded,
-                    title: 'Lock notes',
-                    subtitle: 'Secure note databases with local passcode lock',
-                    onTap: () => context.push(RouteNames.lockNotes),
+                    icon: Icons.text_fields_rounded,
+                    iconColor: AppColors.brandPrimary,
+                    iconBgColor: AppColors.brandPrimary.withValues(alpha: 0.1),
+                    title: 'Font & Text Size',
+                    subtitle: 'Customize how your notes look',
+                    trailingText: 'Medium',
+                    onTap: () => _showComingSoonSnackBar(context, 'Font & Text Size'),
                   ),
                 ],
               ),
-              const SizedBox(height: AppSpacing.xxl),
-              Text('Data', style: AppTypography.titleMedium),
-              const SizedBox(height: AppSpacing.md),
+
+              // Account & Data Settings Group
+              _SectionHeader('Account & Data'),
               _SettingsGroup(
                 children: [
                   _SettingsTile(
-                    icon: Icons.archive_outlined,
-                    title: 'Archive',
-                    subtitle:
-                        '${notesState.archivedNotes.length} archived notes',
-                    onTap: () => context.push(RouteNames.archive),
+                    icon: Icons.cloud_queue_outlined,
+                    iconColor: AppColors.brandPrimary,
+                    iconBgColor: AppColors.brandPrimary.withValues(alpha: 0.1),
+                    title: 'Sync & Backup',
+                    subtitle: 'Keep your notes safe and in sync',
+                    trailing: authSession == null
+                        ? const Text('Off')
+                        : Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(Icons.check_circle_outline, color: Colors.green, size: 18),
+                              const SizedBox(width: 4),
+                              Text('Synced', style: TextStyle(color: palette.textSecondary)),
+                            ],
+                          ),
+                    onTap: authSession == null
+                        ? () async {
+                            final sharedPrefs = ref.read(sharedPreferencesProvider);
+                            await sharedPrefs.setBool('is_guest_mode', false);
+                            if (!context.mounted) return;
+                            context.push(RouteNames.auth);
+                          }
+                        : () => _syncNow(context, ref),
                   ),
+                  const Divider(height: 1, indent: 68, endIndent: 16),
                   _SettingsTile(
-                    icon: Icons.delete_outline_rounded,
-                    title: 'Trash',
-                    subtitle:
-                        '${notesState.trashedNotes.length} deleted notes waiting for action',
-                    onTap: () => context.push(RouteNames.trash),
-                  ),
-                  _SettingsTile(
-                    icon: Icons.import_export_rounded,
-                    title: 'Import and export',
-                    subtitle: 'Export and restore note databases via JSON files',
+                    icon: Icons.history_rounded,
+                    iconColor: AppColors.brandPrimary,
+                    iconBgColor: AppColors.brandPrimary.withValues(alpha: 0.1),
+                    title: 'Import & Export',
+                    subtitle: 'Move or download your notes',
                     onTap: () => context.push(RouteNames.importExport),
                   ),
-                  if (!syncEnabled)
-                    _SettingsTile(
-                      icon: Icons.delete_forever_rounded,
-                      title: 'Clear all notes',
-                      subtitle:
-                          'Remove active and deleted notes from this device',
-                      onTap: () => _confirmClearAll(context, ref),
-                      isDestructive: true,
-                    ),
                 ],
               ),
-              const SizedBox(height: AppSpacing.xxl),
-              Text('About', style: AppTypography.titleMedium),
-              const SizedBox(height: AppSpacing.md),
+
+              // Security & Privacy Settings Group
+              _SectionHeader('Security & Privacy'),
               _SettingsGroup(
                 children: [
                   _SettingsTile(
-                    icon: Icons.privacy_tip_outlined,
-                    title: 'Privacy and storage',
-                    subtitle: syncEnabled
-                        ? 'Review device storage, synced data, and deletion'
-                        : 'Review what stays on this device',
+                    icon: Icons.lock_outline_rounded,
+                    iconColor: AppColors.brandPrimary,
+                    iconBgColor: AppColors.brandPrimary.withValues(alpha: 0.1),
+                    title: 'Lock Notes',
+                    subtitle: 'Protect your notes with a passcode',
+                    trailingText: _isNotesLockOn(ref) ? 'On' : 'Off',
+                    onTap: () => context.push(RouteNames.lockNotes),
+                  ),
+                  const Divider(height: 1, indent: 68, endIndent: 16),
+                  _SettingsTile(
+                    icon: Icons.shield_outlined,
+                    iconColor: AppColors.brandPrimary,
+                    iconBgColor: AppColors.brandPrimary.withValues(alpha: 0.1),
+                    title: 'Privacy',
+                    subtitle: 'Manage data and privacy preferences',
                     onTap: () => context.push(RouteNames.privacy),
                   ),
-                  _StaticTile(
-                    icon: syncEnabled
-                        ? Icons.cloud_done_outlined
-                        : Icons.smartphone_rounded,
-                    title: syncEnabled
-                        ? 'Offline-first sync'
-                        : 'Local-only release',
-                    subtitle: syncEnabled
-                        ? 'Notes save locally first, then sync to your account when a connection is available.'
-                        : 'This release focuses on fast local notes without account, sync, or clipboard backup claims.',
+                ],
+              ),
+
+              // Preferences Settings Group
+              _SectionHeader('Preferences'),
+              _SettingsGroup(
+                children: [
+                  _SettingsTile(
+                    icon: Icons.notifications_none_rounded,
+                    iconColor: Colors.amber,
+                    iconBgColor: Colors.amber.withValues(alpha: 0.1),
+                    title: 'Notifications',
+                    subtitle: 'Manage reminders and updates',
+                    trailingText: onboardingProfile?.wantsNotifications == true ? 'On' : 'Off',
+                    onTap: () => context.push(RouteNames.notificationSettings),
                   ),
-                  _StaticTile(
-                    icon: Icons.wifi_off_rounded,
-                    title: syncEnabled ? 'Works offline' : 'Offline-first',
-                    subtitle: syncEnabled
-                        ? 'Search, sorting, folders, archive, and trash continue to work without internet while pending changes wait to sync.'
-                        : 'Search, sorting, folders, archive, and trash work without internet.',
+                  const Divider(height: 1, indent: 68, endIndent: 16),
+                  _SettingsTile(
+                    icon: Icons.schedule_rounded,
+                    iconColor: Colors.pink,
+                    iconBgColor: Colors.pink.withValues(alpha: 0.1),
+                    title: 'Reminder Defaults',
+                    subtitle: 'Set default time and repeat',
+                    onTap: () => _showComingSoonSnackBar(context, 'Reminder Defaults'),
                   ),
+                  if (authSession != null) ...[
+                    const Divider(height: 1, indent: 68, endIndent: 16),
+                    _SettingsTile(
+                      icon: Icons.logout_rounded,
+                      iconColor: AppColors.textDanger,
+                      iconBgColor: AppColors.textDanger.withValues(alpha: 0.1),
+                      title: 'Log Out',
+                      subtitle: 'Sign out from your account',
+                      onTap: () => _signOut(context, ref),
+                    ),
+                  ],
                 ],
               ),
             ],
@@ -321,117 +375,6 @@ class ProfileScreen extends ConsumerWidget {
         ),
       ),
     );
-  }
-
-  Future<void> _showSortDialog(
-    BuildContext context,
-    WidgetRef ref,
-    AppPreferencesModel preferences,
-  ) async {
-    final selected = await showModalBottomSheet<NoteSortOrder>(
-      context: context,
-      showDragHandle: true,
-      builder: (context) {
-        return SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.all(AppSpacing.xxl),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('Default sort', style: AppTypography.titleMedium),
-                const SizedBox(height: AppSpacing.lg),
-                for (final order in NoteSortOrder.values)
-                  ListTile(
-                    contentPadding: EdgeInsets.zero,
-                    title: Text(order.label),
-                    trailing: preferences.defaultSortOrder == order
-                        ? const Icon(Icons.check_rounded,
-                            color: AppColors.brandPrimary)
-                        : null,
-                    onTap: () => Navigator.of(context).pop(order),
-                  ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-
-    if (selected != null) {
-      await ref.read(notesControllerProvider.notifier).updatePreferences(
-            preferences.copyWith(defaultSortOrder: selected),
-          );
-    }
-  }
-
-  Future<void> _sendVerification(BuildContext context, WidgetRef ref) async {
-    await ref.read(authControllerProvider.notifier).sendEmailVerification();
-    if (!context.mounted) {
-      return;
-    }
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Verification email sent.')),
-    );
-  }
-
-  Future<void> _showPreviewDialog(
-    BuildContext context,
-    WidgetRef ref,
-    AppPreferencesModel preferences,
-  ) async {
-    final selected = await showModalBottomSheet<int>(
-      context: context,
-      showDragHandle: true,
-      builder: (context) {
-        return SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.all(AppSpacing.xxl),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('Preview lines', style: AppTypography.titleMedium),
-                const SizedBox(height: AppSpacing.lg),
-                for (final value in const [1, 2, 3, 4])
-                  ListTile(
-                    contentPadding: EdgeInsets.zero,
-                    title: Text('$value lines'),
-                    trailing: preferences.previewLines == value
-                        ? const Icon(Icons.check_rounded,
-                            color: AppColors.brandPrimary)
-                        : null,
-                    onTap: () => Navigator.of(context).pop(value),
-                  ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-
-    if (selected != null) {
-      await ref.read(notesControllerProvider.notifier).updatePreferences(
-            preferences.copyWith(previewLines: selected),
-          );
-    }
-  }
-
-  Future<void> _confirmClearAll(BuildContext context, WidgetRef ref) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (_) => const AppConfirmationDialog(
-        title: 'Clear all notes?',
-        message:
-            'This removes every note from this device, including items in Trash.',
-        confirmLabel: 'Clear everything',
-        isDestructive: true,
-      ),
-    );
-
-    if (confirmed == true) {
-      await ref.read(notesControllerProvider.notifier).clearAllNotes();
-    }
   }
 
   void _showSnack(BuildContext context, String message) {
@@ -462,34 +405,27 @@ class ProfileScreen extends ConsumerWidget {
     }
     _showSnack(context, 'Signed out.');
   }
+}
 
-  Future<void> _confirmDeleteAccount(
-    BuildContext context,
-    WidgetRef ref,
-  ) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (_) => const AppConfirmationDialog(
-        title: 'Delete account?',
-        message:
-            'This removes your ThinkNote account and synced note data from the backend.',
-        confirmLabel: 'Delete account',
-        isDestructive: true,
+class _SectionHeader extends StatelessWidget {
+  const _SectionHeader(this.title);
+
+  final String title;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(
+        top: AppSpacing.xxl,
+        bottom: AppSpacing.md,
+      ),
+      child: Text(
+        title,
+        style: AppTypography.titleMedium.copyWith(
+          fontWeight: FontWeight.bold,
+        ),
       ),
     );
-
-    if (confirmed != true) {
-      return;
-    }
-
-    final sharedPrefs = ref.read(sharedPreferencesProvider);
-    await sharedPrefs.setBool('is_guest_mode', false);
-    await ref.read(authControllerProvider.notifier).deleteAccount();
-    ref.invalidate(appStartupSnapshotProvider);
-    if (!context.mounted) {
-      return;
-    }
-    _showSnack(context, 'Account deleted.');
   }
 }
 
@@ -522,7 +458,9 @@ class _SettingsTile extends StatelessWidget {
     required this.subtitle,
     required this.onTap,
     this.trailing,
-    this.isDestructive = false,
+    this.trailingText,
+    this.iconColor,
+    this.iconBgColor,
   });
 
   final IconData icon;
@@ -530,7 +468,9 @@ class _SettingsTile extends StatelessWidget {
   final String subtitle;
   final VoidCallback onTap;
   final Widget? trailing;
-  final bool isDestructive;
+  final String? trailingText;
+  final Color? iconColor;
+  final Color? iconBgColor;
 
   @override
   Widget build(BuildContext context) {
@@ -546,17 +486,13 @@ class _SettingsTile extends StatelessWidget {
               width: 52,
               height: 52,
               decoration: BoxDecoration(
-                color: isDestructive
-                    ? context.colors.errorContainer.withValues(alpha: 0.28)
-                    : palette.surfaceAccent,
+                color: iconBgColor ?? palette.surfaceAccent,
                 borderRadius: BorderRadius.circular(16),
               ),
               alignment: Alignment.center,
               child: Icon(
                 icon,
-                color: isDestructive
-                    ? AppColors.textDanger
-                    : AppColors.brandPrimary,
+                color: iconColor ?? AppColors.brandPrimary,
               ),
             ),
             const SizedBox(width: AppSpacing.lg),
@@ -567,9 +503,7 @@ class _SettingsTile extends StatelessWidget {
                   Text(
                     title,
                     style: AppTypography.titleSmall.copyWith(
-                      color: isDestructive
-                          ? AppColors.textDanger
-                          : palette.textPrimary,
+                      color: palette.textPrimary,
                     ),
                   ),
                   const SizedBox(height: AppSpacing.xs),
@@ -582,64 +516,33 @@ class _SettingsTile extends StatelessWidget {
                 ],
               ),
             ),
-            trailing ??
-                Icon(
-                  Icons.chevron_right_rounded,
-                  color: palette.textTertiary,
-                ),
+            if (trailing != null)
+              trailing!
+            else if (trailingText != null)
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    trailingText!,
+                    style: AppTypography.bodyMedium.copyWith(
+                      color: palette.textSecondary,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(width: AppSpacing.xs),
+                  Icon(
+                    Icons.chevron_right_rounded,
+                    color: palette.textTertiary,
+                  ),
+                ],
+              )
+            else
+              Icon(
+                Icons.chevron_right_rounded,
+                color: palette.textTertiary,
+              ),
           ],
         ),
-      ),
-    );
-  }
-}
-
-class _StaticTile extends StatelessWidget {
-  const _StaticTile({
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-  });
-
-  final IconData icon;
-  final String title;
-  final String subtitle;
-
-  @override
-  Widget build(BuildContext context) {
-    final palette = context.palette;
-
-    return Padding(
-      padding: const EdgeInsets.all(AppSpacing.lg),
-      child: Row(
-        children: [
-          Container(
-            width: 52,
-            height: 52,
-            decoration: BoxDecoration(
-              color: palette.surfaceAccent,
-              borderRadius: BorderRadius.circular(16),
-            ),
-            alignment: Alignment.center,
-            child: Icon(icon, color: AppColors.brandPrimary),
-          ),
-          const SizedBox(width: AppSpacing.lg),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(title, style: AppTypography.titleSmall),
-                const SizedBox(height: AppSpacing.xs),
-                Text(
-                  subtitle,
-                  style: AppTypography.bodyMedium.copyWith(
-                    color: palette.textSecondary,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
       ),
     );
   }
