@@ -360,6 +360,15 @@ class ProfileScreen extends ConsumerWidget {
                       subtitle: 'Sign out from your account',
                       onTap: () => _signOut(context, ref),
                     ),
+                    const Divider(height: 1, indent: 68, endIndent: 16),
+                    _SettingsTile(
+                      icon: Icons.delete_forever_rounded,
+                      iconColor: AppColors.textDanger,
+                      iconBgColor: AppColors.textDanger.withValues(alpha: 0.1),
+                      title: 'Delete account',
+                      subtitle: 'Permanently remove your account and synced data',
+                      onTap: () => _confirmDeleteAccount(context, ref),
+                    ),
                   ],
                 ],
               ),
@@ -404,6 +413,41 @@ class ProfileScreen extends ConsumerWidget {
       return;
     }
     _showSnack(context, 'Signed out.');
+  }
+
+  Future<void> _confirmDeleteAccount(BuildContext context, WidgetRef ref) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete account?'),
+        content: const Text(
+          'This permanently deletes your ThinkNote account and synced notes. This cannot be undone.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) {
+      return;
+    }
+
+    final sharedPrefs = ref.read(sharedPreferencesProvider);
+    await sharedPrefs.setBool('is_guest_mode', false);
+    await ref.read(authControllerProvider.notifier).deleteAccount();
+    ref.invalidate(appStartupSnapshotProvider);
+    if (!context.mounted) {
+      return;
+    }
+    _showSnack(context, 'Account deleted.');
   }
 }
 

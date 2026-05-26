@@ -221,6 +221,16 @@ jobs:
           path: build/test-results
           destination: test-results
 
+      - run:
+          name: Upload to Play internal track
+          command: |
+            if [ -n "${PLAY_SERVICE_ACCOUNT_JSON:-}" ]; then
+              gem install fastlane --no-document
+              fastlane android internal
+            else
+              echo "PLAY_SERVICE_ACCOUNT_JSON is not configured. Skipping automated Google Play upload."
+            fi
+
       - save_cache:
           key: flutter-pub-v1-{{ arch }}-{{ checksum "pubspec.lock" }}-{{ checksum "pubspec.yaml" }}
           paths:
@@ -231,6 +241,13 @@ jobs:
           paths:
             - ~/.gradle/caches
             - ~/.gradle/wrapper
+
+      - run:
+          name: Remove signing material
+          when: always
+          command: |
+            rm -f android/key.properties
+            rm -f android/app/upload-keystore.jks
 
   backend_checks:
     docker:

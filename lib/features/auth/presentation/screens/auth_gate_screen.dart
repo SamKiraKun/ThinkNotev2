@@ -266,13 +266,15 @@ class _AuthGateScreenState extends ConsumerState<AuthGateScreen>
         return;
       }
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Account registration successful! Check your inbox for a verification email.',
+      if (!ref.read(authControllerProvider).hasError) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Account registration successful! Check your inbox for a verification email.',
+            ),
           ),
-        ),
-      );
+        );
+      }
     }
   }
 

@@ -26,27 +26,21 @@ final class AppEnv {
   );
   static const String firebaseApiKey = String.fromEnvironment(
     'FIREBASE_API_KEY',
-    defaultValue: 'AIzaSyBcbHBk4un9g8I0Zca7ZM-g-7aLKL92pL0',
   );
   static const String firebaseAppId = String.fromEnvironment(
     'FIREBASE_APP_ID',
-    defaultValue: '1:333036819919:android:0e8ce39cc5f7ddb1df2eba',
   );
   static const String firebaseMessagingSenderId = String.fromEnvironment(
     'FIREBASE_MESSAGING_SENDER_ID',
-    defaultValue: '333036819919',
   );
   static const String firebaseProjectId = String.fromEnvironment(
     'FIREBASE_PROJECT_ID',
-    defaultValue: 'sambot-e77f5',
   );
   static const String firebaseDatabaseUrl = String.fromEnvironment(
     'FIREBASE_DATABASE_URL',
-    defaultValue: 'https://sambot-e77f5-default-rtdb.firebaseio.com',
   );
   static const String firebaseStorageBucket = String.fromEnvironment(
     'FIREBASE_STORAGE_BUCKET',
-    defaultValue: 'sambot-e77f5.firebasestorage.app',
   );
   static const String sentryDsn = String.fromEnvironment('SENTRY_DSN');
   static const String analyticsKey = String.fromEnvironment('ANALYTICS_KEY');
@@ -56,7 +50,7 @@ final class AppEnv {
   );
   static const bool enableExperimentalSync = bool.fromEnvironment(
     'ENABLE_EXPERIMENTAL_SYNC',
-    defaultValue: true,
+    defaultValue: false,
   );
 
   static const String _appFlavorValue = String.fromEnvironment(

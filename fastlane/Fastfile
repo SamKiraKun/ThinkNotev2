@@ -1,0 +1,16 @@
+default_platform(:android)
+
+platform :android do
+  desc "Upload ThinkNote to the Play internal track"
+  lane :internal do
+    upload_to_play_store(
+      track: "internal",
+      aab: "build/app/outputs/bundle/release/app-release.aab",
+      mapping: "build/release-metadata/r8-mapping.txt",
+      skip_upload_apk: true,
+      skip_upload_images: true,
+      skip_upload_screenshots: true,
+      skip_upload_metadata: true
+    )
+  end
+end

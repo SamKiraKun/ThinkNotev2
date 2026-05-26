@@ -21,13 +21,13 @@ class AppInitializer {
       return;
     }
 
-    if (defaultTargetPlatform != TargetPlatform.android) {
-      return;
+    if (defaultTargetPlatform == TargetPlatform.android ||
+        defaultTargetPlatform == TargetPlatform.iOS ||
+        kIsWeb) {
+      await Firebase.initializeApp(
+        options: FirebaseClientOptions.android,
+      );
     }
-
-    await Firebase.initializeApp(
-      options: FirebaseClientOptions.android,
-    );
   }
 
   Future<SharedPreferences> initializePreferences() {

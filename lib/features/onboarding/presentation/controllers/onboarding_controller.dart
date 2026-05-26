@@ -118,6 +118,6 @@ final appStartupSnapshotProvider =
 
   return AppStartupSnapshot(
     onboardingProfile: onboardingProfile,
-    requiresAuthentication: session == null,
+    requiresAuthentication: AppEnv.enableExperimentalSync && session == null,
   );
 });
