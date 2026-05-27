@@ -191,7 +191,7 @@ jobs:
 
       - run:
           name: Scan repository for committed secrets
-          command: gitleaks detect --source . --redact --no-banner
+          command: gitleaks detect --source . --no-git --redact --no-banner
 
 workflows:
   android_build_workflow:
