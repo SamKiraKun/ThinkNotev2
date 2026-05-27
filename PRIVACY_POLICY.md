@@ -23,7 +23,7 @@ ThinkNote processes the following data for signed-in accounts:
 - Note content and metadata, including folders, tags, archive state, pin/favorite state, and delete/restore state.
 - Technical request metadata needed to secure and operate the backend, such as authentication tokens, timestamps, and rate-limiting information.
 
-ThinkNote does not include ads in this release. Analytics and crash reporting are not enabled in the current production path.
+ThinkNote does not include ads in this release. Analytics are not enabled. Crash reporting is only enabled in builds where the operator configures a `SENTRY_DSN`; when enabled, diagnostic crash events are sent to Sentry without default personally identifying information.
 
 ## Accounts And Cloud Sync
 
@@ -49,6 +49,7 @@ ThinkNote relies on the following service providers to run:
 
 - **Firebase Authentication (Google LLC)**: For secure account sign-in.
 - **Google Cloud Platform**: Hosting the backend database and API services.
+- **Sentry (Functional Software, Inc.)**: Optional crash diagnostics when a release is built with `SENTRY_DSN`.
 
 All transmission of data to third-party services is secured using TLS encryption (HTTPS).
 

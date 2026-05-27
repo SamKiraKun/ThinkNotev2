@@ -1,11 +1,13 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:crypto/crypto.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../../core/extensions/context_extensions.dart';
-import '../../../../core/storage/local_storage.dart';
 import '../../../../core/constants/storage_keys.dart';
+import '../../../../core/extensions/context_extensions.dart';
+import '../../../../core/security/app_passcode_store.dart';
+import '../../../../core/storage/local_storage.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_gradients.dart';
 import '../../../../core/theme/app_radius.dart';
@@ -13,9 +15,7 @@ import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
 
 final appUnlockedProvider = StateProvider<bool>((ref) {
-  // Starts unlocked unless a PIN is found in SharedPreferences
-  final sharedPreferences = ref.read(sharedPreferencesProvider);
-  final hasPin = sharedPreferences.getString(StorageKeys.lockPinHash) != null;
+  final hasPin = ref.read(appPasscodeStoreProvider).hasConfiguredPasscode();
   return !hasPin;
 });
 
@@ -28,8 +28,14 @@ class AppPasscodeUnlockScreen extends ConsumerStatefulWidget {
 
 class _AppPasscodeUnlockScreenState extends ConsumerState<AppPasscodeUnlockScreen>
     with SingleTickerProviderStateMixin {
+  static const int _maxFailedAttemptsBeforeCooldown = 5;
+  static const Duration _cooldownDuration = Duration(seconds: 30);
+
   final List<int> _currentDigits = [];
   String? _errorMessage;
+  int _failedAttempts = 0;
+  DateTime? _cooldownUntil;
+  Timer? _cooldownTimer;
   late final AnimationController _shakeController;
   late final Animation<double> _shakeAnimation;
 
@@ -43,15 +49,38 @@ class _AppPasscodeUnlockScreenState extends ConsumerState<AppPasscodeUnlockScree
     _shakeAnimation = Tween<double>(begin: 0.0, end: 15.0)
         .chain(CurveTween(curve: Curves.elasticIn))
         .animate(_shakeController);
+    _restoreThrottleState();
+    ref.read(appPasscodeStoreProvider).migrateLegacyPasscodeIfNeeded();
   }
 
   @override
   void dispose() {
+    _cooldownTimer?.cancel();
     _shakeController.dispose();
     super.dispose();
   }
 
+  bool get _isCooldownActive =>
+      _cooldownUntil != null && _cooldownUntil!.isAfter(DateTime.now());
+
+  int get _cooldownSecondsRemaining {
+    if (!_isCooldownActive) {
+      return 0;
+    }
+
+    final difference = _cooldownUntil!.difference(DateTime.now());
+    return difference.inSeconds <= 0 ? 1 : difference.inSeconds + 1;
+  }
+
   void _digitPressed(int digit) {
+    if (_isCooldownActive) {
+      setState(() {
+        _errorMessage =
+            'Too many incorrect attempts. Try again in ${_cooldownSecondsRemaining}s.';
+      });
+      return;
+    }
+
     if (_currentDigits.length >= 6) return;
 
     setState(() {
@@ -66,6 +95,7 @@ class _AppPasscodeUnlockScreenState extends ConsumerState<AppPasscodeUnlockScree
   }
 
   void _backspacePressed() {
+    if (_isCooldownActive) return;
     if (_currentDigits.isEmpty) return;
     setState(() {
       _currentDigits.removeLast();
@@ -74,6 +104,7 @@ class _AppPasscodeUnlockScreenState extends ConsumerState<AppPasscodeUnlockScree
   }
 
   void _clearPressed() {
+    if (_isCooldownActive) return;
     setState(() {
       _currentDigits.clear();
       _errorMessage = null;
@@ -82,29 +113,125 @@ class _AppPasscodeUnlockScreenState extends ConsumerState<AppPasscodeUnlockScree
 
   Future<void> _verifyPasscode() async {
     final enteredPin = _currentDigits.join();
-    final preferences = ref.read(sharedPreferencesProvider);
-    final salt = preferences.getString(StorageKeys.lockPinSalt);
-    final storedHash = preferences.getString(StorageKeys.lockPinHash);
+    final secrets = await ref.read(appPasscodeStoreProvider).readSecrets();
 
-    if (salt == null || storedHash == null) {
+    if (secrets == null) {
       // Safety recovery
+      await ref.read(appPasscodeStoreProvider).clearSecrets();
       ref.read(appUnlockedProvider.notifier).state = true;
       return;
     }
 
-    final enteredHash = sha256.convert(utf8.encode('$salt:$enteredPin')).toString();
+    final enteredHash =
+        sha256.convert(utf8.encode('${secrets.salt}:$enteredPin')).toString();
 
-    if (enteredHash == storedHash) {
+    if (enteredHash == secrets.hash) {
+      await _clearThrottleState();
       // Unlock app
       ref.read(appUnlockedProvider.notifier).state = true;
     } else {
       // Shake animation and reset
       _shakeController.forward(from: 0.0);
-      setState(() {
-        _errorMessage = 'Incorrect passcode';
-        _currentDigits.clear();
-      });
+      await _recordFailedAttempt();
     }
+  }
+
+  void _restoreThrottleState() {
+    final preferences = ref.read(sharedPreferencesProvider);
+    _failedAttempts = preferences.getInt(StorageKeys.lockFailedAttempts) ?? 0;
+    final cooldownUntilMs =
+        preferences.getInt(StorageKeys.lockCooldownUntilMs);
+
+    if (cooldownUntilMs == null) {
+      return;
+    }
+
+    final cooldownUntil =
+        DateTime.fromMillisecondsSinceEpoch(cooldownUntilMs);
+    if (cooldownUntil.isAfter(DateTime.now())) {
+      _cooldownUntil = cooldownUntil;
+      _startCooldownTicker();
+      return;
+    }
+
+    _clearThrottleState();
+  }
+
+  Future<void> _recordFailedAttempt() async {
+    final preferences = ref.read(sharedPreferencesProvider);
+    _failedAttempts += 1;
+
+    if (_failedAttempts >= _maxFailedAttemptsBeforeCooldown) {
+      _failedAttempts = 0;
+      _cooldownUntil = DateTime.now().add(_cooldownDuration);
+      await preferences.remove(StorageKeys.lockFailedAttempts);
+      await preferences.setInt(
+        StorageKeys.lockCooldownUntilMs,
+        _cooldownUntil!.millisecondsSinceEpoch,
+      );
+      _startCooldownTicker();
+
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _currentDigits.clear();
+        _errorMessage =
+            'Too many incorrect attempts. Try again in ${_cooldownSecondsRemaining}s.';
+      });
+      return;
+    }
+
+    await preferences.setInt(StorageKeys.lockFailedAttempts, _failedAttempts);
+
+    if (!mounted) {
+      return;
+    }
+
+    setState(() {
+      _currentDigits.clear();
+      final remainingAttempts =
+          _maxFailedAttemptsBeforeCooldown - _failedAttempts;
+      _errorMessage = remainingAttempts == 1
+          ? 'Incorrect passcode. 1 attempt left before a short lock.'
+          : 'Incorrect passcode. $remainingAttempts attempts left before a short lock.';
+    });
+  }
+
+  void _startCooldownTicker() {
+    _cooldownTimer?.cancel();
+    _cooldownTimer = Timer.periodic(const Duration(seconds: 1), (timer) async {
+      if (_isCooldownActive) {
+        if (mounted) {
+          setState(() {
+            _errorMessage =
+                'Too many incorrect attempts. Try again in ${_cooldownSecondsRemaining}s.';
+          });
+        }
+        return;
+      }
+
+      timer.cancel();
+      await _clearThrottleState();
+
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _errorMessage = 'Passcode unlocked again. You can retry now.';
+      });
+    });
+  }
+
+  Future<void> _clearThrottleState() async {
+    final preferences = ref.read(sharedPreferencesProvider);
+    _cooldownTimer?.cancel();
+    _cooldownUntil = null;
+    _failedAttempts = 0;
+    await preferences.remove(StorageKeys.lockFailedAttempts);
+    await preferences.remove(StorageKeys.lockCooldownUntilMs);
   }
 
   @override
@@ -147,7 +274,7 @@ class _AppPasscodeUnlockScreenState extends ConsumerState<AppPasscodeUnlockScree
                   ),
                   const SizedBox(height: AppSpacing.xs),
                   Text(
-                    'Enter your local passcode to decrypt notes.',
+                    'Enter your local passcode to unlock this workspace on this device.',
                     style: AppTypography.bodyLarge.copyWith(
                       color: palette.textSecondary,
                     ),
@@ -196,10 +323,14 @@ class _AppPasscodeUnlockScreenState extends ConsumerState<AppPasscodeUnlockScree
                   const Spacer(),
 
                   // Numeric Keypad Grid
-                  _KeypadGrid(
-                    onDigitPressed: _digitPressed,
-                    onBackspace: _backspacePressed,
-                    onClear: _clearPressed,
+                  AnimatedOpacity(
+                    duration: const Duration(milliseconds: 150),
+                    opacity: _isCooldownActive ? 0.45 : 1,
+                    child: _KeypadGrid(
+                      onDigitPressed: _digitPressed,
+                      onBackspace: _backspacePressed,
+                      onClear: _clearPressed,
+                    ),
                   ),
                   const SizedBox(height: AppSpacing.xxl),
                 ],

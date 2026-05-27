@@ -66,209 +66,289 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
       bottom: false,
       child: notesAsync.when(
         data: (notesState) {
-          return ListView(
+          final hasRecentSearches = notesState.recentSearches.isNotEmpty;
+          final hasTopPicks = topPicks.isNotEmpty;
+          final hasEmptyResults = results.isEmpty;
+          final totalItemCount = 4 +
+              (hasRecentSearches ? 4 : 0) +
+              6 +
+              (hasTopPicks ? 4 : 0) +
+              2 +
+              (hasEmptyResults ? 1 : results.length);
+
+          return ListView.builder(
             padding: const EdgeInsets.fromLTRB(
               AppSpacing.xxl,
               28,
               AppSpacing.xxl,
               AppSpacing.bottomNavReserved,
             ),
-            children: [
-              AppHeader(
-                title: 'Search',
-                subtitle: syncEnabled
-                  ? 'Search notes, folders, and tags instantly across your workspace while sync runs in the background.'
-                  : 'Search notes, folders, and tags instantly across this device.',
-                leading: const HeaderAvatar(label: 'T'),
-                trailing: syncEnabled
-                    ? HeaderActionButton(
-                        icon: syncState.isSyncing
-                            ? Icons.sync_rounded
-                            : Icons.cloud_done_outlined,
-                        onPressed: () => _showSnack(
-                          context,
-                          'Search stays local for speed while synced notes update in the background.',
-                        ),
-                      )
-                    : null,
-              ),
-              const SizedBox(height: AppSpacing.headerToSearch),
-              AppSearchBar(
-                controller: _controller,
-                hintText: 'Search notes, topics, or tags...',
-                autofocus: false,
-                onChanged: (value) {
-                  ref.read(searchControllerProvider.notifier).setQuery(value);
-                },
-                onTrailingTap: () => _showSortSheet(context, ref, notesState),
-              ),
-              const SizedBox(height: AppSpacing.xxl),
-              if (notesState.recentSearches.isNotEmpty) ...[
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text('Recent Searches', style: AppTypography.titleMedium),
-                    TextButton(
-                      onPressed: () => ref
-                          .read(notesControllerProvider.notifier)
-                          .clearRecentSearches(),
-                      child: Text(
-                        'Clear all',
-                        style: AppTypography.bodyMedium.copyWith(
-                          color: AppColors.brandPrimary,
+            itemCount: totalItemCount,
+            itemBuilder: (context, index) {
+              if (index == 0) {
+                return AppHeader(
+                  title: 'Search',
+                  subtitle: syncEnabled
+                      ? 'Search notes, folders, and tags instantly across your workspace while sync runs in the background.'
+                      : 'Search notes, folders, and tags instantly across this device.',
+                  leading: const HeaderAvatar(label: 'T'),
+                  trailing: syncEnabled
+                      ? HeaderActionButton(
+                          icon: syncState.isSyncing
+                              ? Icons.sync_rounded
+                              : Icons.cloud_done_outlined,
+                          onPressed: () => _showSnack(
+                            context,
+                            'Search stays local for speed while synced notes update in the background.',
+                          ),
+                        )
+                      : null,
+                );
+              }
+
+              if (index == 1) {
+                return const SizedBox(height: AppSpacing.headerToSearch);
+              }
+
+              if (index == 2) {
+                return AppSearchBar(
+                  controller: _controller,
+                  hintText: 'Search notes, topics, or tags...',
+                  autofocus: false,
+                  onChanged: (value) {
+                    ref.read(searchControllerProvider.notifier).setQuery(value);
+                  },
+                  onTrailingTap: () => _showSortSheet(context, ref, notesState),
+                );
+              }
+
+              if (index == 3) {
+                return const SizedBox(height: AppSpacing.xxl);
+              }
+
+              var offset = 4;
+              if (hasRecentSearches) {
+                if (index == offset) {
+                  return Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text('Recent Searches', style: AppTypography.titleMedium),
+                      TextButton(
+                        onPressed: () => ref
+                            .read(notesControllerProvider.notifier)
+                            .clearRecentSearches(),
+                        child: Text(
+                          'Clear all',
+                          style: AppTypography.bodyMedium.copyWith(
+                            color: AppColors.brandPrimary,
+                          ),
                         ),
                       ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: AppSpacing.md),
-                Wrap(
+                    ],
+                  );
+                }
+
+                if (index == offset + 1) {
+                  return const SizedBox(height: AppSpacing.md);
+                }
+
+                if (index == offset + 2) {
+                  return Wrap(
+                    spacing: AppSpacing.sm,
+                    runSpacing: AppSpacing.sm,
+                    children: [
+                      for (final recent in notesState.recentSearches)
+                        TagChip(
+                          label: recent,
+                          onTap: () {
+                            ref
+                                .read(searchControllerProvider.notifier)
+                                .setQuery(recent);
+                          },
+                        ),
+                    ],
+                  );
+                }
+
+                if (index == offset + 3) {
+                  return const SizedBox(height: AppSpacing.xxl);
+                }
+
+                offset += 4;
+              }
+
+              if (index == offset) {
+                return Text('Smart Filters', style: AppTypography.titleMedium);
+              }
+
+              if (index == offset + 1) {
+                return const SizedBox(height: AppSpacing.md);
+              }
+
+              if (index == offset + 2) {
+                return SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: [
+                      _ModeChip(
+                        label: 'All',
+                        selected: searchState.mode == SearchMode.all,
+                        onTap: () => ref
+                            .read(searchControllerProvider.notifier)
+                            .setMode(SearchMode.all),
+                      ),
+                      _ModeChip(
+                        label: 'Notes',
+                        selected: searchState.mode == SearchMode.notes,
+                        onTap: () => ref
+                            .read(searchControllerProvider.notifier)
+                            .setMode(SearchMode.notes),
+                      ),
+                      _ModeChip(
+                        label: 'Pinned',
+                        selected: searchState.mode == SearchMode.pinned,
+                        onTap: () => ref
+                            .read(searchControllerProvider.notifier)
+                            .setMode(SearchMode.pinned),
+                      ),
+                      _ModeChip(
+                        label: 'Favorites',
+                        selected: searchState.mode == SearchMode.favorites,
+                        onTap: () => ref
+                            .read(searchControllerProvider.notifier)
+                            .setMode(SearchMode.favorites),
+                      ),
+                    ],
+                  ),
+                );
+              }
+
+              if (index == offset + 3) {
+                return const SizedBox(height: AppSpacing.md);
+              }
+
+              if (index == offset + 4) {
+                return Wrap(
                   spacing: AppSpacing.sm,
                   runSpacing: AppSpacing.sm,
                   children: [
-                    for (final recent in notesState.recentSearches)
-                      TagChip(
-                        label: recent,
-                        onTap: () {
-                          ref
-                              .read(searchControllerProvider.notifier)
-                              .setQuery(recent);
-                        },
-                      ),
-                  ],
-                ),
-                const SizedBox(height: AppSpacing.xxl),
-              ],
-              Text('Smart Filters', style: AppTypography.titleMedium),
-              const SizedBox(height: AppSpacing.md),
-              SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: Row(
-                  children: [
-                    _ModeChip(
-                      label: 'All',
-                      selected: searchState.mode == SearchMode.all,
-                      onTap: () => ref
-                          .read(searchControllerProvider.notifier)
-                          .setMode(SearchMode.all),
+                    _FilterChip(
+                      label: searchState.folderId == null
+                          ? 'All Folders'
+                          : notesState.folderById(searchState.folderId)?.name ??
+                              'Folder',
+                      onTap: () =>
+                          _showFolderFilterSheet(context, ref, notesState),
                     ),
-                    _ModeChip(
-                      label: 'Notes',
-                      selected: searchState.mode == SearchMode.notes,
-                      onTap: () => ref
-                          .read(searchControllerProvider.notifier)
-                          .setMode(SearchMode.notes),
+                    _FilterChip(
+                      label: searchState.tagLabel == null
+                          ? 'All Tags'
+                          : '#${searchState.tagLabel}',
+                      onTap: () => _showTagFilterSheet(context, ref, notesState),
                     ),
-                    _ModeChip(
-                      label: 'Pinned',
-                      selected: searchState.mode == SearchMode.pinned,
-                      onTap: () => ref
-                          .read(searchControllerProvider.notifier)
-                          .setMode(SearchMode.pinned),
-                    ),
-                    _ModeChip(
-                      label: 'Favorites',
-                      selected: searchState.mode == SearchMode.favorites,
-                      onTap: () => ref
-                          .read(searchControllerProvider.notifier)
-                          .setMode(SearchMode.favorites),
+                    _FilterChip(
+                      label: searchState.sortOrder?.label ??
+                          notesState.preferences.defaultSortOrder.label,
+                      onTap: () => _showSortSheet(context, ref, notesState),
                     ),
                   ],
-                ),
-              ),
-              const SizedBox(height: AppSpacing.md),
-              Wrap(
-                spacing: AppSpacing.sm,
-                runSpacing: AppSpacing.sm,
-                children: [
-                  _FilterChip(
-                    label: searchState.folderId == null
-                        ? 'All Folders'
-                        : notesState.folderById(searchState.folderId)?.name ??
-                            'Folder',
-                    onTap: () =>
-                        _showFolderFilterSheet(context, ref, notesState),
-                  ),
-                  _FilterChip(
-                    label: searchState.tagLabel == null
-                        ? 'All Tags'
-                        : '#${searchState.tagLabel}',
-                    onTap: () => _showTagFilterSheet(context, ref, notesState),
-                  ),
-                  _FilterChip(
-                    label: searchState.sortOrder?.label ??
-                        notesState.preferences.defaultSortOrder.label,
-                    onTap: () => _showSortSheet(context, ref, notesState),
-                  ),
-                ],
-              ),
-              const SizedBox(height: AppSpacing.xxl),
-              if (topPicks.isNotEmpty) ...[
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text('Top Picks For You', style: AppTypography.titleMedium),
-                    TextButton(
-                      onPressed: () => ref
-                          .read(shellTabProvider.notifier)
-                          .state = ShellTab.home,
-                      child: Text(
-                        'View all',
-                        style: AppTypography.bodyMedium.copyWith(
-                          color: AppColors.brandPrimary,
+                );
+              }
+
+              if (index == offset + 5) {
+                return const SizedBox(height: AppSpacing.xxl);
+              }
+
+              offset += 6;
+
+              if (hasTopPicks) {
+                if (index == offset) {
+                  return Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text('Top Picks For You', style: AppTypography.titleMedium),
+                      TextButton(
+                        onPressed: () => ref
+                            .read(shellTabProvider.notifier)
+                            .state = ShellTab.home,
+                        child: Text(
+                          'View all',
+                          style: AppTypography.bodyMedium.copyWith(
+                            color: AppColors.brandPrimary,
+                          ),
                         ),
                       ),
+                    ],
+                  );
+                }
+
+                if (index == offset + 1) {
+                  return const SizedBox(height: AppSpacing.md);
+                }
+
+                if (index == offset + 2) {
+                  return SizedBox(
+                    height: 196,
+                    child: ListView.separated(
+                      scrollDirection: Axis.horizontal,
+                      itemBuilder: (context, topPickIndex) {
+                        final note = topPicks[topPickIndex];
+                        final folder = notesState.folderById(note.folderId);
+                        return _TopPickCard(
+                          noteTitle: note.displayTitle,
+                          noteExcerpt: note.excerpt,
+                          folderLabel: folder?.displayName ?? 'Unsorted',
+                          isFavorite: note.isFavorite,
+                          onTap: () {
+                            if (searchState.query.trim().isNotEmpty) {
+                              ref
+                                  .read(notesControllerProvider.notifier)
+                                  .saveRecentSearch(searchState.query);
+                            }
+                            context.push(
+                              RouteNames.editor,
+                              extra: <String, dynamic>{'noteId': note.id},
+                            );
+                          },
+                        );
+                      },
+                      separatorBuilder: (_, __) =>
+                          const SizedBox(width: AppSpacing.md),
+                      itemCount: topPicks.length,
+                    ),
+                  );
+                }
+
+                if (index == offset + 3) {
+                  return const SizedBox(height: AppSpacing.xxl);
+                }
+
+                offset += 4;
+              }
+
+              if (index == offset) {
+                return Row(
+                  children: [
+                    Text('Search Results', style: AppTypography.titleMedium),
+                    const SizedBox(width: AppSpacing.sm),
+                    Text(
+                      '${results.length} results',
+                      style: AppTypography.bodyMedium.copyWith(
+                        color: palette.textTertiary,
+                      ),
                     ),
                   ],
-                ),
-                const SizedBox(height: AppSpacing.md),
-                SizedBox(
-                  height: 196,
-                  child: ListView.separated(
-                    scrollDirection: Axis.horizontal,
-                    itemBuilder: (context, index) {
-                      final note = topPicks[index];
-                      final folder = notesState.folderById(note.folderId);
-                      return _TopPickCard(
-                        noteTitle: note.displayTitle,
-                        noteExcerpt: note.excerpt,
-                        folderLabel: folder?.displayName ?? 'Unsorted',
-                        isFavorite: note.isFavorite,
-                        onTap: () {
-                          if (searchState.query.trim().isNotEmpty) {
-                            ref
-                                .read(notesControllerProvider.notifier)
-                                .saveRecentSearch(searchState.query);
-                          }
-                          context.push(
-                            RouteNames.editor,
-                            extra: <String, dynamic>{'noteId': note.id},
-                          );
-                        },
-                      );
-                    },
-                    separatorBuilder: (_, __) =>
-                        const SizedBox(width: AppSpacing.md),
-                    itemCount: topPicks.length,
-                  ),
-                ),
-                const SizedBox(height: AppSpacing.xxl),
-              ],
-              Row(
-                children: [
-                  Text('Search Results', style: AppTypography.titleMedium),
-                  const SizedBox(width: AppSpacing.sm),
-                  Text(
-                    '${results.length} results',
-                    style: AppTypography.bodyMedium.copyWith(
-                      color: palette.textTertiary,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: AppSpacing.md),
-              if (results.isEmpty)
-                AppEmptyState(
+                );
+              }
+
+              if (index == offset + 1) {
+                return const SizedBox(height: AppSpacing.md);
+              }
+
+              offset += 2;
+
+              if (hasEmptyResults) {
+                return AppEmptyState(
                   icon: Icons.search_off_rounded,
                   title: searchState.query.trim().isEmpty && !hasFilters
                       ? 'Nothing to search yet'
@@ -282,37 +362,37 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                           .read(searchControllerProvider.notifier)
                           .clearFilters()
                       : null,
-                )
-              else
-                for (final note in results)
-                  Padding(
-                    padding:
-                        const EdgeInsets.only(bottom: AppSpacing.noteCardGap),
-                    child: NoteCard(
-                      note: note,
-                      folder: notesState.folderById(note.folderId),
-                      subtitle: DateFormatter.formatRelative(note.updatedAt),
-                      previewLines: notesState.preferences.previewLines,
-                      onTap: () {
-                        if (searchState.query.trim().isNotEmpty) {
-                          ref
-                              .read(notesControllerProvider.notifier)
-                              .saveRecentSearch(searchState.query);
-                        }
-                        context.push(
-                          RouteNames.editor,
-                          extra: <String, dynamic>{'noteId': note.id},
-                        );
-                      },
-                      onPinTap: () => ref
+                );
+              }
+
+              final note = results[index - offset];
+              return Padding(
+                padding: const EdgeInsets.only(bottom: AppSpacing.noteCardGap),
+                child: NoteCard(
+                  note: note,
+                  folder: notesState.folderById(note.folderId),
+                  subtitle: DateFormatter.formatRelative(note.updatedAt),
+                  previewLines: notesState.preferences.previewLines,
+                  onTap: () {
+                    if (searchState.query.trim().isNotEmpty) {
+                      ref
                           .read(notesControllerProvider.notifier)
-                          .togglePin(note.id),
-                      onFavoriteTap: () => ref
-                          .read(notesControllerProvider.notifier)
-                          .toggleFavorite(note.id),
-                    ),
-                  ),
-            ],
+                          .saveRecentSearch(searchState.query);
+                    }
+                    context.push(
+                      RouteNames.editor,
+                      extra: <String, dynamic>{'noteId': note.id},
+                    );
+                  },
+                  onPinTap: () => ref
+                      .read(notesControllerProvider.notifier)
+                      .togglePin(note.id),
+                  onFavoriteTap: () => ref
+                      .read(notesControllerProvider.notifier)
+                      .toggleFavorite(note.id),
+                ),
+              );
+            },
           );
         },
         loading: () => const Center(child: CircularProgressIndicator()),

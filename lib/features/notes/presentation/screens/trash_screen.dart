@@ -55,45 +55,44 @@ class TrashScreen extends ConsumerWidget {
               );
             }
 
-            return ListView(
+            return ListView.separated(
               padding: const EdgeInsets.all(AppSpacing.xxl),
-              children: [
-                for (final note in notesState.trashedNotes)
-                  Padding(
-                    padding:
-                        const EdgeInsets.only(bottom: AppSpacing.noteCardGap),
-                    child: NoteCard(
-                      note: note,
-                      folder: notesState.folderById(note.folderId),
-                      subtitle:
-                          'Deleted ${DateFormatter.formatRelative(note.deletedAt ?? note.updatedAt)}',
-                      previewLines: notesState.preferences.previewLines,
-                      onTap: () {},
-                      trailing: PopupMenuButton<String>(
-                        onSelected: (value) {
-                          if (value == 'restore') {
-                            ref
-                                .read(notesControllerProvider.notifier)
-                                .restore(note.id);
-                          } else if (!syncEnabled && value == 'delete') {
-                            _confirmPermanentDelete(context, ref, note.id);
-                          }
-                        },
-                        itemBuilder: (_) => [
-                          const PopupMenuItem(
-                            value: 'restore',
-                            child: Text('Restore'),
-                          ),
-                          if (!syncEnabled)
-                            const PopupMenuItem(
-                              value: 'delete',
-                              child: Text('Delete forever'),
-                            ),
-                        ],
+              itemCount: notesState.trashedNotes.length,
+              separatorBuilder: (_, __) =>
+                  const SizedBox(height: AppSpacing.noteCardGap),
+              itemBuilder: (context, index) {
+                final note = notesState.trashedNotes[index];
+                return NoteCard(
+                  note: note,
+                  folder: notesState.folderById(note.folderId),
+                  subtitle:
+                      'Deleted ${DateFormatter.formatRelative(note.deletedAt ?? note.updatedAt)}',
+                  previewLines: notesState.preferences.previewLines,
+                  onTap: () {},
+                  trailing: PopupMenuButton<String>(
+                    onSelected: (value) {
+                      if (value == 'restore') {
+                        ref
+                            .read(notesControllerProvider.notifier)
+                            .restore(note.id);
+                      } else if (!syncEnabled && value == 'delete') {
+                        _confirmPermanentDelete(context, ref, note.id);
+                      }
+                    },
+                    itemBuilder: (_) => [
+                      const PopupMenuItem(
+                        value: 'restore',
+                        child: Text('Restore'),
                       ),
-                    ),
+                      if (!syncEnabled)
+                        const PopupMenuItem(
+                          value: 'delete',
+                          child: Text('Delete forever'),
+                        ),
+                    ],
                   ),
-              ],
+                );
+              },
             );
           },
           loading: () => const Center(child: CircularProgressIndicator()),

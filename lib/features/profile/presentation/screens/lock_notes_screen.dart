@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/constants/storage_keys.dart';
 import '../../../../core/extensions/context_extensions.dart';
+import '../../../../core/security/app_passcode_store.dart';
 import '../../../../core/storage/local_storage.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_radius.dart';
@@ -36,10 +37,8 @@ class _LockNotesScreenState extends ConsumerState<LockNotesScreen> {
   @override
   void initState() {
     super.initState();
-    _isEnabled = ref
-            .read(sharedPreferencesProvider)
-            .getString(StorageKeys.lockPinHash) !=
-        null;
+    _isEnabled = ref.read(appPasscodeStoreProvider).hasConfiguredPasscode();
+    ref.read(appPasscodeStoreProvider).migrateLegacyPasscodeIfNeeded();
   }
 
   @override
@@ -58,7 +57,7 @@ class _LockNotesScreenState extends ConsumerState<LockNotesScreen> {
     return Scaffold(
       backgroundColor: palette.pageBackground,
       appBar: AppBar(
-        title: const Text('Workspace Lock'),
+        title: const Text('App Passcode'),
         elevation: 0,
       ),
       body: SafeArea(
@@ -89,7 +88,7 @@ class _LockNotesScreenState extends ConsumerState<LockNotesScreen> {
                   ),
                   const SizedBox(height: AppSpacing.sm),
                   Text(
-                    'Enabling a local passcode encrypts your offline session database. The app will require verification on cold startup or background restore.',
+                    'A local passcode adds an app-level unlock step on this device. It does not encrypt exported backups and it should not be treated as protection against a compromised device.',
                     style: AppTypography.bodyMedium.copyWith(
                       color: palette.textSecondary,
                     ),
@@ -202,10 +201,11 @@ class _LockNotesScreenState extends ConsumerState<LockNotesScreen> {
       return;
     }
 
-    final preferences = ref.read(sharedPreferencesProvider);
     final salt = _createSalt();
-    await preferences.setString(StorageKeys.lockPinSalt, salt);
-    await preferences.setString(StorageKeys.lockPinHash, _hashPin(pin, salt));
+    await ref.read(appPasscodeStoreProvider).writeSecrets(
+          salt: salt,
+          hash: _hashPin(pin, salt),
+        );
     _pinController.clear();
     setState(() => _isEnabled = true);
     _showSnack('Passcode configured successfully.');
@@ -218,18 +218,18 @@ class _LockNotesScreenState extends ConsumerState<LockNotesScreen> {
       return;
     }
 
-    final preferences = ref.read(sharedPreferencesProvider);
-    final salt = preferences.getString(StorageKeys.lockPinSalt);
-    final storedHash = preferences.getString(StorageKeys.lockPinHash);
-    if (salt == null || storedHash == null) {
+    final secrets = await ref.read(appPasscodeStoreProvider).readSecrets();
+    if (secrets == null) {
       _showSnack('No passcode is configured.');
       return;
     }
 
-    final isValid = _hashPin(verifyPin, salt) == storedHash;
+    final isValid = _hashPin(verifyPin, secrets.salt) == secrets.hash;
     if (isValid) {
-      await preferences.remove(StorageKeys.lockPinSalt);
-      await preferences.remove(StorageKeys.lockPinHash);
+      await ref.read(appPasscodeStoreProvider).clearSecrets();
+      final preferences = ref.read(sharedPreferencesProvider);
+      await preferences.remove(StorageKeys.lockFailedAttempts);
+      await preferences.remove(StorageKeys.lockCooldownUntilMs);
       _verifyController.clear();
       setState(() => _isEnabled = false);
       _showSnack('Passcode lock disabled.');

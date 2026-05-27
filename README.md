@@ -51,17 +51,30 @@ Supported client defines:
 - `ENABLE_ANALYTICS`
 - `ENABLE_EXPERIMENTAL_SYNC`
 
-Example Android release build:
+Canonical Android release build from a Bash-compatible shell:
 
 ```bash
-flutter build appbundle --release \
-  --dart-define=APP_FLAVOR=production \
-  --dart-define=ENABLE_EXPERIMENTAL_SYNC=true \
-  --dart-define=API_URL=https://your-api.example.com \
-  --dart-define=FIREBASE_API_KEY=... \
-  --dart-define=FIREBASE_APP_ID=... \
-  --dart-define=FIREBASE_MESSAGING_SENDER_ID=... \
-  --dart-define=FIREBASE_PROJECT_ID=...
+APP_FLAVOR=production \
+ENABLE_EXPERIMENTAL_SYNC=true \
+API_URL=https://your-api.example.com \
+FIREBASE_API_KEY=... \
+FIREBASE_APP_ID=... \
+FIREBASE_MESSAGING_SENDER_ID=... \
+FIREBASE_PROJECT_ID=... \
+bash scripts/android/build_release_artifacts.sh
+```
+
+Canonical Android release build from Windows Command Prompt or PowerShell:
+
+```bat
+set "APP_FLAVOR=production"
+set "ENABLE_EXPERIMENTAL_SYNC=true"
+set "API_URL=https://your-api.example.com"
+set "FIREBASE_API_KEY=..."
+set "FIREBASE_APP_ID=..."
+set "FIREBASE_MESSAGING_SENDER_ID=..."
+set "FIREBASE_PROJECT_ID=..."
+scripts\android\build_release_artifacts.cmd
 ```
 
 Sync-enabled builds must also pass Firebase client settings. Production sync builds must use an HTTPS `API_URL`.
@@ -69,6 +82,20 @@ Sync-enabled builds must also pass Firebase client settings. Production sync bui
 CircleCI is the canonical Android release builder. It signs the release,
 stores the Play AAB separately from the QA APK, and archives release metadata
 including lockfiles, git SHA, Flutter/Gradle versions, and R8 mapping output.
+
+To verify and smoke-install the produced release artifacts on a connected device or emulator:
+
+```bash
+bash scripts/android/verify_release_artifacts.sh
+bash scripts/android/smoke_install_release.sh
+```
+
+On Windows without Bash available:
+
+```bat
+scripts\android\verify_release_artifacts.cmd
+scripts\android\smoke_install_release.cmd
+```
 
 Privacy and Play Data Safety drafts live in `PRIVACY_POLICY.md` and
 `docs/play_store/sync_enabled_data_map.md`. They should be treated as the
@@ -80,6 +107,6 @@ Console submission are finalized.
 Run the analyzer and Flutter tests from the project root:
 
 ```bash
-flutter analyze
-flutter test
+flutter analyze --no-pub
+flutter test --reporter expanded
 ```

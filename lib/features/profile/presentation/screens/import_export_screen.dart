@@ -1,8 +1,10 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:math';
 
+import 'package:cryptography/cryptography.dart';
+import 'package:crypto/crypto.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:path_provider/path_provider.dart';
@@ -32,7 +34,6 @@ class _ImportExportScreenState extends ConsumerState<ImportExportScreen> {
   String? _exportFilename;
   String? _exportFilePath;
   String? _exportSizeString;
-  bool _isCopied = false;
   bool _isSavedLocally = false;
 
   // Import State
@@ -164,7 +165,7 @@ class _ImportExportScreenState extends ConsumerState<ImportExportScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Plaintext Backup Security Notice',
+                      'Encrypted Backup Requirement',
                       style: AppTypography.titleSmall.copyWith(
                         color: Colors.orange.shade900,
                         fontWeight: FontWeight.bold,
@@ -172,7 +173,7 @@ class _ImportExportScreenState extends ConsumerState<ImportExportScreen> {
                     ),
                     const SizedBox(height: AppSpacing.xs),
                     Text(
-                      'The generated JSON backup will contain all notes, folders, and preferences in unencrypted format. Store the copied content or file in a safe, encrypted location.',
+                      'ThinkNote now exports backup packages as encrypted files only. Save the generated file in a location you control and keep the password separate from the file itself.',
                       style: AppTypography.bodyMedium.copyWith(
                         color: Colors.orange.shade800,
                       ),
@@ -209,7 +210,7 @@ class _ImportExportScreenState extends ConsumerState<ImportExportScreen> {
               ),
               const SizedBox(height: AppSpacing.xl),
               FilledButton.icon(
-                onPressed: () => _generateExport(store),
+                onPressed: () => _exportPressed(store),
                 icon: const Icon(Icons.analytics_outlined),
                 label: const Text('Generate Backup JSON'),
                 style: FilledButton.styleFrom(
@@ -275,41 +276,17 @@ class _ImportExportScreenState extends ConsumerState<ImportExportScreen> {
                   ),
                 ],
                 const SizedBox(height: AppSpacing.lg),
-                Row(
-                  children: [
-                    Expanded(
-                      child: OutlinedButton.icon(
-                        onPressed: _copyToClipboard,
-                        icon: Icon(_isCopied ? Icons.check_circle_outline : Icons.content_copy_rounded),
-                        label: Text(_isCopied ? 'Copied' : 'Copy to Clipboard'),
-                        style: OutlinedButton.styleFrom(
-                          minimumSize: const Size(0, 48),
-                          foregroundColor: _isCopied ? Colors.green : AppColors.brandPrimary,
-                          side: BorderSide(
-                            color: _isCopied ? Colors.green : AppColors.brandPrimary,
-                          ),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(AppRadius.button),
-                          ),
-                        ),
-                      ),
+                FilledButton.icon(
+                  onPressed: _saveToLocalFile,
+                  icon: Icon(_isSavedLocally ? Icons.check : Icons.save_alt_rounded),
+                  label: Text(_isSavedLocally ? 'Saved File' : 'Save Encrypted Backup File'),
+                  style: FilledButton.styleFrom(
+                    minimumSize: const Size.fromHeight(48),
+                    backgroundColor: _isSavedLocally ? Colors.green : AppColors.brandPrimary,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(AppRadius.button),
                     ),
-                    const SizedBox(width: AppSpacing.md),
-                    Expanded(
-                      child: FilledButton.icon(
-                        onPressed: _saveToLocalFile,
-                        icon: Icon(_isSavedLocally ? Icons.check : Icons.save_alt_rounded),
-                        label: Text(_isSavedLocally ? 'Saved File' : 'Save Backup File'),
-                        style: FilledButton.styleFrom(
-                          minimumSize: const Size(0, 48),
-                          backgroundColor: _isSavedLocally ? Colors.green : AppColors.brandPrimary,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(AppRadius.button),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
               ],
             ),
@@ -364,7 +341,7 @@ class _ImportExportScreenState extends ConsumerState<ImportExportScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Hazard: Complete Overwrite',
+                      'Restore Carefully',
                       style: AppTypography.titleSmall.copyWith(
                         color: AppColors.textDanger,
                         fontWeight: FontWeight.bold,
@@ -372,7 +349,7 @@ class _ImportExportScreenState extends ConsumerState<ImportExportScreen> {
                     ),
                     const SizedBox(height: AppSpacing.xs),
                     Text(
-                      'Restoring data from a backup replaces all local notes, tags, and settings. This operation is permanent. We recommend performing a backup export beforehand.',
+                      'Restoring from a backup file replaces all local notes, tags, and settings on this device. This operation is permanent. Export a fresh encrypted backup before restoring older data.',
                       style: AppTypography.bodyMedium.copyWith(
                         color: AppColors.textDanger,
                       ),
@@ -398,6 +375,13 @@ class _ImportExportScreenState extends ConsumerState<ImportExportScreen> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Text('Paste Backup Payload', style: AppTypography.titleMedium),
+              const SizedBox(height: AppSpacing.md),
+              Text(
+                'Load the latest backup file saved by ThinkNote or paste a trusted backup package manually.',
+                style: AppTypography.bodyMedium.copyWith(
+                  color: palette.textSecondary,
+                ),
+              ),
               const SizedBox(height: AppSpacing.md),
               TextField(
                 controller: _importController,
@@ -434,9 +418,9 @@ class _ImportExportScreenState extends ConsumerState<ImportExportScreen> {
                 children: [
                   Expanded(
                     child: OutlinedButton.icon(
-                      onPressed: _pasteFromClipboard,
-                      icon: const Icon(Icons.paste_rounded),
-                      label: const Text('Paste Clipboard'),
+                      onPressed: _loadLatestLocalBackup,
+                      icon: const Icon(Icons.folder_open_rounded),
+                      label: const Text('Load Latest Backup'),
                       style: OutlinedButton.styleFrom(
                         minimumSize: const Size(0, 48),
                         foregroundColor: AppColors.brandPrimary,
@@ -452,7 +436,7 @@ class _ImportExportScreenState extends ConsumerState<ImportExportScreen> {
                     child: FilledButton.icon(
                       onPressed: _validateImport,
                       icon: const Icon(Icons.verified_user_outlined),
-                      label: const Text('Validate JSON'),
+                      label: const Text('Validate Backup'),
                       style: FilledButton.styleFrom(
                         minimumSize: const Size(0, 48),
                         backgroundColor: AppColors.brandPrimary,
@@ -551,28 +535,94 @@ class _ImportExportScreenState extends ConsumerState<ImportExportScreen> {
     );
   }
 
-  void _generateExport(NotesStoreModel store) {
+  Future<String> _encryptBackup(String plaintextJson, String password) async {
+    final keyBytes = sha256.convert(utf8.encode(password)).bytes;
+    final secretKey = SecretKey(keyBytes);
+    final cipher = AesGcm.with256bits();
+    
+    final random = Random.secure();
+    final nonce = List<int>.generate(12, (_) => random.nextInt(256));
+    
+    final secretBox = await cipher.encrypt(
+      utf8.encode(plaintextJson),
+      secretKey: secretKey,
+      nonce: nonce,
+    );
+    
+    final payload = {
+      'encrypted': true,
+      'ciphertext': base64UrlEncode(secretBox.cipherText),
+      'nonce': base64UrlEncode(secretBox.nonce),
+      'mac': base64UrlEncode(secretBox.mac.bytes),
+    };
+    return jsonEncode(payload);
+  }
+
+  Future<String> _decryptBackup(String encryptedJson, String password) async {
+    final Map<String, dynamic> decoded = jsonDecode(encryptedJson);
+    if (decoded['encrypted'] != true) {
+      throw const FormatException('This backup is not encrypted.');
+    }
+    
+    final keyBytes = sha256.convert(utf8.encode(password)).bytes;
+    final secretKey = SecretKey(keyBytes);
+    final cipher = AesGcm.with256bits();
+    
+    final secretBox = SecretBox(
+      base64Url.decode(decoded['ciphertext'] as String),
+      nonce: base64Url.decode(decoded['nonce'] as String),
+      mac: Mac(base64Url.decode(decoded['mac'] as String)),
+    );
+    
+    final clearBytes = await cipher.decrypt(
+      secretBox,
+      secretKey: secretKey,
+    );
+    return utf8.decode(clearBytes);
+  }
+
+  Future<void> _exportPressed(NotesStoreModel store) async {
+    final passwordChoice = await _showPasswordPromptDialog(
+      title: 'Secure Backup',
+      message: 'Choose a password to encrypt this backup. This prevents unauthorized access to your notes if the backup package is exposed.',
+      buttonLabel: 'Encrypt & Export',
+      isExport: true,
+    );
+
+    if (passwordChoice == null) {
+      return;
+    }
+
+    await _generateExport(store, passwordChoice);
+  }
+
+  Future<void> _generateExport(NotesStoreModel store, String? password) async {
     const encoder = JsonEncoder.withIndent('  ');
     final jsonText = encoder.convert(store.toJson());
+    
+    String finalOutput;
+    bool isEncrypted = false;
+    
+    if (password != null) {
+      finalOutput = await _encryptBackup(jsonText, password);
+      isEncrypted = true;
+    } else {
+      finalOutput = jsonText;
+    }
+
     final timestamp = DateFormat('yyyyMMdd_HHmmss').format(DateTime.now());
-    final bytes = utf8.encode(jsonText);
+    final bytes = utf8.encode(finalOutput);
     final sizeKb = bytes.length / 1024;
 
     setState(() {
-      _generatedJson = jsonText;
-      _exportFilename = 'thinknote_backup_$timestamp.json';
+      _generatedJson = finalOutput;
+      _exportFilename = isEncrypted 
+          ? 'thinknote_backup_$timestamp.enc.json'
+          : 'thinknote_backup_$timestamp.json';
       _exportSizeString = '${sizeKb.toStringAsFixed(2)} KB';
       _exportFilePath = null;
-      _isCopied = false;
       _isSavedLocally = false;
     });
-  }
-
-  Future<void> _copyToClipboard() async {
-    if (_generatedJson == null) return;
-    await Clipboard.setData(ClipboardData(text: _generatedJson!));
-    setState(() => _isCopied = true);
-    _showSnack('Backup copied to clipboard.');
   }
 
   Future<void> _saveToLocalFile() async {
@@ -593,17 +643,38 @@ class _ImportExportScreenState extends ConsumerState<ImportExportScreen> {
     }
   }
 
-  Future<void> _pasteFromClipboard() async {
-    final clipboard = await Clipboard.getData(Clipboard.kTextPlain);
-    if (clipboard?.text != null) {
-      _importController.text = clipboard!.text!;
-      _validateImport();
-    } else {
-      _showSnack('Clipboard is empty or does not contain text.');
+  Future<void> _loadLatestLocalBackup() async {
+    try {
+      final directory = await getApplicationDocumentsDirectory();
+      final backupFiles = directory.listSync().whereType<File>().where((file) {
+        final name = file.uri.pathSegments.isEmpty
+            ? file.path
+            : file.uri.pathSegments.last;
+        return name.startsWith('thinknote_backup_') &&
+            (name.endsWith('.enc.json') || name.endsWith('.json'));
+      }).toList();
+
+      if (backupFiles.isEmpty) {
+        _showSnack('No saved backup files were found on this device.');
+        return;
+      }
+
+      backupFiles.sort(
+        (left, right) => right
+            .lastModifiedSync()
+            .compareTo(left.lastModifiedSync()),
+      );
+
+      final latestFile = backupFiles.first;
+      _importController.text = await latestFile.readAsString();
+      await _validateImport();
+      _showSnack('Loaded ${latestFile.uri.pathSegments.last}.');
+    } catch (error) {
+      _showSnack('Failed to load the latest backup: $error');
     }
   }
 
-  void _validateImport() {
+  Future<void> _validateImport() async {
     final raw = _importController.text.trim();
     if (raw.isEmpty) {
       setState(() {
@@ -618,17 +689,136 @@ class _ImportExportScreenState extends ConsumerState<ImportExportScreen> {
       if (decoded is! Map<String, dynamic>) {
         throw const FormatException('Root element must be a JSON object.');
       }
-      final store = NotesStoreModel.fromJson(decoded);
-      setState(() {
-        _validatedStore = store;
-        _validationError = null;
-      });
+
+      if (decoded['encrypted'] == true) {
+        final password = await _showPasswordPromptDialog(
+          title: 'Decryption Required',
+          message: 'This backup is secured with a password. Enter the password to decrypt it.',
+          buttonLabel: 'Decrypt & Validate',
+        );
+        if (password == null) {
+          return; // User cancelled
+        }
+        
+        final decryptedRaw = await _decryptBackup(raw, password);
+        final decryptedDecoded = jsonDecode(decryptedRaw);
+        if (decryptedDecoded is! Map<String, dynamic>) {
+          throw const FormatException('Decrypted root element must be a JSON object.');
+        }
+        
+        final store = NotesStoreModel.fromJson(decryptedDecoded);
+        setState(() {
+          _validatedStore = store;
+          _validationError = null;
+        });
+        _showSnack('Backup decrypted and validated successfully.');
+      } else {
+        if (!mounted) return;
+        final proceed = await showDialog<bool>(
+          context: context,
+          builder: (_) => const AppConfirmationDialog(
+            title: 'Unencrypted Backup',
+            message: 'This backup package is not encrypted. Importing unencrypted data is allowed, but please ensure the source is trusted.',
+            confirmLabel: 'Proceed',
+            isDestructive: false,
+          ),
+        );
+        if (proceed != true) return;
+
+        final store = NotesStoreModel.fromJson(decoded);
+        setState(() {
+          _validatedStore = store;
+          _validationError = null;
+        });
+      }
     } catch (error) {
       setState(() {
-        _validationError = error.toString();
+        _validationError = 'Incorrect password or corrupted backup package.';
         _validatedStore = null;
       });
     }
+  }
+
+  Future<String?> _showPasswordPromptDialog({
+    required String title,
+    required String message,
+    required String buttonLabel,
+    bool isExport = false,
+  }) {
+    final controller = TextEditingController();
+    final formKey = GlobalKey<FormState>();
+    bool obscure = true;
+
+    return showDialog<String>(
+      context: context,
+      builder: (context) {
+        final palette = context.palette;
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              backgroundColor: palette.surfacePrimary,
+              title: Text(title, style: AppTypography.titleLarge),
+              content: Form(
+                key: formKey,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Text(message, style: AppTypography.bodyMedium),
+                    const SizedBox(height: AppSpacing.lg),
+                    TextFormField(
+                      controller: controller,
+                      obscureText: obscure,
+                      keyboardType: TextInputType.visiblePassword,
+                      decoration: InputDecoration(
+                        labelText: 'Password',
+                        hintText: isExport ? 'Min 4 characters' : 'Enter password',
+                        filled: true,
+                        fillColor: palette.surfaceSecondary,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(AppRadius.sm),
+                          borderSide: BorderSide(color: palette.borderSoft),
+                        ),
+                        suffixIcon: IconButton(
+                          icon: Icon(obscure ? Icons.visibility_off : Icons.visibility),
+                          onPressed: () => setState(() => obscure = !obscure),
+                        ),
+                      ),
+                      validator: (value) {
+                        if (value == null || value.trim().isEmpty) {
+                          return 'Password cannot be empty.';
+                        }
+                        if (isExport && value.trim().length < 4) {
+                          return 'Password must be at least 4 characters.';
+                        }
+                        return null;
+                      },
+                    ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: Text('Cancel', style: TextStyle(color: palette.textSecondary)),
+                ),
+                FilledButton(
+                  onPressed: () {
+                    if (formKey.currentState?.validate() == true) {
+                      Navigator.of(context).pop(controller.text.trim());
+                    }
+                  },
+                  style: FilledButton.styleFrom(
+                    backgroundColor: AppColors.brandPrimary,
+                  ),
+                  child: Text(buttonLabel),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
   }
 
   Future<void> _performImport() async {

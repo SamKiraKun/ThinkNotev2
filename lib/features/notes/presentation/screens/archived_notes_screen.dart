@@ -41,49 +41,48 @@ class ArchivedNotesScreen extends ConsumerWidget {
               );
             }
 
-            return ListView(
+            return ListView.separated(
               padding: const EdgeInsets.all(AppSpacing.xxl),
-              children: [
-                for (final note in notesState.archivedNotes)
-                  Padding(
-                    padding:
-                        const EdgeInsets.only(bottom: AppSpacing.noteCardGap),
-                    child: NoteCard(
-                      note: note,
-                      folder: notesState.folderById(note.folderId),
-                      subtitle:
-                          'Archived ${DateFormatter.formatRelative(note.updatedAt)}',
-                      previewLines: notesState.preferences.previewLines,
-                      onTap: () {
-                        context.push(
-                          RouteNames.editor,
-                          extra: <String, dynamic>{'noteId': note.id},
-                        );
-                      },
-                      trailing: PopupMenuButton<String>(
-                        onSelected: (value) {
-                          if (value == 'unarchive') {
-                            ref
-                                .read(notesControllerProvider.notifier)
-                                .unarchive(note.id);
-                          } else if (value == 'trash') {
-                            _confirmMoveToTrash(context, ref, note.id);
-                          }
-                        },
-                        itemBuilder: (_) => const [
-                          PopupMenuItem(
-                            value: 'unarchive',
-                            child: Text('Move to notes'),
-                          ),
-                          PopupMenuItem(
-                            value: 'trash',
-                            child: Text('Move to Trash'),
-                          ),
-                        ],
+              itemCount: notesState.archivedNotes.length,
+              separatorBuilder: (_, __) =>
+                  const SizedBox(height: AppSpacing.noteCardGap),
+              itemBuilder: (context, index) {
+                final note = notesState.archivedNotes[index];
+                return NoteCard(
+                  note: note,
+                  folder: notesState.folderById(note.folderId),
+                  subtitle:
+                      'Archived ${DateFormatter.formatRelative(note.updatedAt)}',
+                  previewLines: notesState.preferences.previewLines,
+                  onTap: () {
+                    context.push(
+                      RouteNames.editor,
+                      extra: <String, dynamic>{'noteId': note.id},
+                    );
+                  },
+                  trailing: PopupMenuButton<String>(
+                    onSelected: (value) {
+                      if (value == 'unarchive') {
+                        ref
+                            .read(notesControllerProvider.notifier)
+                            .unarchive(note.id);
+                      } else if (value == 'trash') {
+                        _confirmMoveToTrash(context, ref, note.id);
+                      }
+                    },
+                    itemBuilder: (_) => const [
+                      PopupMenuItem(
+                        value: 'unarchive',
+                        child: Text('Move to notes'),
                       ),
-                    ),
+                      PopupMenuItem(
+                        value: 'trash',
+                        child: Text('Move to Trash'),
+                      ),
+                    ],
                   ),
-              ],
+                );
+              },
             );
           },
           loading: () => const Center(child: CircularProgressIndicator()),

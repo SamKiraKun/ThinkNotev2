@@ -17,6 +17,7 @@ backend/dist/
 *.swp
 *.swo
 *.log
+local.db
 
 .DS_Store
 Thumbs.db

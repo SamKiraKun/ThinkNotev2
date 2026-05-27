@@ -10,9 +10,8 @@ import '../../../../core/config/app_env.dart';
 import '../../../../shared/widgets/responsive_centered_shell.dart';
 import '../../../../core/constants/route_names.dart';
 import '../../../../core/extensions/context_extensions.dart';
+import '../../../../core/security/app_passcode_store.dart';
 import '../../../auth/auth_providers.dart';
-import '../../../../core/constants/storage_keys.dart';
-import '../../../../core/storage/local_storage.dart';
 import '../../../auth/presentation/screens/app_passcode_unlock_screen.dart';
 import '../../../folders/presentation/screens/folders_screen.dart';
 import '../../../home/presentation/screens/dashboard_screen.dart';
@@ -65,8 +64,7 @@ class _MainShellScreenState extends ConsumerState<MainShellScreen>
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.paused) {
-      final sharedPreferences = ref.read(sharedPreferencesProvider);
-      final hasPin = sharedPreferences.getString(StorageKeys.lockPinHash) != null;
+      final hasPin = ref.read(appPasscodeStoreProvider).hasConfiguredPasscode();
       if (hasPin) {
         ref.read(appUnlockedProvider.notifier).state = false;
       }

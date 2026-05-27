@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/constants/route_names.dart';
 import '../../../../core/config/app_env.dart';
 import '../../../../core/extensions/context_extensions.dart';
+import '../../../../core/security/app_passcode_store.dart';
 import '../../../../core/storage/local_storage.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_radius.dart';
@@ -18,7 +19,6 @@ import '../../../notes/data/models/app_preferences_model.dart';
 import '../../../onboarding/data/models/onboarding_profile.dart';
 import '../../../onboarding/presentation/controllers/onboarding_controller.dart';
 import '../../../sync/presentation/controllers/sync_controller.dart';
-import '../../../../core/constants/storage_keys.dart';
 
 class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});
@@ -38,8 +38,7 @@ class ProfileScreen extends ConsumerWidget {
   }
 
   bool _isNotesLockOn(WidgetRef ref) {
-    final sharedPrefs = ref.read(sharedPreferencesProvider);
-    return sharedPrefs.getString(StorageKeys.lockPinHash) != null;
+    return ref.read(appPasscodeStoreProvider).hasConfiguredPasscode();
   }
 
   void _showComingSoonSnackBar(BuildContext context, String featureName) {
@@ -311,8 +310,8 @@ class ProfileScreen extends ConsumerWidget {
                     icon: Icons.lock_outline_rounded,
                     iconColor: AppColors.brandPrimary,
                     iconBgColor: AppColors.brandPrimary.withValues(alpha: 0.1),
-                    title: 'Lock Notes',
-                    subtitle: 'Protect your notes with a passcode',
+                    title: 'App Passcode',
+                    subtitle: 'Require a passcode before this workspace opens on this device',
                     trailingText: _isNotesLockOn(ref) ? 'On' : 'Off',
                     onTap: () => context.push(RouteNames.lockNotes),
                   ),
@@ -328,30 +327,10 @@ class ProfileScreen extends ConsumerWidget {
                 ],
               ),
 
-              // Preferences Settings Group
-              _SectionHeader('Preferences'),
-              _SettingsGroup(
-                children: [
-                  _SettingsTile(
-                    icon: Icons.notifications_none_rounded,
-                    iconColor: Colors.amber,
-                    iconBgColor: Colors.amber.withValues(alpha: 0.1),
-                    title: 'Notifications',
-                    subtitle: 'Manage reminders and updates',
-                    trailingText: onboardingProfile?.wantsNotifications == true ? 'On' : 'Off',
-                    onTap: () => context.push(RouteNames.notificationSettings),
-                  ),
-                  const Divider(height: 1, indent: 68, endIndent: 16),
-                  _SettingsTile(
-                    icon: Icons.schedule_rounded,
-                    iconColor: Colors.pink,
-                    iconBgColor: Colors.pink.withValues(alpha: 0.1),
-                    title: 'Reminder Defaults',
-                    subtitle: 'Set default time and repeat',
-                    onTap: () => _showComingSoonSnackBar(context, 'Reminder Defaults'),
-                  ),
-                  if (authSession != null) ...[
-                    const Divider(height: 1, indent: 68, endIndent: 16),
+              if (authSession != null) ...[
+                _SectionHeader('Account'),
+                _SettingsGroup(
+                  children: [
                     _SettingsTile(
                       icon: Icons.logout_rounded,
                       iconColor: AppColors.textDanger,
@@ -370,8 +349,8 @@ class ProfileScreen extends ConsumerWidget {
                       onTap: () => _confirmDeleteAccount(context, ref),
                     ),
                   ],
-                ],
-              ),
+                ),
+              ],
             ],
           );
         },

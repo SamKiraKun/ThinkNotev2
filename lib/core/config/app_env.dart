@@ -72,6 +72,13 @@ final class AppEnv {
   static void validateBase() {
     final flavor = appFlavor;
 
+    if (flavor == AppFlavor.production) {
+      final parsedApiUri = Uri.tryParse(apiUrl);
+      if (parsedApiUri == null || parsedApiUri.scheme != 'https') {
+        throw StateError('Production API_URL must use HTTPS.');
+      }
+    }
+
     if (!enableExperimentalSync) {
       return;
     }

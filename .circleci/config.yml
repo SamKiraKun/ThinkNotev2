@@ -43,7 +43,11 @@ jobs:
 
       - run:
           name: Analyze code
-          command: flutter analyze
+          command: |
+            set -euo pipefail
+
+            mkdir -p build/test-results
+            timeout 10m flutter analyze --no-pub --machine | tee build/test-results/flutter-analyze-machine.txt
 
       - run:
           name: Run tests
@@ -51,7 +55,7 @@ jobs:
             set -euo pipefail
 
             mkdir -p build/test-results
-            flutter test --reporter expanded | tee build/test-results/flutter-test-output.txt
+            timeout 10m flutter test --no-pub --reporter expanded | tee build/test-results/flutter-test-output.txt
 
       - run:
           name: Prepare Android signing
@@ -77,133 +81,11 @@ jobs:
 
       - run:
           name: Build release Android artifacts
-          command: |
-            set -euo pipefail
-
-            if [ -z "${APP_FLAVOR:-}" ]; then
-              echo "Missing required runtime environment variable: APP_FLAVOR"
-              exit 1
-            fi
-
-            case "${APP_FLAVOR}" in
-              development|staging|production) ;;
-              *)
-                echo "APP_FLAVOR must be one of: development, staging, production"
-                exit 1
-                ;;
-            esac
-
-            : "${ENABLE_ANALYTICS:=false}"
-            : "${ENABLE_EXPERIMENTAL_SYNC:=false}"
-
-            if [ "${ENABLE_EXPERIMENTAL_SYNC}" = "true" ]; then
-              required_sync_env=(
-                API_URL
-                FIREBASE_API_KEY
-                FIREBASE_APP_ID
-                FIREBASE_MESSAGING_SENDER_ID
-                FIREBASE_PROJECT_ID
-              )
-
-              for var_name in "${required_sync_env[@]}"; do
-                if [ -z "${!var_name:-}" ]; then
-                  echo "Missing required experimental sync environment variable: ${var_name}"
-                  exit 1
-                fi
-              done
-
-              if [ "${APP_FLAVOR}" = "production" ] && [[ "${API_URL}" != https://* ]]; then
-                echo "Production experimental sync builds must use an HTTPS API_URL."
-                exit 1
-              fi
-            fi
-
-            build_args=(
-              "--release"
-              "--build-number=${CIRCLE_BUILD_NUM:-1}"
-              "--dart-define=APP_FLAVOR=${APP_FLAVOR}"
-              "--dart-define=ENABLE_ANALYTICS=${ENABLE_ANALYTICS}"
-              "--dart-define=ENABLE_EXPERIMENTAL_SYNC=${ENABLE_EXPERIMENTAL_SYNC}"
-            )
-
-            if [ -n "${API_URL:-}" ]; then
-              build_args+=("--dart-define=API_URL=${API_URL}")
-            fi
-
-            if [ -n "${FIREBASE_API_KEY:-}" ]; then
-              build_args+=("--dart-define=FIREBASE_API_KEY=${FIREBASE_API_KEY}")
-            fi
-
-            if [ -n "${FIREBASE_APP_ID:-}" ]; then
-              build_args+=("--dart-define=FIREBASE_APP_ID=${FIREBASE_APP_ID}")
-            fi
-
-            if [ -n "${FIREBASE_MESSAGING_SENDER_ID:-}" ]; then
-              build_args+=("--dart-define=FIREBASE_MESSAGING_SENDER_ID=${FIREBASE_MESSAGING_SENDER_ID}")
-            fi
-
-            if [ -n "${FIREBASE_PROJECT_ID:-}" ]; then
-              build_args+=("--dart-define=FIREBASE_PROJECT_ID=${FIREBASE_PROJECT_ID}")
-            fi
-
-            if [ -n "${FIREBASE_DATABASE_URL:-}" ]; then
-              build_args+=("--dart-define=FIREBASE_DATABASE_URL=${FIREBASE_DATABASE_URL}")
-            fi
-
-            if [ -n "${FIREBASE_STORAGE_BUCKET:-}" ]; then
-              build_args+=("--dart-define=FIREBASE_STORAGE_BUCKET=${FIREBASE_STORAGE_BUCKET}")
-            fi
-
-            if [ -n "${SENTRY_DSN:-}" ]; then
-              build_args+=("--dart-define=SENTRY_DSN=${SENTRY_DSN}")
-            fi
-
-            if [ -n "${ANALYTICS_KEY:-}" ]; then
-              build_args+=("--dart-define=ANALYTICS_KEY=${ANALYTICS_KEY}")
-            fi
-
-            flutter build apk "${build_args[@]}"
-            flutter build appbundle "${build_args[@]}"
-
-            mkdir -p build/release-metadata
-            flutter --version > build/release-metadata/flutter-version.txt
-            (cd android && ./gradlew --version) > build/release-metadata/gradle-version.txt
-
-            cp pubspec.lock build/release-metadata/pubspec.lock
-            cp android/gradle/wrapper/gradle-wrapper.properties build/release-metadata/gradle-wrapper.properties
-            cp android/build.gradle.kts build/release-metadata/android-build.gradle.kts
-            cp android/app/build.gradle.kts build/release-metadata/android-app-build.gradle.kts
-
-            if [ -f build/app/outputs/mapping/release/mapping.txt ]; then
-              cp build/app/outputs/mapping/release/mapping.txt build/release-metadata/r8-mapping.txt
-            else
-              printf 'R8 mapping file was not generated for this build.\n' > build/release-metadata/r8-mapping.txt
-            fi
-
-            printf '{\n  "git_sha": "%s",\n  "circle_build_num": "%s",\n  "app_flavor": "%s",\n  "enable_analytics": "%s",\n  "enable_experimental_sync": "%s",\n  "play_artifact": "%s",\n  "qa_artifact": "%s",\n  "r8_mapping": "%s"\n}\n' \
-              "${CIRCLE_SHA1:-$(git rev-parse HEAD)}" \
-              "${CIRCLE_BUILD_NUM:-1}" \
-              "${APP_FLAVOR}" \
-              "${ENABLE_ANALYTICS}" \
-              "${ENABLE_EXPERIMENTAL_SYNC}" \
-              "build/app/outputs/bundle/release/app-release.aab" \
-              "build/app/outputs/flutter-apk/app-release.apk" \
-              "build/release-metadata/r8-mapping.txt" \
-              > build/release-metadata/release-manifest.json
+          command: bash scripts/android/build_release_artifacts.sh
 
       - run:
           name: Verify signed release artifacts
-          command: |
-            set -euo pipefail
-
-            test -f build/app/outputs/flutter-apk/app-release.apk
-            test -f build/app/outputs/bundle/release/app-release.aab
-
-            mkdir -p build/release-metadata
-            jarsigner -verify -verbose -certs build/app/outputs/bundle/release/app-release.aab \
-              > build/release-metadata/aab-signature-verification.txt
-            unzip -tqq build/app/outputs/bundle/release/app-release.aab \
-              > build/release-metadata/aab-zip-validation.txt
+          command: bash scripts/android/verify_release_artifacts.sh
 
       - store_artifacts:
           path: build/app/outputs/flutter-apk/app-release.apk
@@ -221,15 +103,11 @@ jobs:
           path: build/test-results
           destination: test-results
 
-      - run:
-          name: Upload to Play internal track
-          command: |
-            if [ -n "${PLAY_SERVICE_ACCOUNT_JSON:-}" ]; then
-              gem install fastlane --no-document
-              fastlane android internal
-            else
-              echo "PLAY_SERVICE_ACCOUNT_JSON is not configured. Skipping automated Google Play upload."
-            fi
+      - persist_to_workspace:
+          root: .
+          paths:
+            - build/app/outputs/bundle/release/app-release.aab
+            - build/release-metadata
 
       - save_cache:
           key: flutter-pub-v1-{{ arch }}-{{ checksum "pubspec.lock" }}-{{ checksum "pubspec.yaml" }}
@@ -248,6 +126,26 @@ jobs:
           command: |
             rm -f android/key.properties
             rm -f android/app/upload-keystore.jks
+
+  upload_play_internal:
+    docker:
+      - image: ghcr.io/cirruslabs/flutter:stable
+    resource_class: small
+
+    steps:
+      - checkout
+      - attach_workspace:
+          at: .
+      - run:
+          name: Upload to Play internal track
+          command: |
+            if [ -n "${PLAY_SERVICE_ACCOUNT_JSON:-}" ]; then
+              gem install fastlane --no-document
+              fastlane android internal
+            else
+              echo "PLAY_SERVICE_ACCOUNT_JSON is not configured. Skipping automated Google Play upload."
+              exit 1
+            fi
 
   backend_checks:
     docker:
@@ -283,8 +181,30 @@ jobs:
           paths:
             - backend/node_modules
 
+  secret_scan:
+    docker:
+      - image: zricethezav/gitleaks:v8.18.2
+    resource_class: small
+
+    steps:
+      - checkout
+
+      - run:
+          name: Scan repository for committed secrets
+          command: gitleaks detect --source . --redact --no-banner
+
 workflows:
   android_build_workflow:
     jobs:
       - build_android
       - backend_checks
+      - secret_scan
+      - request_play_promotion:
+          type: approval
+          requires:
+            - build_android
+            - backend_checks
+            - secret_scan
+      - upload_play_internal:
+          requires:
+            - request_play_promotion

@@ -45,85 +45,110 @@ class HomeScreen extends ConsumerWidget {
           final featuredNote = selectedFolderId == null
               ? notesState.featuredPinnedNote
               : visibleNotes.where((note) => note.isPinned).firstOrNull;
+          final hasEmptyState = visibleNotes.isEmpty;
+          final hasFeaturedNote = !hasEmptyState && featuredNote != null;
+          final totalItemCount = 6 +
+              (hasEmptyState
+                  ? 1
+                  : 2 + visibleNotes.length + (hasFeaturedNote ? 2 : 0));
 
-          return ListView(
+          return ListView.builder(
             padding: const EdgeInsets.fromLTRB(
               AppSpacing.xxl,
               28,
               AppSpacing.xxl,
               AppSpacing.bottomNavReserved,
             ),
-            children: [
-              AppHeader(
-                title: AppConstants.appName,
-                subtitle: syncEnabled
-                    ? 'Good morning. Your notes stay on this device first and sync when you are online.'
-                    : 'Good morning. Your notes stay on this device and work offline.',
-                brandStyle: true,
-                leading: const HeaderAvatar(label: 'T'),
-                trailing: syncEnabled
-                    ? HeaderActionButton(
-                        icon: syncState.isSyncing
-                            ? Icons.sync_rounded
-                            : syncState.lastError == null
-                                ? Icons.cloud_done_outlined
-                                : Icons.cloud_off_outlined,
-                        onPressed: () => _runSync(context, ref),
-                      )
-                    : null,
-              ),
-              const SizedBox(height: AppSpacing.headerToSearch),
-              AppSearchBar(
-                readOnly: true,
-                hintText: 'Search your notes, folders, tags...',
-                onTap: () {
-                  ref.read(shellTabProvider.notifier).state = ShellTab.search;
-                },
-                onTrailingTap: () => _showSortSheet(context, ref, notesState),
-              ),
-              const SizedBox(height: AppSpacing.searchToChips),
-              SizedBox(
-                height: 36,
-                child: ListView.separated(
-                  scrollDirection: Axis.horizontal,
-                  itemBuilder: (context, index) {
-                    if (index == 0) {
+            itemCount: totalItemCount,
+            itemBuilder: (context, index) {
+              if (index == 0) {
+                return AppHeader(
+                  title: AppConstants.appName,
+                  subtitle: syncEnabled
+                      ? 'Good morning. Your notes stay on this device first and sync when you are online.'
+                      : 'Good morning. Your notes stay on this device and work offline.',
+                  brandStyle: true,
+                  leading: const HeaderAvatar(label: 'T'),
+                  trailing: syncEnabled
+                      ? HeaderActionButton(
+                          icon: syncState.isSyncing
+                              ? Icons.sync_rounded
+                              : syncState.lastError == null
+                                  ? Icons.cloud_done_outlined
+                                  : Icons.cloud_off_outlined,
+                          onPressed: () => _runSync(context, ref),
+                        )
+                      : null,
+                );
+              }
+
+              if (index == 1) {
+                return const SizedBox(height: AppSpacing.headerToSearch);
+              }
+
+              if (index == 2) {
+                return AppSearchBar(
+                  readOnly: true,
+                  hintText: 'Search your notes, folders, tags...',
+                  onTap: () {
+                    ref.read(shellTabProvider.notifier).state = ShellTab.search;
+                  },
+                  onTrailingTap: () => _showSortSheet(context, ref, notesState),
+                );
+              }
+
+              if (index == 3) {
+                return const SizedBox(height: AppSpacing.searchToChips);
+              }
+
+              if (index == 4) {
+                return SizedBox(
+                  height: 36,
+                  child: ListView.separated(
+                    scrollDirection: Axis.horizontal,
+                    itemBuilder: (context, chipIndex) {
+                      if (chipIndex == 0) {
+                        return CategoryChip(
+                          label: 'All',
+                          selected: selectedFolderId == null,
+                          backgroundColor: palette.surfacePrimary,
+                          textColor: context.colors.onSurface,
+                          onTap: () {
+                            ref.read(homeSelectedFolderProvider.notifier).state =
+                                null;
+                          },
+                        );
+                      }
+
+                      final folder = notesState.folders[chipIndex - 1];
+                      final visuals = folderVisualsFor(folder.colorKey);
                       return CategoryChip(
-                        label: 'All',
-                        selected: selectedFolderId == null,
-                        backgroundColor: palette.surfacePrimary,
-                        textColor: context.colors.onSurface,
+                        label: folder.name,
+                        emoji: folder.emoji,
+                        selected: selectedFolderId == folder.id,
+                        backgroundColor: visuals.backgroundColor,
+                        textColor: visuals.accentColor,
                         onTap: () {
-                          ref.read(homeSelectedFolderProvider.notifier).state =
-                              null;
+                          final notifier =
+                              ref.read(homeSelectedFolderProvider.notifier);
+                          notifier.state =
+                              selectedFolderId == folder.id ? null : folder.id;
                         },
                       );
-                    }
+                    },
+                    separatorBuilder: (_, __) =>
+                        const SizedBox(width: AppSpacing.chipGap),
+                    itemCount: notesState.folders.length + 1,
+                  ),
+                );
+              }
 
-                    final folder = notesState.folders[index - 1];
-                    final visuals = folderVisualsFor(folder.colorKey);
-                    return CategoryChip(
-                      label: folder.name,
-                      emoji: folder.emoji,
-                      selected: selectedFolderId == folder.id,
-                      backgroundColor: visuals.backgroundColor,
-                      textColor: visuals.accentColor,
-                      onTap: () {
-                        final notifier =
-                            ref.read(homeSelectedFolderProvider.notifier);
-                        notifier.state =
-                            selectedFolderId == folder.id ? null : folder.id;
-                      },
-                    );
-                  },
-                  separatorBuilder: (_, __) =>
-                      const SizedBox(width: AppSpacing.chipGap),
-                  itemCount: notesState.folders.length + 1,
-                ),
-              ),
-              const SizedBox(height: AppSpacing.chipsToPinned),
-              if (visibleNotes.isEmpty)
-                AppEmptyState(
+              if (index == 5) {
+                return const SizedBox(height: AppSpacing.chipsToPinned);
+              }
+
+              if (hasEmptyState) {
+                return AppEmptyState(
                   icon: Icons.note_alt_outlined,
                   title: selectedFolderId == null
                       ? 'No notes yet'
@@ -141,16 +166,18 @@ class HomeScreen extends ConsumerWidget {
                       },
                     );
                   },
-                )
-              else ...[
-                if (featuredNote != null) ...[
-                  _PinnedNoteCard(
+                );
+              }
+
+              var offset = 6;
+              if (hasFeaturedNote) {
+                if (index == offset) {
+                  return _PinnedNoteCard(
                     noteTitle: featuredNote.displayTitle,
                     noteExcerpt: featuredNote.excerpt,
-                    folderLabel: notesState
-                            .folderById(featuredNote.folderId)
-                            ?.displayName ??
-                        'Unsorted',
+                    folderLabel:
+                        notesState.folderById(featuredNote.folderId)?.displayName ??
+                            'Unsorted',
                     dateLabel:
                         DateFormatter.formatFullDate(featuredNote.updatedAt),
                     onTap: () {
@@ -159,10 +186,18 @@ class HomeScreen extends ConsumerWidget {
                         extra: <String, dynamic>{'noteId': featuredNote.id},
                       );
                     },
-                  ),
-                  const SizedBox(height: AppSpacing.pinnedToRecent),
-                ],
-                Row(
+                  );
+                }
+
+                if (index == offset + 1) {
+                  return const SizedBox(height: AppSpacing.pinnedToRecent);
+                }
+
+                offset += 2;
+              }
+
+              if (index == offset) {
+                return Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text('Recent Notes', style: AppTypography.titleMedium),
@@ -179,33 +214,36 @@ class HomeScreen extends ConsumerWidget {
                       ),
                     ),
                   ],
+                );
+              }
+
+              if (index == offset + 1) {
+                return const SizedBox(height: AppSpacing.recentHeaderToList);
+              }
+
+              final note = visibleNotes[index - offset - 2];
+              return Padding(
+                padding: const EdgeInsets.only(bottom: AppSpacing.noteCardGap),
+                child: NoteCard(
+                  note: note,
+                  folder: notesState.folderById(note.folderId),
+                  subtitle: DateFormatter.formatRelative(note.updatedAt),
+                  previewLines: notesState.preferences.previewLines,
+                  onTap: () {
+                    context.push(
+                      RouteNames.editor,
+                      extra: <String, dynamic>{'noteId': note.id},
+                    );
+                  },
+                  onPinTap: () => ref
+                      .read(notesControllerProvider.notifier)
+                      .togglePin(note.id),
+                  onFavoriteTap: () => ref
+                      .read(notesControllerProvider.notifier)
+                      .toggleFavorite(note.id),
                 ),
-                const SizedBox(height: AppSpacing.recentHeaderToList),
-                for (final note in visibleNotes)
-                  Padding(
-                    padding:
-                        const EdgeInsets.only(bottom: AppSpacing.noteCardGap),
-                    child: NoteCard(
-                      note: note,
-                      folder: notesState.folderById(note.folderId),
-                      subtitle: DateFormatter.formatRelative(note.updatedAt),
-                      previewLines: notesState.preferences.previewLines,
-                      onTap: () {
-                        context.push(
-                          RouteNames.editor,
-                          extra: <String, dynamic>{'noteId': note.id},
-                        );
-                      },
-                      onPinTap: () => ref
-                          .read(notesControllerProvider.notifier)
-                          .togglePin(note.id),
-                      onFavoriteTap: () => ref
-                          .read(notesControllerProvider.notifier)
-                          .toggleFavorite(note.id),
-                    ),
-                  ),
-              ],
-            ],
+              );
+            },
           );
         },
         loading: () => const Center(child: CircularProgressIndicator()),
