@@ -22,13 +22,15 @@ Future<void> bootstrapApp() async {
       options.environment = AppEnv.appFlavor.name;
       options.sendDefaultPii = false;
       options.beforeBreadcrumb = (breadcrumb, hint) {
-        return breadcrumb?.copyWith(data: null);
+        if (breadcrumb != null) {
+          breadcrumb.data = null;
+        }
+        return breadcrumb;
       };
       options.beforeSend = (event, hint) {
-        return event.copyWith(
-          user: null,
-          request: null,
-        );
+        event.user = null;
+        event.request = null;
+        return event;
       };
     },
     appRunner: _runThinkNoteApp,
