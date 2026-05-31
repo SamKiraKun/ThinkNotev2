@@ -394,9 +394,6 @@ class _AuthGateScreenState extends ConsumerState<AuthGateScreen>
       if (error.statusCode == 401) {
         return 'Your session expired. Sign in again.';
       }
-      if (error.statusCode == 503) {
-        return 'Server unavailable. Try again in a moment.';
-      }
       return error.message;
     }
 

@@ -20,6 +20,7 @@ final class AppEnv {
 
   static const String _defaultDevelopmentApiUrl =
       'https://api.unicef.edu.eu.org';
+  static const String _retiredApiHost = 'api.unicefindia.edu.eu.org';
 
   static const String apiUrl = String.fromEnvironment(
     'API_URL',
@@ -95,10 +96,24 @@ final class AppEnv {
 
   static void validateBase() {
     final flavor = appFlavor;
+    final parsedApiUri = Uri.tryParse(apiUrl);
+
+    if (parsedApiUri == null ||
+        parsedApiUri.scheme.isEmpty ||
+        parsedApiUri.host.isEmpty) {
+      throw StateError(
+        'API_URL must be a valid absolute URL.',
+      );
+    }
+
+    if (_isRetiredApiHost(parsedApiUri)) {
+      throw StateError(
+        'API_URL points to a retired ThinkNote backend host. Update API_URL to https://api.unicef.edu.eu.org or another active API deployment before launching the app.',
+      );
+    }
 
     if (flavor == AppFlavor.production) {
-      final parsedApiUri = Uri.tryParse(apiUrl);
-      if (parsedApiUri == null || parsedApiUri.scheme != 'https') {
+      if (parsedApiUri.scheme != 'https') {
         throw StateError('Production API_URL must use HTTPS.');
       }
     }
@@ -121,15 +136,6 @@ final class AppEnv {
 
     if (flavor != AppFlavor.development) {
       _requireNonEmpty('API_URL', apiUrl);
-    }
-
-    final parsedApiUri = Uri.tryParse(apiUrl);
-    if (parsedApiUri == null ||
-        parsedApiUri.scheme.isEmpty ||
-        parsedApiUri.host.isEmpty) {
-      throw StateError(
-        'API_URL must be a valid absolute URL.',
-      );
     }
 
     if (flavor == AppFlavor.production && parsedApiUri.scheme != 'https') {
@@ -178,5 +184,9 @@ final class AppEnv {
     }
 
     return '';
+  }
+
+  static bool _isRetiredApiHost(Uri apiUri) {
+    return apiUri.host.toLowerCase() == _retiredApiHost;
   }
 }

@@ -157,9 +157,18 @@ final appStartupSnapshotProvider =
 });
 
 String _describeStartupFailure(ApiException error) {
-  if (error.statusCode == 503) {
-    return "We're currently performing maintenance. Please try again in a few minutes.";
+  if (error.statusCode == 401) {
+    return 'Your session could not be verified. Sign in again.';
   }
 
-  return 'The server is temporarily unavailable. Please try again in a few minutes.';
+  final message = error.message.trim();
+  if (message.isNotEmpty) {
+    return message;
+  }
+
+  if (error.statusCode != null && error.statusCode! >= 500) {
+    return 'The ThinkNote backend is temporarily unavailable. Please try again in a few minutes.';
+  }
+
+  return 'The request to the ThinkNote backend could not be completed.';
 }

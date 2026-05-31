@@ -34,6 +34,53 @@ void main() {
       ),
     );
   });
+
+  test('throws a precise ApiException when the backend times out', () async {
+    final client = AuthenticatedApiClient(
+      MockClient((request) async {
+        await Future<void>.delayed(const Duration(seconds: 16));
+        return http.Response('{}', 200);
+      }),
+      _FakeAuthRepository(),
+    );
+
+    await expectLater(
+      () => client.getJson('/account/me'),
+      throwsA(
+        isA<ApiException>().having(
+          (error) => error.message,
+          'message',
+          contains('took too long to respond'),
+        ),
+      ),
+    );
+  });
+
+  test('throws a precise ApiException when the backend route is missing', () async {
+    final client = AuthenticatedApiClient(
+      MockClient((request) async {
+        return http.Response(
+          '{"success":false,"message":""}',
+          404,
+          headers: const {'content-type': 'application/json'},
+        );
+      }),
+      _FakeAuthRepository(),
+    );
+
+    await expectLater(
+      () => client.getJson('/account/me'),
+      throwsA(
+        isA<ApiException>()
+            .having((error) => error.statusCode, 'statusCode', 404)
+            .having(
+              (error) => error.message,
+              'message',
+              contains('route was not found'),
+            ),
+      ),
+    );
+  });
 }
 
 class _FakeAuthRepository implements AuthRepository {
