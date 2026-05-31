@@ -20,6 +20,7 @@ final class AppEnv {
 
   static const String _defaultDevelopmentApiUrl =
       'https://api.unicef.edu.eu.org';
+  static const String _activeApiHost = 'api.unicef.edu.eu.org';
   static const String _retiredApiHost = 'api.unicefindia.edu.eu.org';
 
   static const String apiUrl = String.fromEnvironment(
@@ -80,7 +81,7 @@ final class AppEnv {
   static bool get isProduction => appFlavor == AppFlavor.production;
   static bool get showPrototypeTools => !isProduction;
 
-  static Uri get apiUri => Uri.parse(apiUrl);
+  static Uri get apiUri => normalizeApiUri(Uri.parse(apiUrl));
   static String get resolvedFirebaseAndroidAppId =>
       _firstNonEmpty(firebaseAndroidAppId, firebaseAppId);
   static String get resolvedFirebaseIosAppId =>
@@ -103,12 +104,6 @@ final class AppEnv {
         parsedApiUri.host.isEmpty) {
       throw StateError(
         'API_URL must be a valid absolute URL.',
-      );
-    }
-
-    if (_isRetiredApiHost(parsedApiUri)) {
-      throw StateError(
-        'API_URL points to a retired ThinkNote backend host. Update API_URL to https://api.unicef.edu.eu.org or another active API deployment before launching the app.',
       );
     }
 
@@ -184,6 +179,23 @@ final class AppEnv {
     }
 
     return '';
+  }
+
+  static Uri normalizeApiUri(Uri apiUri) {
+    if (!_isRetiredApiHost(apiUri)) {
+      return apiUri;
+    }
+
+    return apiUri.replace(host: _activeApiHost);
+  }
+
+  static bool get usesRetiredApiHost {
+    final parsedApiUri = Uri.tryParse(apiUrl);
+    if (parsedApiUri == null) {
+      return false;
+    }
+
+    return _isRetiredApiHost(parsedApiUri);
   }
 
   static bool _isRetiredApiHost(Uri apiUri) {
