@@ -2,11 +2,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/config/app_env.dart';
 import '../../../../core/constants/route_names.dart';
+import '../../../../core/network/authenticated_api_client.dart';
 import '../../../../core/constants/storage_keys.dart';
 import '../../../../core/storage/local_storage.dart';
 import '../../../auth/auth_providers.dart';
 import '../../../notes/data/models/app_preferences_model.dart';
 import '../../../notes/presentation/controllers/notes_controller.dart';
+import '../../../sync/presentation/controllers/sync_controller.dart';
 import '../../data/models/onboarding_profile.dart';
 
 final onboardingControllerProvider =
@@ -105,10 +107,30 @@ final appStartupSnapshotProvider =
     FutureProvider<AppStartupSnapshot>((ref) async {
   final startTime = DateTime.now();
 
-  final session =
-      AppEnv.enableExperimentalSync ? ref.watch(currentAuthSessionProvider) : null;
-  final onboardingProfile = await ref.watch(onboardingControllerProvider.future);
-  await ref.read(notesControllerProvider.future);
+  final session = ref.watch(currentAuthSessionProvider);
+  final onboardingProfile =
+      await ref.watch(onboardingControllerProvider.future);
+
+  if (session != null) {
+    try {
+      await ref.read(authenticatedAccountProvider.future);
+      await ref.read(syncControllerProvider.notifier).syncNow(
+            forceFullPull: true,
+            rethrowOnError: true,
+          );
+      ref.invalidate(notesControllerProvider);
+      await ref.read(notesControllerProvider.future);
+    } on ApiException catch (error) {
+      if (error.statusCode == 401) {
+        await ref.read(authRepositoryProvider).signOut();
+        return AppStartupSnapshot(
+          onboardingProfile: onboardingProfile,
+          requiresAuthentication: true,
+        );
+      }
+      rethrow;
+    }
+  }
 
   final elapsed = DateTime.now().difference(startTime);
   const minDelay = Duration(seconds: 1);
@@ -118,6 +140,6 @@ final appStartupSnapshotProvider =
 
   return AppStartupSnapshot(
     onboardingProfile: onboardingProfile,
-    requiresAuthentication: AppEnv.enableExperimentalSync && session == null,
+    requiresAuthentication: session == null,
   );
 });

@@ -4,9 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../core/extensions/context_extensions.dart';
 import '../../../../core/constants/route_names.dart';
-import '../../../../shared/utils/jit_permission_service.dart';
 import '../../../../core/theme/app_colors.dart';
-import '../../../../core/theme/app_gradients.dart';
 import '../../../../core/theme/app_radius.dart';
 import '../../../../core/theme/app_shadows.dart';
 import '../../../../core/theme/app_spacing.dart';
@@ -15,8 +13,6 @@ import '../../../../core/utils/date_formatter.dart';
 import '../../../../shared/widgets/app_confirmation_dialog.dart';
 import '../../../folders/data/models/folder_model.dart';
 import '../../../notes/presentation/controllers/notes_controller.dart';
-import '../../../onboarding/data/models/onboarding_profile.dart';
-import '../../../onboarding/presentation/controllers/onboarding_controller.dart';
 import '../controllers/note_editor_controller.dart';
 import '../widgets/note_editor_toolbar.dart';
 
@@ -66,23 +62,19 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
   @override
   Widget build(BuildContext context) {
     final palette = context.palette;
-    final isKeyboardVisible = MediaQuery.of(context).viewInsets.bottom > 0;
     final editorState = ref.watch(noteEditorControllerProvider(_args));
     final editorController =
         ref.read(noteEditorControllerProvider(_args).notifier);
     final notesState = ref.watch(notesControllerProvider).valueOrNull;
-    final onboardingProfile = ref.watch(onboardingControllerProvider).valueOrNull;
     final folder = notesState?.folderById(editorState.folderId);
-    final workspaceName = onboardingProfile?.effectiveWorkspaceName ?? 'My Workspace';
-    final workspaceFocus = onboardingProfile?.workspaceFocus.label ?? 'Idea capture';
     final isNewNote = editorState.noteId == null;
     final wordCount = _countWords(editorState.content);
     final readTime = DateFormatter.estimateReadTime(editorState.content);
     final saveLabel = editorState.isSaving
-      ? 'Saving'
-      : editorState.lastSavedAt == null
-        ? 'Autosave ready'
-        : 'Saved ${DateFormatter.formatRelative(editorState.lastSavedAt!)}';
+        ? 'Saving'
+        : editorState.lastSavedAt == null
+            ? 'Autosave ready'
+            : 'Saved ${DateFormatter.formatRelative(editorState.lastSavedAt!)}';
 
     ref.listen(noteEditorControllerProvider(_args), (previous, next) {
       if (previous?.errorMessage != next.errorMessage &&
@@ -154,12 +146,12 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    isNewNote ? 'New note' : 'Editor',
+                                    isNewNote ? 'New note' : 'Edit note',
                                     style: AppTypography.titleMedium,
                                   ),
                                   const SizedBox(height: AppSpacing.xs),
                                   Text(
-                                    '$workspaceName / $workspaceFocus',
+                                    saveLabel,
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
                                     style: AppTypography.bodyMedium.copyWith(
@@ -255,63 +247,31 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
                       ),
                     ),
                     Expanded(
-                      child: ListView(
+                      child: Padding(
                         padding: const EdgeInsets.fromLTRB(
                           AppSpacing.xxl,
                           AppSpacing.sm,
                           AppSpacing.xxl,
                           AppSpacing.xl,
                         ),
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(AppSpacing.xl),
-                            decoration: BoxDecoration(
-                              gradient: AppGradients.pinnedCard,
-                              borderRadius: BorderRadius.circular(28),
-                              boxShadow: AppShadows.floatingCard,
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  children: [
-                                    _EditorSurfacePill(
-                                      label: isNewNote
-                                          ? 'Draft session'
-                                          : 'Live note',
-                                    ),
-                                    const SizedBox(width: AppSpacing.sm),
-                                    _EditorSurfacePill(label: saveLabel),
-                                  ],
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(AppSpacing.xl),
+                              decoration: BoxDecoration(
+                                color: palette.surfacePrimary,
+                                borderRadius: BorderRadius.circular(
+                                  AppRadius.formCard,
                                 ),
-                                const SizedBox(height: AppSpacing.lg),
-                                Text(
-                                  isNewNote
-                                      ? 'Capture something clear enough to find later.'
-                                      : 'Keep this note moving without losing structure.',
-                                  style: AppTypography.headline.copyWith(
-                                    fontSize: 24,
-                                  ),
-                                ),
-                                const SizedBox(height: AppSpacing.sm),
-                                Text(
-                                  'This note lives in $workspaceName and stays ready for search, folders, and sync-aware follow-up.',
-                                  style: AppTypography.bodyLarge.copyWith(
-                                    color: palette.textSecondary,
-                                  ),
-                                ),
-                                const SizedBox(height: AppSpacing.xl),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: AppSpacing.lg,
-                                    vertical: AppSpacing.sm,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: Colors.white.withValues(alpha: 0.72),
-                                    borderRadius:
-                                        BorderRadius.circular(AppRadius.formCard),
-                                  ),
-                                  child: TextField(
+                                border:
+                                    Border.all(color: palette.borderPrimary),
+                                boxShadow: AppShadows.softCard,
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  TextField(
                                     controller: _titleController,
                                     focusNode: _titleFocusNode,
                                     onChanged: editorController.updateTitle,
@@ -323,338 +283,210 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
                                     maxLength: 120,
                                     style: AppTypography.titleLarge,
                                   ),
-                                ),
-                                const SizedBox(height: AppSpacing.lg),
-                                Wrap(
-                                  spacing: AppSpacing.sm,
-                                  runSpacing: AppSpacing.sm,
-                                  children: [
-                                    _EditorActionChip(
-                                      icon: Icons.folder_open_rounded,
-                                      label:
-                                          folder?.displayName ?? 'Choose folder',
-                                      onTap: () => _showFolderSelector(
-                                        context,
-                                        ref,
-                                        notesState?.folders ??
-                                            const <FolderModel>[],
-                                        editorState.folderId,
+                                  const SizedBox(height: AppSpacing.sm),
+                                  Wrap(
+                                    spacing: AppSpacing.sm,
+                                    runSpacing: AppSpacing.sm,
+                                    children: [
+                                      _EditorActionChip(
+                                        icon: Icons.folder_open_rounded,
+                                        label: folder?.displayName ??
+                                            'Choose folder',
+                                        onTap: () => _showFolderSelector(
+                                          context,
+                                          ref,
+                                          notesState?.folders ??
+                                              const <FolderModel>[],
+                                          editorState.folderId,
+                                        ),
                                       ),
+                                      _EditorActionChip(
+                                        icon: Icons.sell_outlined,
+                                        label: editorState.tags.isEmpty
+                                            ? 'Add tags'
+                                            : '${editorState.tags.length} tags',
+                                        onTap: () => _showTagSelector(
+                                          context,
+                                          ref,
+                                          editorState.tags,
+                                        ),
+                                      ),
+                                      _EditorInfoChip(
+                                        icon: Icons.cloud_done_outlined,
+                                        label: saveLabel,
+                                      ),
+                                    ],
+                                  ),
+                                  if (editorState.isPinned ||
+                                      editorState.isFavorite ||
+                                      editorState.isArchived ||
+                                      editorState.tags.isNotEmpty) ...[
+                                    const SizedBox(height: AppSpacing.md),
+                                    Wrap(
+                                      spacing: AppSpacing.sm,
+                                      runSpacing: AppSpacing.sm,
+                                      children: [
+                                        if (editorState.isPinned)
+                                          const _StatusBadge(
+                                            icon: Icons.push_pin_rounded,
+                                            label: 'Pinned',
+                                          ),
+                                        if (editorState.isFavorite)
+                                          const _StatusBadge(
+                                            icon: Icons.star_rounded,
+                                            label: 'Favorite',
+                                          ),
+                                        if (editorState.isArchived)
+                                          const _StatusBadge(
+                                            icon: Icons.archive_rounded,
+                                            label: 'Archived',
+                                          ),
+                                        for (final tag in editorState.tags)
+                                          _TagBadge(label: '#$tag'),
+                                      ],
                                     ),
-                                    _EditorActionChip(
-                                      icon: Icons.sell_outlined,
-                                      label: editorState.tags.isEmpty
-                                          ? 'Add tags'
-                                          : '${editorState.tags.length} tags',
-                                      onTap: () => _showTagSelector(
+                                  ],
+                                ],
+                              ),
+                            ),
+                            const SizedBox(height: AppSpacing.lg),
+                            Expanded(
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  color: palette.surfacePrimary,
+                                  borderRadius: BorderRadius.circular(
+                                    AppRadius.formCard,
+                                  ),
+                                  border: Border.all(
+                                    color: palette.borderPrimary,
+                                  ),
+                                  boxShadow: AppShadows.softCard,
+                                ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    NoteEditorToolbar(
+                                      onBoldTap: () => _applyInlineWrap(
+                                        editorController,
+                                        prefix: '**',
+                                        suffix: '**',
+                                        placeholder: 'bold',
+                                      ),
+                                      onItalicTap: () => _applyInlineWrap(
+                                        editorController,
+                                        prefix: '_',
+                                        suffix: '_',
+                                        placeholder: 'italic',
+                                      ),
+                                      onChecklistTap: () => _applyLinePrefix(
+                                        editorController,
+                                        '- [ ] ',
+                                      ),
+                                      onBulletTap: () => _applyLinePrefix(
+                                        editorController,
+                                        '- ',
+                                      ),
+                                      onNumberedTap: () =>
+                                          _applyNumberedList(editorController),
+                                      onHeadingTap: () => _applyLinePrefix(
+                                        editorController,
+                                        '## ',
+                                      ),
+                                      onQuoteTap: () => _applyLinePrefix(
+                                        editorController,
+                                        '> ',
+                                      ),
+                                      onTagTap: () => _showTagSelector(
                                         context,
                                         ref,
                                         editorState.tags,
                                       ),
                                     ),
-                                    _EditorInfoChip(
-                                      icon: Icons.numbers_rounded,
-                                      label: '$wordCount words',
+                                    Divider(
+                                        height: 1, color: palette.borderSoft),
+                                    Expanded(
+                                      child: TextField(
+                                        controller: _bodyController,
+                                        focusNode: _bodyFocusNode,
+                                        onChanged:
+                                            editorController.updateContent,
+                                        expands: true,
+                                        maxLines: null,
+                                        minLines: null,
+                                        keyboardType: TextInputType.multiline,
+                                        textCapitalization:
+                                            TextCapitalization.sentences,
+                                        textAlignVertical:
+                                            TextAlignVertical.top,
+                                        decoration: InputDecoration(
+                                          contentPadding:
+                                              const EdgeInsets.fromLTRB(
+                                            AppSpacing.xl,
+                                            AppSpacing.xl,
+                                            AppSpacing.xl,
+                                            AppSpacing.xl,
+                                          ),
+                                          border: InputBorder.none,
+                                          hintText: 'Start writing...',
+                                          hintStyle:
+                                              AppTypography.bodyLarge.copyWith(
+                                            color: palette.textPlaceholder,
+                                          ),
+                                        ),
+                                        style: AppTypography.bodyLarge.copyWith(
+                                          height: 1.6,
+                                        ),
+                                      ),
                                     ),
-                                    _EditorInfoChip(
-                                      icon: Icons.auto_stories_rounded,
-                                      label: readTime,
+                                    Divider(
+                                        height: 1, color: palette.borderSoft),
+                                    Padding(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: AppSpacing.xl,
+                                        vertical: AppSpacing.md,
+                                      ),
+                                      child: Row(
+                                        children: [
+                                          Text(
+                                            '$wordCount words',
+                                            style: AppTypography.bodySmall
+                                                .copyWith(
+                                              color: palette.textSecondary,
+                                            ),
+                                          ),
+                                          const SizedBox(width: AppSpacing.md),
+                                          Text(
+                                            readTime,
+                                            style: AppTypography.bodySmall
+                                                .copyWith(
+                                              color: palette.textSecondary,
+                                            ),
+                                          ),
+                                          const Spacer(),
+                                          Text(
+                                            saveLabel,
+                                            style: AppTypography.bodySmall
+                                                .copyWith(
+                                              color: palette.textSecondary,
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
                                     ),
                                   ],
                                 ),
-                                if (editorState.isPinned ||
-                                    editorState.isFavorite ||
-                                    editorState.isArchived ||
-                                    editorState.tags.isNotEmpty) ...[
-                                  const SizedBox(height: AppSpacing.lg),
-                                  Wrap(
-                                    spacing: AppSpacing.sm,
-                                    runSpacing: AppSpacing.sm,
-                                    children: [
-                                      if (editorState.isPinned)
-                                        const _StatusBadge(
-                                          icon: Icons.push_pin_rounded,
-                                          label: 'Pinned',
-                                        ),
-                                      if (editorState.isFavorite)
-                                        const _StatusBadge(
-                                          icon: Icons.star_rounded,
-                                          label: 'Favorite',
-                                        ),
-                                      if (editorState.isArchived)
-                                        const _StatusBadge(
-                                          icon: Icons.archive_rounded,
-                                          label: 'Archived',
-                                        ),
-                                      for (final tag in editorState.tags)
-                                        _TagBadge(label: '#$tag'),
-                                    ],
-                                  ),
-                                ],
-                              ],
-                            ),
-                          ),
-                          const SizedBox(height: AppSpacing.xl),
-                          const _SectionHeading(
-                            title: 'Start from a pattern',
-                            subtitle:
-                                'Drop in a structure instead of starting from a blank page.',
-                          ),
-                          const SizedBox(height: AppSpacing.md),
-                          SizedBox(
-                            height: 154,
-                            child: ListView(
-                              scrollDirection: Axis.horizontal,
-                              children: [
-                                _TemplateCard(
-                                  title: 'Brain dump',
-                                  subtitle:
-                                      'Context, tensions, and the next thing to do.',
-                                  icon: Icons.psychology_alt_outlined,
-                                  onTap: () => editorController.appendTemplate(
-                                    'Context\n\nWhat happened?\n\nWhat matters now?\n\nNext step\n',
-                                  ),
-                                ),
-                                const SizedBox(width: AppSpacing.md),
-                                _TemplateCard(
-                                  title: 'Meeting',
-                                  subtitle:
-                                      'Agenda, decisions, and follow-ups in one draft.',
-                                  icon: Icons.groups_rounded,
-                                  onTap: () => editorController.appendTemplate(
-                                    'Meeting notes\n\nAgenda\n- \n\nDecisions\n- \n\nFollow-ups\n- [ ] \n',
-                                  ),
-                                ),
-                                const SizedBox(width: AppSpacing.md),
-                                _TemplateCard(
-                                  title: 'Checklist',
-                                  subtitle:
-                                      'Turn the note into an action list immediately.',
-                                  icon: Icons.checklist_rounded,
-                                  onTap: () => editorController.appendTemplate(
-                                    '- [ ] First task\n- [ ] Second task\n- [ ] Third task\n',
-                                  ),
-                                ),
-                                const SizedBox(width: AppSpacing.md),
-                                _TemplateCard(
-                                  title: 'Journal',
-                                  subtitle:
-                                      'Capture the day, the signal, and what is next.',
-                                  icon: Icons.auto_stories_rounded,
-                                  onTap: () => editorController.appendTemplate(
-                                    'Today\n\nMood\n\nHighlight\n\nWhat I want to remember\n',
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(height: AppSpacing.xl),
-                          Container(
-                            decoration: BoxDecoration(
-                              color: palette.surfacePrimary,
-                              borderRadius: BorderRadius.circular(
-                                AppRadius.formCard,
                               ),
-                              border: Border.all(color: palette.borderPrimary),
-                              boxShadow: AppShadows.softCard,
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Padding(
-                                  padding: const EdgeInsets.fromLTRB(
-                                    AppSpacing.xl,
-                                    AppSpacing.xl,
-                                    AppSpacing.xl,
-                                    AppSpacing.md,
-                                  ),
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        'Writing space',
-                                        style: AppTypography.titleMedium,
-                                      ),
-                                      const SizedBox(height: AppSpacing.xs),
-                                      Text(
-                                        'Shape the note fast, then let autosave keep up in the background.',
-                                        style: AppTypography.bodyMedium.copyWith(
-                                          color: palette.textSecondary,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                NoteEditorToolbar(
-                                  onBoldTap: () => _applyInlineWrap(
-                                    editorController,
-                                    prefix: '**',
-                                    suffix: '**',
-                                    placeholder: 'bold',
-                                  ),
-                                  onItalicTap: () => _applyInlineWrap(
-                                    editorController,
-                                    prefix: '_',
-                                    suffix: '_',
-                                    placeholder: 'italic',
-                                  ),
-                                  onUnderlineTap: () => _applyInlineWrap(
-                                    editorController,
-                                    prefix: '<u>',
-                                    suffix: '</u>',
-                                    placeholder: 'underline',
-                                  ),
-                                  onStrikeTap: () => _applyInlineWrap(
-                                    editorController,
-                                    prefix: '~~',
-                                    suffix: '~~',
-                                    placeholder: 'strike',
-                                  ),
-                                  onChecklistTap: () => _applyLinePrefix(
-                                    editorController,
-                                    '- [ ] ',
-                                  ),
-                                  onBulletTap: () => _applyLinePrefix(
-                                    editorController,
-                                    '- ',
-                                  ),
-                                  onNumberedTap: () =>
-                                      _applyNumberedList(editorController),
-                                  onHeadingTap: () => _applyLinePrefix(
-                                    editorController,
-                                    '## ',
-                                  ),
-                                  onQuoteTap: () => _applyLinePrefix(
-                                    editorController,
-                                    '> ',
-                                  ),
-                                  onTagTap: () => _showTagSelector(
-                                    context,
-                                    ref,
-                                    editorState.tags,
-                                  ),
-                                  onMicTap: _handleMicTap,
-                                  onAttachTap: _handleAttachTap,
-                                ),
-                                Divider(
-                                  height: 1,
-                                  color: palette.borderSoft,
-                                ),
-                                TextField(
-                                  controller: _bodyController,
-                                  focusNode: _bodyFocusNode,
-                                  onChanged: editorController.updateContent,
-                                  maxLines: null,
-                                  minLines: 8,
-                                  keyboardType: TextInputType.multiline,
-                                  textCapitalization:
-                                      TextCapitalization.sentences,
-                                  textAlignVertical: TextAlignVertical.top,
-                                  decoration: InputDecoration(
-                                    contentPadding: const EdgeInsets.fromLTRB(
-                                      AppSpacing.xl,
-                                      AppSpacing.xl,
-                                      AppSpacing.xl,
-                                      AppSpacing.xxl,
-                                    ),
-                                    border: InputBorder.none,
-                                    hintText:
-                                        'Start writing. This note stays ready for search, tags, and autosave.',
-                                    hintStyle: AppTypography.bodyLarge.copyWith(
-                                      color: palette.textPlaceholder,
-                                    ),
-                                  ),
-                                  style: AppTypography.bodyLarge.copyWith(
-                                    height: 1.6,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(height: AppSpacing.xl),
-                        ],
-                      ),
-                    ),
-                    if (!isKeyboardVisible)
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: AppSpacing.xl,
-                          vertical: AppSpacing.md,
-                        ),
-                        decoration: BoxDecoration(
-                          color: palette.surfacePrimary,
-                          boxShadow: AppShadows.bottomNav,
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceAround,
-                          children: [
-                            _BottomAction(
-                              icon: Icons.checklist_rounded,
-                              label: 'Checklist',
-                              onTap: () => _applyLinePrefix(
-                                editorController,
-                                '- [ ] ',
-                              ),
-                            ),
-                            _BottomAction(
-                              icon: Icons.format_list_bulleted_rounded,
-                              label: 'Bullet',
-                              onTap: () =>
-                                  _applyLinePrefix(editorController, '- '),
-                            ),
-                            _BottomAction(
-                              icon: Icons.format_quote_rounded,
-                              label: 'Quote',
-                              onTap: () =>
-                                  _applyLinePrefix(editorController, '> '),
-                            ),
-                            _BottomAction(
-                              icon: Icons.sell_outlined,
-                              label: 'Tag',
-                              onTap: () => _showTagSelector(
-                                  context, ref, editorState.tags),
-                            ),
-                            _BottomAction(
-                              icon: Icons.mic_none_rounded,
-                              label: 'Voice',
-                              onTap: _handleMicTap,
-                            ),
-                            _BottomAction(
-                              icon: Icons.attach_file_rounded,
-                              label: 'Attach',
-                              onTap: _handleAttachTap,
                             ),
                           ],
                         ),
                       ),
+                    ),
                   ],
                 ),
         ),
       ),
     );
-  }
-
-  Future<void> _handleMicTap() async {
-    final granted = await JitPermissionService.requestMicrophone(context);
-    if (granted && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('[Mic] Voice note initialized successfully (Simulated).'),
-        ),
-      );
-    }
-  }
-
-  Future<void> _handleAttachTap() async {
-    final granted = await JitPermissionService.requestStorage(context);
-    if (granted && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('[Storage] Media attachment selector opened (Simulated).'),
-        ),
-      );
-    }
   }
 
   int _countWords(String content) {
@@ -943,102 +775,6 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
   }
 }
 
-class _BottomAction extends StatelessWidget {
-  const _BottomAction({
-    required this.icon,
-    required this.label,
-    required this.onTap,
-  });
-
-  final IconData icon;
-  final String label;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final palette = context.palette;
-
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(AppRadius.md),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(
-          horizontal: AppSpacing.sm,
-          vertical: AppSpacing.xs,
-        ),
-        child: Row(
-          children: [
-            Icon(icon, color: AppColors.brandPrimary),
-            const SizedBox(width: AppSpacing.xs),
-            Text(
-              label,
-              style: AppTypography.bodyMedium.copyWith(
-                color: palette.textSecondary,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _SectionHeading extends StatelessWidget {
-  const _SectionHeading({
-    required this.title,
-    required this.subtitle,
-  });
-
-  final String title;
-  final String subtitle;
-
-  @override
-  Widget build(BuildContext context) {
-    final palette = context.palette;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(title, style: AppTypography.titleMedium),
-        const SizedBox(height: AppSpacing.xs),
-        Text(
-          subtitle,
-          style: AppTypography.bodyMedium.copyWith(
-            color: palette.textSecondary,
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _EditorSurfacePill extends StatelessWidget {
-  const _EditorSurfacePill({required this.label});
-
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.md,
-        vertical: AppSpacing.sm,
-      ),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.72),
-        borderRadius: BorderRadius.circular(AppRadius.pill),
-      ),
-      child: Text(
-        label,
-        style: AppTypography.bodySmall.copyWith(
-          color: AppColors.brandPrimary,
-          fontWeight: FontWeight.w700,
-        ),
-      ),
-    );
-  }
-}
-
 class _EditorActionChip extends StatelessWidget {
   const _EditorActionChip({
     required this.icon,
@@ -1117,63 +853,6 @@ class _EditorInfoChip extends StatelessWidget {
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _TemplateCard extends StatelessWidget {
-  const _TemplateCard({
-    required this.title,
-    required this.subtitle,
-    required this.icon,
-    required this.onTap,
-  });
-
-  final String title;
-  final String subtitle;
-  final IconData icon;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final palette = context.palette;
-
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(AppRadius.formCard),
-      child: Container(
-        width: 188,
-        padding: const EdgeInsets.all(AppSpacing.xl),
-        decoration: BoxDecoration(
-          color: palette.surfacePrimary,
-          borderRadius: BorderRadius.circular(AppRadius.formCard),
-          boxShadow: AppShadows.softCard,
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              width: 44,
-              height: 44,
-              decoration: BoxDecoration(
-                color: AppColors.brandPrimary.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(16),
-              ),
-              alignment: Alignment.center,
-              child: Icon(icon, color: AppColors.brandPrimary),
-            ),
-            const SizedBox(height: AppSpacing.lg),
-            Text(title, style: AppTypography.titleSmall),
-            const SizedBox(height: AppSpacing.xs),
-            Text(
-              subtitle,
-              style: AppTypography.bodySmall.copyWith(
-                color: palette.textSecondary,
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }

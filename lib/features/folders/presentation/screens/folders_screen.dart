@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/constants/route_names.dart';
-import '../../../../core/config/app_env.dart';
 import '../../../../core/extensions/context_extensions.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_radius.dart';
@@ -27,7 +26,6 @@ class FoldersScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final notesAsync = ref.watch(notesControllerProvider);
     final segment = ref.watch(foldersSegmentProvider);
-    final syncEnabled = AppEnv.enableExperimentalSync;
 
     return SafeArea(
       bottom: false,
@@ -42,10 +40,9 @@ class FoldersScreen extends ConsumerWidget {
             ),
             children: [
               AppHeader(
-                title: 'Workspace',
-                subtitle: syncEnabled
-                  ? 'Organize folders, tags, and collections that shape your synced workspace.'
-                  : 'Organize folders, tags, and collections that shape your local workspace.',
+                title: 'Organize',
+                subtitle:
+                    'Manage folders, tags, and collections for your authenticated notes.',
               ),
               const SizedBox(height: AppSpacing.headerToSearch),
               AppSearchBar(

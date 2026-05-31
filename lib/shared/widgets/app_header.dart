@@ -154,8 +154,9 @@ class _SyncHeaderButton extends ConsumerWidget {
             Color statusColor;
 
             if (syncState.isSyncing) {
-              statusTitle = 'Synchronizing Workspace';
-              statusDesc = 'Pushing local note edits and fetching remote modifications...';
+              statusTitle = 'Synchronizing notes';
+              statusDesc =
+                  'Uploading note changes and fetching the latest data for your account.';
               statusIcon = Icons.sync_rounded;
               statusColor = AppColors.brandPrimary;
             } else if (syncState.lastError != null) {
@@ -164,13 +165,14 @@ class _SyncHeaderButton extends ConsumerWidget {
               statusIcon = Icons.warning_amber_rounded;
               statusColor = AppColors.textDanger;
             } else if (syncState.lastSyncedAt != null) {
-              statusTitle = 'Cloud Workspace Online';
-              statusDesc = 'All local changes are fully synced to the secure server.';
+              statusTitle = 'Account sync complete';
+              statusDesc =
+                  'All note changes are fully synced to the secure server.';
               statusIcon = Icons.cloud_done_rounded;
               statusColor = const Color(0xFF10B981);
             } else {
-              statusTitle = 'Cloud Sync Ready';
-              statusDesc = 'Sign in is completed. Your cloud sync workspace is preparing.';
+              statusTitle = 'Account sync ready';
+              statusDesc = 'Your authenticated note sync is preparing.';
               statusIcon = Icons.cloud_queue_rounded;
               statusColor = palette.textSecondary;
             }
@@ -228,14 +230,16 @@ class _SyncHeaderButton extends ConsumerWidget {
                     _DetailsRow(
                       label: 'Last Successful Sync',
                       value: syncState.lastSyncedAt != null
-                          ? DateFormatter.formatRelative(syncState.lastSyncedAt!)
+                          ? DateFormatter.formatRelative(
+                              syncState.lastSyncedAt!)
                           : 'Never',
                     ),
                     if (syncState.nextRetryAt != null) ...[
                       const SizedBox(height: AppSpacing.sm),
                       _DetailsRow(
                         label: 'Auto-Retry Scheduled',
-                        value: DateFormatter.formatRelative(syncState.nextRetryAt!),
+                        value: DateFormatter.formatRelative(
+                            syncState.nextRetryAt!),
                       ),
                     ],
                     const SizedBox(height: AppSpacing.sm),
@@ -250,7 +254,9 @@ class _SyncHeaderButton extends ConsumerWidget {
                             ? null
                             : AppGradients.authPrimaryButton,
                         borderRadius: BorderRadius.circular(AppRadius.button),
-                        boxShadow: syncState.isSyncing ? null : AppShadows.floatingCard,
+                        boxShadow: syncState.isSyncing
+                            ? null
+                            : AppShadows.floatingCard,
                       ),
                       child: FilledButton(
                         onPressed: syncState.isSyncing
@@ -259,7 +265,7 @@ class _SyncHeaderButton extends ConsumerWidget {
                                 Navigator.pop(context);
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   const SnackBar(
-                                    content: Text('Starting manual workspace sync...'),
+                                    content: Text('Starting sync...'),
                                   ),
                                 );
                                 await ref
@@ -271,7 +277,8 @@ class _SyncHeaderButton extends ConsumerWidget {
                           shadowColor: Colors.transparent,
                           minimumSize: const Size.fromHeight(50),
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(AppRadius.button),
+                            borderRadius:
+                                BorderRadius.circular(AppRadius.button),
                           ),
                         ),
                         child: Text(
@@ -312,7 +319,8 @@ class _DetailsRow extends StatelessWidget {
       children: [
         Text(
           label,
-          style: AppTypography.bodyMedium.copyWith(color: palette.textSecondary),
+          style:
+              AppTypography.bodyMedium.copyWith(color: palette.textSecondary),
         ),
         Text(
           value,

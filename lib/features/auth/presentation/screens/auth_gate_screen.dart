@@ -1,7 +1,9 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/extensions/context_extensions.dart';
+import '../../../../core/network/authenticated_api_client.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_gradients.dart';
 import '../../../../core/theme/app_radius.dart';
@@ -60,9 +62,7 @@ class _AuthGateScreenState extends ConsumerState<AuthGateScreen>
     ref.listen(authControllerProvider, (previous, next) {
       if (next.hasError) {
         final error = next.error;
-        final message = error is Exception
-            ? error.toString().replaceFirst('Exception: ', '')
-            : 'Authentication failed.';
+        final message = _describeAuthError(error);
         _showErrorDialog(message);
       }
     });
@@ -105,7 +105,7 @@ class _AuthGateScreenState extends ConsumerState<AuthGateScreen>
                       ),
                       const SizedBox(height: AppSpacing.lg),
                       Text(
-                        'Start writing now. Sync later.',
+                        'Sign in to continue.',
                         style: AppTypography.headlinePrimary.copyWith(
                           fontWeight: FontWeight.bold,
                           letterSpacing: -0.5,
@@ -114,7 +114,7 @@ class _AuthGateScreenState extends ConsumerState<AuthGateScreen>
                       ),
                       const SizedBox(height: AppSpacing.xs),
                       Text(
-                        'Email sign-in unlocks cloud backup for this workspace. Your notes already work locally without an account.',
+                        'ThinkNote requires a verified Firebase account before you can access notes, folders, and sync.',
                         style: AppTypography.bodyMedium.copyWith(
                           color: palette.textSecondary,
                         ),
@@ -168,7 +168,8 @@ class _AuthGateScreenState extends ConsumerState<AuthGateScreen>
                                   primaryLabel: 'Sign In',
                                   secondaryActionLabel: 'Forgot Password?',
                                   onSecondaryAction: _showResetPasswordDialog,
-                                  footer: 'Verify details to access your secure note vaults.',
+                                  footer:
+                                      'Use your account email and password to open your notes.',
                                 ),
                               ),
                               // Sign Up Form
@@ -181,7 +182,8 @@ class _AuthGateScreenState extends ConsumerState<AuthGateScreen>
                                   passwordController: _signUpPasswordController,
                                   onSubmit: _submitSignUp,
                                   primaryLabel: 'Create account',
-                                  footer: 'We will email a verification link before sync becomes fully trusted on this device.',
+                                  footer:
+                                      'Create your secure ThinkNote account. We will send a verification link before notes can sync to this signed-in identity.',
                                 ),
                               ),
                             ],
@@ -225,7 +227,7 @@ class _AuthGateScreenState extends ConsumerState<AuthGateScreen>
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          'Local data is encrypted with AES-256 ciphers at rest. Communication with our servers is secured over TLS HTTPS protocols.',
+                          'ThinkNote uses Firebase Authentication for sign-in and sends authenticated API requests over HTTPS to load and sync your notes.',
                           style: AppTypography.bodySmall.copyWith(
                             color: palette.textTertiary,
                             height: 1.4,
@@ -270,7 +272,7 @@ class _AuthGateScreenState extends ConsumerState<AuthGateScreen>
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text(
-              'Account registration successful! Check your inbox for a verification email.',
+              'Account created. Check your inbox for the verification email.',
             ),
           ),
         );
@@ -286,14 +288,18 @@ class _AuthGateScreenState extends ConsumerState<AuthGateScreen>
         return AlertDialog(
           title: Row(
             children: [
-              const Icon(Icons.error_outline_rounded, color: AppColors.textDanger),
+              const Icon(Icons.error_outline_rounded,
+                  color: AppColors.textDanger),
               const SizedBox(width: 8),
-              Text('Auth Error', style: AppTypography.titleMedium.copyWith(color: AppColors.textDanger)),
+              Text('Auth Error',
+                  style: AppTypography.titleMedium
+                      .copyWith(color: AppColors.textDanger)),
             ],
           ),
           content: Text(
             message,
-            style: AppTypography.bodyMedium.copyWith(color: palette.textSecondary),
+            style:
+                AppTypography.bodyMedium.copyWith(color: palette.textSecondary),
           ),
           actions: [
             TextButton(
@@ -329,8 +335,49 @@ class _AuthGateScreenState extends ConsumerState<AuthGateScreen>
     }
 
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Password reset instructions sent to ${email.trim()}.')),
+      SnackBar(
+          content:
+              Text('Password reset instructions sent to ${email.trim()}.')),
     );
+  }
+
+  String _describeAuthError(Object? error) {
+    if (error is FirebaseAuthException) {
+      return switch (error.code) {
+        'invalid-email' => 'Enter a valid email address.',
+        'invalid-credential' ||
+        'wrong-password' =>
+          'Invalid email or password.',
+        'user-not-found' => 'No account exists for that email.',
+        'email-already-in-use' => 'An account already exists for that email.',
+        'weak-password' =>
+          'Choose a stronger password with at least 6 characters.',
+        'network-request-failed' =>
+          'Network error. Check your connection and try again.',
+        'too-many-requests' => 'Too many attempts. Try again in a moment.',
+        'operation-not-allowed' =>
+          'Email/password sign-in is not enabled for this Firebase project.',
+        _ => error.message?.trim().isNotEmpty == true
+            ? error.message!.trim()
+            : 'Authentication failed.',
+      };
+    }
+
+    if (error is ApiException) {
+      if (error.statusCode == 401) {
+        return 'Your session expired. Sign in again.';
+      }
+      if (error.statusCode == 503) {
+        return 'Server unavailable. Try again in a moment.';
+      }
+      return error.message;
+    }
+
+    if (error is Exception) {
+      return error.toString().replaceFirst('Exception: ', '');
+    }
+
+    return 'Authentication failed.';
   }
 }
 
@@ -381,7 +428,8 @@ class _AuthFormState extends State<_AuthForm> {
             TextFormField(
               controller: widget.nameController,
               textCapitalization: TextCapitalization.words,
-              style: AppTypography.bodyLarge.copyWith(fontWeight: FontWeight.w600),
+              style:
+                  AppTypography.bodyLarge.copyWith(fontWeight: FontWeight.w600),
               decoration: const InputDecoration(
                 labelText: 'Display Name',
                 hintText: 'e.g., Alex Carter',
@@ -400,7 +448,8 @@ class _AuthFormState extends State<_AuthForm> {
             controller: widget.emailController,
             keyboardType: TextInputType.emailAddress,
             autocorrect: false,
-            style: AppTypography.bodyLarge.copyWith(fontWeight: FontWeight.w600),
+            style:
+                AppTypography.bodyLarge.copyWith(fontWeight: FontWeight.w600),
             decoration: const InputDecoration(
               labelText: 'Email Address',
               hintText: 'name@example.com',
@@ -422,14 +471,17 @@ class _AuthFormState extends State<_AuthForm> {
             controller: widget.passwordController,
             obscureText: _obscurePassword,
             autocorrect: false,
-            style: AppTypography.bodyLarge.copyWith(fontWeight: FontWeight.w600),
+            style:
+                AppTypography.bodyLarge.copyWith(fontWeight: FontWeight.w600),
             decoration: InputDecoration(
               labelText: 'Password',
               hintText: 'At least 6 characters',
               floatingLabelBehavior: FloatingLabelBehavior.always,
               suffixIcon: IconButton(
                 icon: Icon(
-                  _obscurePassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                  _obscurePassword
+                      ? Icons.visibility_off_outlined
+                      : Icons.visibility_outlined,
                   size: 20,
                   color: palette.textTertiary,
                 ),
@@ -476,7 +528,8 @@ class _AuthFormState extends State<_AuthForm> {
               ),
             ),
           ),
-          if (widget.secondaryActionLabel != null && widget.onSecondaryAction != null) ...[
+          if (widget.secondaryActionLabel != null &&
+              widget.onSecondaryAction != null) ...[
             const SizedBox(height: AppSpacing.xs),
             Align(
               alignment: Alignment.centerRight,
@@ -487,7 +540,8 @@ class _AuthFormState extends State<_AuthForm> {
                 ),
                 child: Text(
                   widget.secondaryActionLabel!,
-                  style: AppTypography.bodyMedium.copyWith(fontWeight: FontWeight.bold),
+                  style: AppTypography.bodyMedium
+                      .copyWith(fontWeight: FontWeight.bold),
                 ),
               ),
             ),
@@ -579,7 +633,8 @@ class _ResetPasswordDialogState extends State<_ResetPasswordDialog> {
               Navigator.of(context).pop(_controller.text.trim());
             }
           },
-          style: FilledButton.styleFrom(backgroundColor: AppColors.brandPrimary),
+          style:
+              FilledButton.styleFrom(backgroundColor: AppColors.brandPrimary),
           child: const Text('Send Reset Link'),
         ),
       ],

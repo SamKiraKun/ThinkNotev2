@@ -3,16 +3,16 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/constants/route_names.dart';
-import '../../../../core/config/app_env.dart';
 import '../../../../core/extensions/context_extensions.dart';
 import '../../../../core/security/app_passcode_store.dart';
-import '../../../../core/storage/local_storage.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_radius.dart';
 import '../../../../core/theme/app_shadows.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../auth/auth_providers.dart';
+import '../../../auth/domain/entities/auth_session.dart';
+import '../../../auth/domain/entities/authenticated_account.dart';
 import '../../../auth/presentation/controllers/auth_controller.dart';
 import '../../../notes/presentation/controllers/notes_controller.dart';
 import '../../../notes/data/models/app_preferences_model.dart';
@@ -22,6 +22,35 @@ import '../../../sync/presentation/controllers/sync_controller.dart';
 
 class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});
+
+  String _displayNameFor(
+    AuthenticatedAccount? account,
+    AuthSession? authSession,
+  ) {
+    final accountName = account?.displayName?.trim();
+    if (accountName != null && accountName.isNotEmpty) {
+      return accountName;
+    }
+
+    final authName = authSession?.displayName?.trim();
+    if (authName != null && authName.isNotEmpty) {
+      return authName;
+    }
+
+    final email = account?.email ?? authSession?.email;
+    if (email != null && email.contains('@')) {
+      return email.split('@').first;
+    }
+
+    return 'ThinkNote user';
+  }
+
+  String _emailFor(
+    AuthenticatedAccount? account,
+    AuthSession? authSession,
+  ) {
+    return account?.email ?? authSession?.email ?? 'Signed in with Firebase';
+  }
 
   String _focusBioText(WorkspaceFocus? focus) {
     if (focus == null) return '💜 Dreamer • Planner • Creator';
@@ -41,20 +70,18 @@ class ProfileScreen extends ConsumerWidget {
     return ref.read(appPasscodeStoreProvider).hasConfiguredPasscode();
   }
 
-  void _showComingSoonSnackBar(BuildContext context, String featureName) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('$featureName coming soon.')),
-    );
-  }
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final notesAsync = ref.watch(notesControllerProvider);
+    final syncState = ref.watch(syncControllerProvider);
     final palette = context.palette;
-    final syncEnabled = AppEnv.enableExperimentalSync;
-    final onboardingProfile = ref.watch(onboardingControllerProvider).valueOrNull;
-    final authSession =
-        syncEnabled ? ref.watch(currentAuthSessionProvider) : null;
+    final onboardingProfile =
+        ref.watch(onboardingControllerProvider).valueOrNull;
+    final authSession = ref.watch(currentAuthSessionProvider);
+    final authenticatedAccount =
+        ref.watch(authenticatedAccountProvider).valueOrNull;
+    final displayName = _displayNameFor(authenticatedAccount, authSession);
+    final email = _emailFor(authenticatedAccount, authSession);
 
     return SafeArea(
       bottom: false,
@@ -69,9 +96,7 @@ class ProfileScreen extends ConsumerWidget {
               AppSpacing.bottomNavReserved,
             ),
             children: [
-              // Custom Header to match visual specification (Title, Subtitle, Bell Trailing)
               Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -84,45 +109,17 @@ class ProfileScreen extends ConsumerWidget {
                       ),
                       const SizedBox(height: AppSpacing.xs),
                       Text(
-                        'Manage your account and preferences.',
+                        'Manage your authenticated account and app preferences.',
                         style: AppTypography.bodyMedium.copyWith(
                           color: palette.textSecondary,
                         ),
                       ),
                     ],
                   ),
-                  Container(
-                    width: 48,
-                    height: 48,
-                    decoration: BoxDecoration(
-                      color: palette.surfacePrimary,
-                      shape: BoxShape.circle,
-                      boxShadow: AppShadows.softCard,
-                    ),
-                    alignment: Alignment.center,
-                    child: Stack(
-                      children: [
-                        Icon(Icons.notifications_none_rounded, color: palette.textPrimary),
-                        Positioned(
-                          right: 2,
-                          top: 2,
-                          child: Container(
-                            width: 8,
-                            height: 8,
-                            decoration: const BoxDecoration(
-                              color: AppColors.brandLavender,
-                              shape: BoxShape.circle,
-                            ),
-                          ),
-                        )
-                      ],
-                    ),
-                  )
                 ],
               ),
               const SizedBox(height: AppSpacing.xxl),
 
-              // User Identity Profile Card
               Container(
                 padding: const EdgeInsets.all(AppSpacing.xl),
                 decoration: BoxDecoration(
@@ -140,43 +137,32 @@ class ProfileScreen extends ConsumerWidget {
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
                             color: AppColors.brandLavender,
-                            image: authSession?.photoUrl != null
+                            image: (authenticatedAccount?.avatarUrl ??
+                                        authSession?.photoUrl) !=
+                                    null
                                 ? DecorationImage(
-                                    image: NetworkImage(authSession!.photoUrl!),
+                                    image: NetworkImage(
+                                      authenticatedAccount?.avatarUrl ??
+                                          authSession!.photoUrl!,
+                                    ),
                                     fit: BoxFit.cover,
                                   )
                                 : null,
                           ),
                           alignment: Alignment.center,
-                          child: authSession?.photoUrl == null
+                          child: (authenticatedAccount?.avatarUrl ??
+                                      authSession?.photoUrl) ==
+                                  null
                               ? Text(
-                                  authSession?.initials ?? 'G',
+                                  authSession?.initials ??
+                                      displayName.characters.first
+                                          .toUpperCase(),
                                   style: AppTypography.titleLarge.copyWith(
                                     color: AppColors.surfaceWhite,
                                     fontSize: 24,
                                   ),
                                 )
                               : null,
-                        ),
-                        Positioned(
-                          right: 0,
-                          bottom: 0,
-                          child: Container(
-                            width: 24,
-                            height: 24,
-                            decoration: BoxDecoration(
-                              color: AppColors.surfaceWhite,
-                              shape: BoxShape.circle,
-                              border: Border.all(color: palette.borderPrimary),
-                              boxShadow: AppShadows.softCard,
-                            ),
-                            alignment: Alignment.center,
-                            child: const Icon(
-                              Icons.camera_alt_outlined,
-                              size: 14,
-                              color: AppColors.brandPrimary,
-                            ),
-                          ),
                         ),
                       ],
                     ),
@@ -188,7 +174,7 @@ class ProfileScreen extends ConsumerWidget {
                           Row(
                             children: [
                               Text(
-                                authSession?.displayName ?? onboardingProfile?.workspaceName ?? 'Guest User',
+                                displayName,
                                 style: AppTypography.titleMedium,
                               ),
                               const SizedBox(width: 4),
@@ -201,7 +187,7 @@ class ProfileScreen extends ConsumerWidget {
                           ),
                           const SizedBox(height: AppSpacing.xs),
                           Text(
-                            authSession?.email ?? 'local-workspace@thinknote.app',
+                            email,
                             style: AppTypography.bodyMedium.copyWith(
                               color: palette.textSecondary,
                             ),
@@ -214,7 +200,8 @@ class ProfileScreen extends ConsumerWidget {
                             ),
                             decoration: BoxDecoration(
                               color: palette.surfaceAccent,
-                              borderRadius: BorderRadius.circular(AppRadius.pill),
+                              borderRadius:
+                                  BorderRadius.circular(AppRadius.pill),
                             ),
                             child: Text(
                               _focusBioText(onboardingProfile?.workspaceFocus),
@@ -248,20 +235,9 @@ class ProfileScreen extends ConsumerWidget {
                     trailingText: preferences.themePreference.label,
                     onTap: () => context.push(RouteNames.themeSettings),
                   ),
-                  const Divider(height: 1, indent: 68, endIndent: 16),
-                  _SettingsTile(
-                    icon: Icons.text_fields_rounded,
-                    iconColor: AppColors.brandPrimary,
-                    iconBgColor: AppColors.brandPrimary.withValues(alpha: 0.1),
-                    title: 'Font & Text Size',
-                    subtitle: 'Customize how your notes look',
-                    trailingText: 'Medium',
-                    onTap: () => _showComingSoonSnackBar(context, 'Font & Text Size'),
-                  ),
                 ],
               ),
 
-              // Account & Data Settings Group
               _SectionHeader('Account & Data'),
               _SettingsGroup(
                 children: [
@@ -270,25 +246,50 @@ class ProfileScreen extends ConsumerWidget {
                     iconColor: AppColors.brandPrimary,
                     iconBgColor: AppColors.brandPrimary.withValues(alpha: 0.1),
                     title: 'Sync & Backup',
-                    subtitle: 'Keep your notes safe and in sync',
-                    trailing: authSession == null
-                        ? const Text('Off')
-                        : Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              const Icon(Icons.check_circle_outline, color: Colors.green, size: 18),
-                              const SizedBox(width: 4),
-                              Text('Synced', style: TextStyle(color: palette.textSecondary)),
-                            ],
-                          ),
-                    onTap: authSession == null
-                        ? () async {
-                            final sharedPrefs = ref.read(sharedPreferencesProvider);
-                            await sharedPrefs.setBool('is_guest_mode', false);
-                            if (!context.mounted) return;
-                            context.push(RouteNames.auth);
-                          }
-                        : () => _syncNow(context, ref),
+                    subtitle: 'Check sync status for your signed-in account',
+                    trailing: syncState.isSyncing
+                        ? Text(
+                            'Syncing',
+                            style: AppTypography.bodyMedium.copyWith(
+                              color: palette.textSecondary,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          )
+                        : syncState.lastError == null
+                            ? Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(
+                                    Icons.check_circle_outline,
+                                    color: Colors.green,
+                                    size: 18,
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    'Synced',
+                                    style: TextStyle(
+                                      color: palette.textSecondary,
+                                    ),
+                                  ),
+                                ],
+                              )
+                            : Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(
+                                    Icons.warning_amber_rounded,
+                                    color: AppColors.textDanger,
+                                    size: 18,
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    'Retry',
+                                    style:
+                                        TextStyle(color: palette.textSecondary),
+                                  ),
+                                ],
+                              ),
+                    onTap: () => _syncNow(context, ref),
                   ),
                   const Divider(height: 1, indent: 68, endIndent: 16),
                   _SettingsTile(
@@ -311,7 +312,8 @@ class ProfileScreen extends ConsumerWidget {
                     iconColor: AppColors.brandPrimary,
                     iconBgColor: AppColors.brandPrimary.withValues(alpha: 0.1),
                     title: 'App Passcode',
-                    subtitle: 'Require a passcode before this workspace opens on this device',
+                    subtitle:
+                        'Require a passcode before ThinkNote opens on this device',
                     trailingText: _isNotesLockOn(ref) ? 'On' : 'Off',
                     onTap: () => context.push(RouteNames.lockNotes),
                   ),
@@ -345,7 +347,8 @@ class ProfileScreen extends ConsumerWidget {
                       iconColor: AppColors.textDanger,
                       iconBgColor: AppColors.textDanger.withValues(alpha: 0.1),
                       title: 'Delete account',
-                      subtitle: 'Permanently remove your account and synced data',
+                      subtitle:
+                          'Permanently remove your account and synced data',
                       onTap: () => _confirmDeleteAccount(context, ref),
                     ),
                   ],
@@ -384,8 +387,6 @@ class ProfileScreen extends ConsumerWidget {
   }
 
   Future<void> _signOut(BuildContext context, WidgetRef ref) async {
-    final sharedPrefs = ref.read(sharedPreferencesProvider);
-    await sharedPrefs.setBool('is_guest_mode', false);
     await ref.read(authControllerProvider.notifier).signOut();
     ref.invalidate(appStartupSnapshotProvider);
     if (!context.mounted) {
@@ -394,7 +395,8 @@ class ProfileScreen extends ConsumerWidget {
     _showSnack(context, 'Signed out.');
   }
 
-  Future<void> _confirmDeleteAccount(BuildContext context, WidgetRef ref) async {
+  Future<void> _confirmDeleteAccount(
+      BuildContext context, WidgetRef ref) async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -419,8 +421,6 @@ class ProfileScreen extends ConsumerWidget {
       return;
     }
 
-    final sharedPrefs = ref.read(sharedPreferencesProvider);
-    await sharedPrefs.setBool('is_guest_mode', false);
     await ref.read(authControllerProvider.notifier).deleteAccount();
     ref.invalidate(appStartupSnapshotProvider);
     if (!context.mounted) {

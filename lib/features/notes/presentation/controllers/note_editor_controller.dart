@@ -234,12 +234,6 @@ class NoteEditorController extends StateNotifier<NoteEditorState> {
     _scheduleSave();
   }
 
-  void appendTemplate(String template) {
-    final prefix =
-        state.content.isEmpty || state.content.endsWith('\n') ? '' : '\n';
-    updateContent('${state.content}$prefix$template');
-  }
-
   Future<void> saveNow() async {
     await _debouncer.flush();
     await _persist();

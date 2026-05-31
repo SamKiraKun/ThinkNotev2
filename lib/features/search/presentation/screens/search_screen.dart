@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/constants/route_names.dart';
-import '../../../../core/config/app_env.dart';
 import '../../../../core/extensions/context_extensions.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_radius.dart';
@@ -19,7 +18,6 @@ import '../../../notes/data/models/app_preferences_model.dart';
 import '../../../notes/presentation/controllers/notes_controller.dart';
 import '../../../notes/presentation/widgets/note_card.dart';
 import '../../../shell/presentation/controllers/shell_controller.dart';
-import '../../../sync/presentation/controllers/sync_controller.dart';
 import '../controllers/search_controller.dart';
 
 class SearchScreen extends ConsumerStatefulWidget {
@@ -52,8 +50,6 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     final topPicks = ref.watch(searchTopPicksProvider);
     final hasFilters = ref.watch(hasSearchFiltersProvider);
     final palette = context.palette;
-    final syncEnabled = AppEnv.enableExperimentalSync;
-    final syncState = ref.watch(syncControllerProvider);
 
     if (_controller.text != searchState.query) {
       _controller.value = _controller.value.copyWith(
@@ -88,21 +84,9 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
               if (index == 0) {
                 return AppHeader(
                   title: 'Search',
-                  subtitle: syncEnabled
-                      ? 'Search notes, folders, and tags instantly across your workspace while sync runs in the background.'
-                      : 'Search notes, folders, and tags instantly across this device.',
+                  subtitle:
+                      'Search notes, folders, and tags across your authenticated account.',
                   leading: const HeaderAvatar(label: 'T'),
-                  trailing: syncEnabled
-                      ? HeaderActionButton(
-                          icon: syncState.isSyncing
-                              ? Icons.sync_rounded
-                              : Icons.cloud_done_outlined,
-                          onPressed: () => _showSnack(
-                            context,
-                            'Search stays local for speed while synced notes update in the background.',
-                          ),
-                        )
-                      : null,
                 );
               }
 
@@ -244,7 +228,8 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                       label: searchState.tagLabel == null
                           ? 'All Tags'
                           : '#${searchState.tagLabel}',
-                      onTap: () => _showTagFilterSheet(context, ref, notesState),
+                      onTap: () =>
+                          _showTagFilterSheet(context, ref, notesState),
                     ),
                     _FilterChip(
                       label: searchState.sortOrder?.label ??
@@ -266,7 +251,8 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                   return Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text('Top Picks For You', style: AppTypography.titleMedium),
+                      Text('Top Picks For You',
+                          style: AppTypography.titleMedium),
                       TextButton(
                         onPressed: () => ref
                             .read(shellTabProvider.notifier)
@@ -545,12 +531,6 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
           ),
         );
       },
-    );
-  }
-
-  void _showSnack(BuildContext context, String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
     );
   }
 }

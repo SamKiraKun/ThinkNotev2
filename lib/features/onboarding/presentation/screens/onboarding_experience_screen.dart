@@ -34,13 +34,13 @@ class _OnboardingExperienceScreenState
       eyebrow: 'Stay organized',
       headline: 'Designed for your ideas.',
       description:
-          'Keep notes easy to find with folders, tags, quick search, and local-first performance that never feels heavy.',
+          'Keep notes easy to find with folders, tags, and quick search once you sign in to your secure account.',
     ),
     _OnboardingPageContent(
       eyebrow: 'Built for trust',
       headline: 'Private and secure.',
       description:
-          'ThinkNote stays calm by default: local-first storage, contextual permissions, and optional sync only when you want it.',
+          'ThinkNote protects access with Firebase Authentication and keeps your notes tied to your signed-in account.',
     ),
   ];
 
@@ -211,8 +211,10 @@ class _OnboardingExperienceScreenState
                             vertical: AppSpacing.md,
                           ),
                           decoration: BoxDecoration(
-                            color: palette.surfacePrimary.withValues(alpha: 0.88),
-                            borderRadius: BorderRadius.circular(AppRadius.formCard),
+                            color:
+                                palette.surfacePrimary.withValues(alpha: 0.88),
+                            borderRadius:
+                                BorderRadius.circular(AppRadius.formCard),
                             border: Border.all(color: palette.borderSoft),
                           ),
                           child: Row(
@@ -248,7 +250,8 @@ class _OnboardingExperienceScreenState
                                   onPressed: isBusy ? null : _goBack,
                                   style: OutlinedButton.styleFrom(
                                     minimumSize: const Size.fromHeight(54),
-                                    side: BorderSide(color: palette.borderPrimary),
+                                    side: BorderSide(
+                                        color: palette.borderPrimary),
                                     shape: RoundedRectangleBorder(
                                       borderRadius: BorderRadius.circular(
                                         AppRadius.button,
@@ -321,8 +324,8 @@ class _OnboardingExperienceScreenState
   String _helperTextFor(_OnboardingPageContent slide) {
     return switch (slide.headline) {
       'Private and secure.' =>
-        'No account is required. Permissions only appear when you use reminders, voice, or attachments.',
-      _ => 'Start writing now. Sync and cloud backup can be added later from Profile.',
+        'You will sign in after onboarding before you can open notes, folders, or profile data.',
+      _ => 'Finish onboarding, then continue to secure sign-in.',
     };
   }
 
@@ -396,7 +399,7 @@ class _OnboardingExperienceScreenState
                 textColor: AppColors.brandPrimary,
               ),
               _MiniTag(
-                label: 'Offline ready',
+                label: 'Secure sync',
                 backgroundColor: palette.surfacePrimary.withValues(alpha: 0.82),
                 textColor: palette.textSecondary,
               ),
@@ -414,8 +417,9 @@ class _OnboardingExperienceScreenState
         _buildFeatureItem(
           context,
           icon: Icons.sync_rounded,
-          title: 'Sync when you need it',
-          subtitle: 'Local-first notes stay fast, then sync once you choose an account.',
+          title: 'Authenticated sync',
+          subtitle:
+              'Sign in once, then keep notes, folders, and tags attached to your account.',
         ),
         const SizedBox(height: AppSpacing.md),
         _buildFeatureItem(
@@ -429,7 +433,8 @@ class _OnboardingExperienceScreenState
           context,
           icon: Icons.search_rounded,
           title: 'Instant search',
-          subtitle: 'Find what matters quickly with lightweight, readable structure.',
+          subtitle:
+              'Find what matters quickly with lightweight, readable structure.',
         ),
       ],
     );
@@ -531,7 +536,7 @@ class _OnboardingExperienceScreenState
           const SizedBox(height: AppSpacing.sm),
           const _TrustRow(
             icon: Icons.smartphone_rounded,
-            label: 'Notes save on this device first.',
+            label: 'Sign in after setup to unlock your notes.',
           ),
           const SizedBox(height: AppSpacing.sm),
           const _TrustRow(
@@ -686,42 +691,68 @@ class _OnboardingSlide extends StatelessWidget {
   Widget build(BuildContext context) {
     final palette = context.palette;
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Expanded(
-            child: Center(child: visual),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final compactLayout = constraints.maxHeight < 460;
+
+        return Padding(
+          padding: EdgeInsets.symmetric(
+            vertical: compactLayout ? AppSpacing.sm : AppSpacing.md,
           ),
-          const SizedBox(height: AppSpacing.xl),
-          Text(
-            eyebrow.toUpperCase(),
-            style: AppTypography.labelMedium.copyWith(
-              color: AppColors.brandPrimary,
-              letterSpacing: 0.5,
-            ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Expanded(
+                child: Center(
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.center,
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 320),
+                      child: visual,
+                    ),
+                  ),
+                ),
+              ),
+              SizedBox(
+                height: compactLayout ? AppSpacing.md : AppSpacing.xl,
+              ),
+              Text(
+                eyebrow.toUpperCase(),
+                style: AppTypography.labelMedium.copyWith(
+                  color: AppColors.brandPrimary,
+                  letterSpacing: 0.5,
+                ),
+              ),
+              SizedBox(
+                height: compactLayout ? AppSpacing.xs : AppSpacing.sm,
+              ),
+              Text(
+                headline,
+                style: AppTypography.headlinePrimary.copyWith(
+                  fontSize: compactLayout ? 28 : 30,
+                  fontWeight: FontWeight.w800,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              SizedBox(
+                height: compactLayout ? AppSpacing.xs : AppSpacing.sm,
+              ),
+              Text(
+                description,
+                style: (compactLayout
+                        ? AppTypography.bodyMedium
+                        : AppTypography.bodyLarge)
+                    .copyWith(
+                  color: palette.textSecondary,
+                  height: 1.45,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ],
           ),
-          const SizedBox(height: AppSpacing.sm),
-          Text(
-            headline,
-            style: AppTypography.headlinePrimary.copyWith(
-              fontSize: 30,
-              fontWeight: FontWeight.w800,
-            ),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: AppSpacing.sm),
-          Text(
-            description,
-            style: AppTypography.bodyLarge.copyWith(
-              color: palette.textSecondary,
-              height: 1.45,
-            ),
-            textAlign: TextAlign.center,
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 }

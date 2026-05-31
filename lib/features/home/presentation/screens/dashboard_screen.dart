@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../../../core/config/app_env.dart';
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/constants/route_names.dart';
 import '../../../../core/extensions/context_extensions.dart';
@@ -34,9 +33,7 @@ class DashboardScreen extends ConsumerWidget {
     final onboardingProfile =
         ref.watch(onboardingControllerProvider).valueOrNull ??
             OnboardingProfile.initial();
-    final syncEnabled = AppEnv.enableExperimentalSync;
-    final authSession =
-        syncEnabled ? ref.watch(currentAuthSessionProvider) : null;
+    final authSession = ref.watch(currentAuthSessionProvider);
 
     return SafeArea(
       bottom: false,
@@ -62,7 +59,7 @@ class DashboardScreen extends ConsumerWidget {
               AppHeader(
                 title: isEmptyWorkspace ? AppConstants.appName : 'Dashboard',
                 subtitle: isEmptyWorkspace
-                    ? 'Start with a note. Everything saves on this device first.'
+                    ? 'Start with a note. Everything syncs to your signed-in account.'
                     : onboardingProfile.workspaceFocus.dashboardMessage,
                 leading: HeaderAvatar(
                   label: authSession?.initials ?? onboardingProfile.initials,
@@ -77,9 +74,10 @@ class DashboardScreen extends ConsumerWidget {
                   title: 'No notes yet',
                   message:
                       'Create your first note in one tap. Organize it later with folders, tags, and search when your workspace grows.',
-                  supportingNote: 'You are writing in secure mode. Sync matches your active session status.',
+                  supportingNote:
+                      'Your notes stay tied to your authenticated account.',
                   highlights: const <String>[
-                    'Local-first',
+                    'Secure account',
                     'Folders later',
                     'Search anytime',
                   ],
@@ -93,8 +91,9 @@ class DashboardScreen extends ConsumerWidget {
                   children: [
                     Text('Recent work', style: AppTypography.titleMedium),
                     TextButton(
-                      onPressed: () =>
-                          ref.read(shellTabProvider.notifier).state = ShellTab.search,
+                      onPressed: () => ref
+                          .read(shellTabProvider.notifier)
+                          .state = ShellTab.search,
                       child: const Text('Open search'),
                     ),
                   ],
@@ -122,16 +121,14 @@ class DashboardScreen extends ConsumerWidget {
                     const SizedBox(height: AppSpacing.md),
                 ],
 
-                if (syncEnabled &&
-                    authSession != null &&
-                    !authSession.isEmailVerified) ...[
+                if (authSession != null && !authSession.isEmailVerified) ...[
                   const SizedBox(height: AppSpacing.xxl),
                   _VerificationCard(
                     email: authSession.email,
                     onResend: () => _resendVerification(context, ref),
                   ),
                 ],
-                
+
                 const SizedBox(height: AppSpacing.xxl),
                 _StatsGrid(
                   activeNotes: activeNotes.length,
@@ -139,14 +136,19 @@ class DashboardScreen extends ConsumerWidget {
                   favorites: notesState.favoriteNotes.length,
                   archived: notesState.archivedNotes.length,
                   onActiveNotesTap: () {
-                    ref.read(searchControllerProvider.notifier).setMode(SearchMode.notes);
+                    ref
+                        .read(searchControllerProvider.notifier)
+                        .setMode(SearchMode.notes);
                     ref.read(shellTabProvider.notifier).state = ShellTab.search;
                   },
                   onFoldersTap: () {
-                    ref.read(shellTabProvider.notifier).state = ShellTab.folders;
+                    ref.read(shellTabProvider.notifier).state =
+                        ShellTab.folders;
                   },
                   onFavoritesTap: () {
-                    ref.read(searchControllerProvider.notifier).setMode(SearchMode.favorites);
+                    ref
+                        .read(searchControllerProvider.notifier)
+                        .setMode(SearchMode.favorites);
                     ref.read(shellTabProvider.notifier).state = ShellTab.search;
                   },
                   onArchivedTap: () {
@@ -157,7 +159,7 @@ class DashboardScreen extends ConsumerWidget {
                 if (folderHighlights.isNotEmpty) ...[
                   const SizedBox(height: AppSpacing.xxl),
                   Text(
-                    'Workspace collections',
+                    'Folders',
                     style: AppTypography.titleMedium,
                   ),
                   const SizedBox(height: AppSpacing.md),
@@ -246,7 +248,6 @@ class DashboardScreen extends ConsumerWidget {
     );
   }
 }
-
 
 class _VerificationCard extends StatelessWidget {
   const _VerificationCard({
@@ -440,7 +441,6 @@ class _MetricTile extends StatelessWidget {
   }
 }
 
-
 class _CollectionCard extends StatelessWidget {
   const _CollectionCard({
     required this.label,
@@ -492,7 +492,6 @@ class _CollectionCard extends StatelessWidget {
     );
   }
 }
-
 
 class _DashboardLoadingState extends StatelessWidget {
   const _DashboardLoadingState();

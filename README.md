@@ -2,7 +2,7 @@
 
 This workspace contains the ThinkNote Flutter client with Riverpod state management, `go_router` navigation, local SQLite persistence, and Android release configuration.
 
-ThinkNote 1.0 now targets an authenticated offline-first notes release. The Flutter client initializes Firebase, supports email/password sign-in, keeps a per-account local SQLite cache with encrypted local note fields, and syncs notes, folders, and tags through the backend when `ENABLE_EXPERIMENTAL_SYNC=true`.
+ThinkNote now targets a mandatory-authentication notes release. The Flutter client initializes Firebase on supported platforms, requires email/password sign-in before the user can access the app shell, keeps a per-account local cache, and syncs notes, folders, and tags through the backend API at `https://api.unicefindia.edu.eu.org` unless `API_URL` is overridden.
 
 ## Run the app
 
@@ -19,10 +19,9 @@ flutter pub get
 ```bash
 flutter run \
   --dart-define=APP_FLAVOR=development \
-  --dart-define=ENABLE_EXPERIMENTAL_SYNC=true \
   --dart-define=API_URL=https://your-api.example.com \
   --dart-define=FIREBASE_API_KEY=... \
-  --dart-define=FIREBASE_APP_ID=... \
+  --dart-define=FIREBASE_ANDROID_APP_ID=... \
   --dart-define=FIREBASE_MESSAGING_SENDER_ID=... \
   --dart-define=FIREBASE_PROJECT_ID=...
 ```
@@ -39,26 +38,29 @@ The Flutter client is configured entirely through compile-time `--dart-define` v
 Supported client defines:
 
 - `APP_FLAVOR`
-- `API_URL` (required when authenticated sync is enabled)
-- `FIREBASE_API_KEY` (required when authenticated sync is enabled)
-- `FIREBASE_APP_ID` (required when authenticated sync is enabled)
-- `FIREBASE_MESSAGING_SENDER_ID` (required when authenticated sync is enabled)
-- `FIREBASE_PROJECT_ID` (required when authenticated sync is enabled)
+- `API_URL` (required outside development and must be HTTPS in production)
+- `FIREBASE_API_KEY`
+- `FIREBASE_APP_ID` (generic fallback app id)
+- `FIREBASE_ANDROID_APP_ID`
+- `FIREBASE_IOS_APP_ID`
+- `FIREBASE_WEB_APP_ID`
+- `FIREBASE_MESSAGING_SENDER_ID`
+- `FIREBASE_PROJECT_ID`
 - `FIREBASE_DATABASE_URL`
 - `FIREBASE_STORAGE_BUCKET`
+- `FIREBASE_AUTH_DOMAIN` (web)
+- `FIREBASE_MEASUREMENT_ID` (web)
 - `SENTRY_DSN`
 - `ANALYTICS_KEY`
 - `ENABLE_ANALYTICS`
-- `ENABLE_EXPERIMENTAL_SYNC`
 
 Canonical Android release build from a Bash-compatible shell:
 
 ```bash
 APP_FLAVOR=production \
-ENABLE_EXPERIMENTAL_SYNC=true \
 API_URL=https://your-api.example.com \
 FIREBASE_API_KEY=... \
-FIREBASE_APP_ID=... \
+FIREBASE_ANDROID_APP_ID=... \
 FIREBASE_MESSAGING_SENDER_ID=... \
 FIREBASE_PROJECT_ID=... \
 bash scripts/android/build_release_artifacts.sh
@@ -68,16 +70,15 @@ Canonical Android release build from Windows Command Prompt or PowerShell:
 
 ```bat
 set "APP_FLAVOR=production"
-set "ENABLE_EXPERIMENTAL_SYNC=true"
 set "API_URL=https://your-api.example.com"
 set "FIREBASE_API_KEY=..."
-set "FIREBASE_APP_ID=..."
+set "FIREBASE_ANDROID_APP_ID=..."
 set "FIREBASE_MESSAGING_SENDER_ID=..."
 set "FIREBASE_PROJECT_ID=..."
 scripts\android\build_release_artifacts.cmd
 ```
 
-Sync-enabled builds must also pass Firebase client settings. Production sync builds must use an HTTPS `API_URL`.
+Authenticated builds must pass Firebase client settings. Production builds must use an HTTPS `API_URL`.
 
 CircleCI is the canonical Android release builder. It signs the release,
 stores the Play AAB separately from the QA APK, and archives release metadata

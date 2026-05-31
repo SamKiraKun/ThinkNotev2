@@ -10,11 +10,7 @@ export async function requireFirebaseAuth(
 ) {
   const token = extractBearerToken(req);
   if (!token) {
-    return res.status(401).json({
-      success: false,
-      data: null,
-      message: "Missing bearer token",
-    });
+    return res.status(401).json(unauthorizedResponse());
   }
 
   try {
@@ -52,12 +48,17 @@ export async function requireFirebaseAuth(
     return next();
   } catch (error) {
     console.error("Firebase auth verification failed:", error);
-    return res.status(401).json({
-      success: false,
-      data: null,
-      message: "Invalid or expired bearer token",
-    });
+    return res.status(401).json(unauthorizedResponse());
   }
+}
+
+function unauthorizedResponse() {
+  return {
+    success: false,
+    data: null,
+    error: "unauthorized",
+    message: "Missing or invalid authentication token",
+  };
 }
 
 function extractBearerToken(req: Request): string | null {

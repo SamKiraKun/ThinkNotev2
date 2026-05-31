@@ -21,28 +21,27 @@ case "${APP_FLAVOR}" in
 esac
 
 : "${ENABLE_ANALYTICS:=false}"
-: "${ENABLE_EXPERIMENTAL_SYNC:=false}"
+: "${ENABLE_EXPERIMENTAL_SYNC:=true}"
+: "${FIREBASE_ANDROID_APP_ID:=${FIREBASE_APP_ID:-}}"
 
-if [[ "${ENABLE_EXPERIMENTAL_SYNC}" == "true" ]]; then
-  required_sync_env=(
-    API_URL
-    FIREBASE_API_KEY
-    FIREBASE_APP_ID
-    FIREBASE_MESSAGING_SENDER_ID
-    FIREBASE_PROJECT_ID
-  )
+required_sync_env=(
+  API_URL
+  FIREBASE_API_KEY
+  FIREBASE_ANDROID_APP_ID
+  FIREBASE_MESSAGING_SENDER_ID
+  FIREBASE_PROJECT_ID
+)
 
-  for var_name in "${required_sync_env[@]}"; do
-    if [[ -z "${!var_name:-}" ]]; then
-      echo "Missing required experimental sync environment variable: ${var_name}"
-      exit 1
-    fi
-  done
-
-  if [[ "${APP_FLAVOR}" == "production" && "${API_URL}" != https://* ]]; then
-    echo "Production experimental sync builds must use an HTTPS API_URL."
+for var_name in "${required_sync_env[@]}"; do
+  if [[ -z "${!var_name:-}" ]]; then
+    echo "Missing required authenticated build environment variable: ${var_name}"
     exit 1
   fi
+done
+
+if [[ "${APP_FLAVOR}" == "production" && "${API_URL}" != https://* ]]; then
+  echo "Production authenticated builds must use an HTTPS API_URL."
+  exit 1
 fi
 
 build_args=(
@@ -65,6 +64,7 @@ append_optional_define() {
 append_optional_define "API_URL"
 append_optional_define "FIREBASE_API_KEY"
 append_optional_define "FIREBASE_APP_ID"
+append_optional_define "FIREBASE_ANDROID_APP_ID"
 append_optional_define "FIREBASE_MESSAGING_SENDER_ID"
 append_optional_define "FIREBASE_PROJECT_ID"
 append_optional_define "FIREBASE_DATABASE_URL"

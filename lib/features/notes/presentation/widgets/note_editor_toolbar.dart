@@ -8,30 +8,22 @@ class NoteEditorToolbar extends StatelessWidget {
     super.key,
     required this.onBoldTap,
     required this.onItalicTap,
-    required this.onUnderlineTap,
-    required this.onStrikeTap,
     required this.onChecklistTap,
     required this.onBulletTap,
     required this.onNumberedTap,
     required this.onHeadingTap,
     required this.onQuoteTap,
     required this.onTagTap,
-    required this.onMicTap,
-    required this.onAttachTap,
   });
 
   final VoidCallback onBoldTap;
   final VoidCallback onItalicTap;
-  final VoidCallback onUnderlineTap;
-  final VoidCallback onStrikeTap;
   final VoidCallback onChecklistTap;
   final VoidCallback onBulletTap;
   final VoidCallback onNumberedTap;
   final VoidCallback onHeadingTap;
   final VoidCallback onQuoteTap;
   final VoidCallback onTagTap;
-  final VoidCallback onMicTap;
-  final VoidCallback onAttachTap;
 
   @override
   Widget build(BuildContext context) {
@@ -58,16 +50,6 @@ class NoteEditorToolbar extends StatelessWidget {
               icon: Icons.format_italic_rounded,
               tooltip: 'Italic',
               onTap: onItalicTap,
-            ),
-            _ToolbarButton(
-              icon: Icons.format_underlined_rounded,
-              tooltip: 'Underline',
-              onTap: onUnderlineTap,
-            ),
-            _ToolbarButton(
-              icon: Icons.format_strikethrough_rounded,
-              tooltip: 'Strikethrough',
-              onTap: onStrikeTap,
             ),
             _ToolbarButton(
               icon: Icons.checklist_rounded,
@@ -98,16 +80,6 @@ class NoteEditorToolbar extends StatelessWidget {
               icon: Icons.sell_outlined,
               tooltip: 'Tags',
               onTap: onTagTap,
-            ),
-            _ToolbarButton(
-              icon: Icons.mic_none_rounded,
-              tooltip: 'Voice note',
-              onTap: onMicTap,
-            ),
-            _ToolbarButton(
-              icon: Icons.attach_file_rounded,
-              tooltip: 'Attach media',
-              onTap: onAttachTap,
             ),
           ],
         ),

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../../core/config/app_env.dart';
 import '../../../../core/extensions/context_extensions.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_radius.dart';
@@ -16,8 +15,7 @@ class PrivacyScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final palette = context.palette;
-    final syncEnabled = AppEnv.enableExperimentalSync;
-    final session = syncEnabled ? ref.watch(currentAuthSessionProvider) : null;
+    final session = ref.watch(currentAuthSessionProvider);
 
     return Scaffold(
       backgroundColor: palette.pageBackground,
@@ -27,13 +25,10 @@ class PrivacyScreen extends ConsumerWidget {
           padding: const EdgeInsets.all(AppSpacing.xxl),
           children: [
             _PrivacyCard(
-              icon: syncEnabled
-                  ? Icons.cloud_done_outlined
-                  : Icons.smartphone_rounded,
-              title: syncEnabled ? 'Account and sync' : 'Local-only workspace',
-              message: syncEnabled
-                  ? 'ThinkNote uses Firebase Authentication for account sign-in and syncs note data, folders, and tags to the ThinkNote backend for ${session?.email ?? 'your signed-in account'}.'
-                  : 'ThinkNote 1.0 does not create accounts, upload notes, or sync note content to a cloud service.',
+              icon: Icons.cloud_done_outlined,
+              title: 'Account and sync',
+              message:
+                  'ThinkNote uses Firebase Authentication for sign-in and syncs notes, folders, and tags to the ThinkNote backend for ${session?.email ?? 'your signed-in account'}.',
             ),
             const SizedBox(height: AppSpacing.lg),
             const _PrivacyCard(
@@ -53,17 +48,15 @@ class PrivacyScreen extends ConsumerWidget {
             _PrivacyCard(
               icon: Icons.analytics_outlined,
               title: 'Diagnostics and analytics',
-              message: syncEnabled
-                  ? 'This release uses the Firebase client SDK for authentication. Analytics and ads remain disabled unless they are added and disclosed separately.'
-                  : 'This production path does not include analytics, ads, crash reporting, or a client Firebase SDK.',
+              message:
+                  'This release uses the Firebase client SDK for authentication. Analytics and ads remain disabled unless they are added and disclosed separately.',
             ),
             const SizedBox(height: AppSpacing.lg),
             _PrivacyCard(
               icon: Icons.delete_outline_rounded,
-              title: syncEnabled ? 'Deleting account data' : 'Deleting local data',
-              message: syncEnabled
-                  ? 'Use Delete account in Settings to remove your ThinkNote account and synced note data from the backend. Local cached notes for that account are cleared during deletion.'
-                  : 'Use Clear all notes in Settings to remove notes from this device. Uninstalling the app also removes its local app data.',
+              title: 'Deleting account data',
+              message:
+                  'Use Delete account in Settings to remove your ThinkNote account and synced note data from the backend. Local cached notes for that account are cleared during deletion.',
             ),
           ],
         ),

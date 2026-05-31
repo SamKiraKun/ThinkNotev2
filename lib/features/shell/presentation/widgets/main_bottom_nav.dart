@@ -65,7 +65,7 @@ class MainBottomNav extends StatelessWidget {
               Expanded(
                 child: Center(
                   child: _NavItem(
-                    label: 'Workspace',
+                    label: 'Folders',
                     icon: Icons.folder_open_rounded,
                     isActive: activeTab == ShellTab.folders,
                     onTap: () => onTabSelected(ShellTab.folders),
@@ -130,7 +130,8 @@ class _NavItem extends StatelessWidget {
             Text(
               label,
               style: AppTypography.navLabel.copyWith(
-                color: isActive ? AppColors.brandPrimary : palette.textSecondary,
+                color:
+                    isActive ? AppColors.brandPrimary : palette.textSecondary,
               ),
             ),
           ],

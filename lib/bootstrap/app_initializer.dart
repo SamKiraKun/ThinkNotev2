@@ -17,15 +17,11 @@ class AppInitializer {
   }
 
   Future<void> initializeFirebase() async {
-    if (!AppEnv.enableExperimentalSync) {
-      return;
-    }
-
     if (defaultTargetPlatform == TargetPlatform.android ||
         defaultTargetPlatform == TargetPlatform.iOS ||
         kIsWeb) {
       await Firebase.initializeApp(
-        options: FirebaseClientOptions.android,
+        options: FirebaseClientOptions.current,
       );
     }
   }

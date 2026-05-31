@@ -29,30 +29,33 @@ $enableAnalytics = if ([string]::IsNullOrWhiteSpace($env:ENABLE_ANALYTICS)) {
   $env:ENABLE_ANALYTICS
 }
 
-$enableExperimentalSync = if ([string]::IsNullOrWhiteSpace($env:ENABLE_EXPERIMENTAL_SYNC)) {
-  'false'
+$enableExperimentalSync = 'true'
+$firebaseAndroidAppId = if ([string]::IsNullOrWhiteSpace($env:FIREBASE_ANDROID_APP_ID)) {
+  $env:FIREBASE_APP_ID
 } else {
-  $env:ENABLE_EXPERIMENTAL_SYNC
+  $env:FIREBASE_ANDROID_APP_ID
 }
 
-if ($enableExperimentalSync -eq 'true') {
-  foreach ($requiredVar in @(
-    'API_URL',
-    'FIREBASE_API_KEY',
-    'FIREBASE_APP_ID',
-    'FIREBASE_MESSAGING_SENDER_ID',
-    'FIREBASE_PROJECT_ID'
-  )) {
-    if ([string]::IsNullOrWhiteSpace([Environment]::GetEnvironmentVariable($requiredVar))) {
-      Write-Host "Missing required experimental sync environment variable: $requiredVar"
-      exit 1
-    }
-  }
-
-  if ($appFlavor -eq 'production' -and -not $env:API_URL.StartsWith('https://')) {
-    Write-Host 'Production experimental sync builds must use an HTTPS API_URL.'
+foreach ($requiredVar in @(
+  'API_URL',
+  'FIREBASE_API_KEY',
+  'FIREBASE_MESSAGING_SENDER_ID',
+  'FIREBASE_PROJECT_ID'
+)) {
+  if ([string]::IsNullOrWhiteSpace([Environment]::GetEnvironmentVariable($requiredVar))) {
+    Write-Host "Missing required authenticated build environment variable: $requiredVar"
     exit 1
   }
+}
+
+if ([string]::IsNullOrWhiteSpace($firebaseAndroidAppId)) {
+  Write-Host 'Missing required authenticated build environment variable: FIREBASE_ANDROID_APP_ID'
+  exit 1
+}
+
+if ($appFlavor -eq 'production' -and -not $env:API_URL.StartsWith('https://')) {
+  Write-Host 'Production authenticated builds must use an HTTPS API_URL.'
+  exit 1
 }
 
 $buildNumber = if ([string]::IsNullOrWhiteSpace($env:CIRCLE_BUILD_NUM)) {
@@ -66,7 +69,8 @@ $buildArgs = @(
   "--build-number=$buildNumber",
   "--dart-define=APP_FLAVOR=$appFlavor",
   "--dart-define=ENABLE_ANALYTICS=$enableAnalytics",
-  "--dart-define=ENABLE_EXPERIMENTAL_SYNC=$enableExperimentalSync"
+  "--dart-define=ENABLE_EXPERIMENTAL_SYNC=$enableExperimentalSync",
+  "--dart-define=FIREBASE_ANDROID_APP_ID=$firebaseAndroidAppId"
 )
 
 function Add-OptionalDefine {

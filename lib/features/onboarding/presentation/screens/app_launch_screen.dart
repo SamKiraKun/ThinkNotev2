@@ -204,7 +204,7 @@ class _SplashVisual extends StatelessWidget {
                     ),
                     const SizedBox(width: AppSpacing.sm),
                     Text(
-                      'Write first. Sync later.',
+                      'Checking your secure session...',
                       style: AppTypography.labelMedium.copyWith(
                         color: AppColors.brandPrimary,
                       ),

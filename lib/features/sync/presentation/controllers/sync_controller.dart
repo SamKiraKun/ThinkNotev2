@@ -65,17 +65,29 @@ class SyncController extends StateNotifier<SyncState> {
   final Ref _ref;
   Future<void>? _inFlight;
 
-  Future<void> scheduleSync({bool forceFullPull = false}) {
-    return syncNow(forceFullPull: forceFullPull);
+  Future<void> scheduleSync({
+    bool forceFullPull = false,
+    bool rethrowOnError = false,
+  }) {
+    return syncNow(
+      forceFullPull: forceFullPull,
+      rethrowOnError: rethrowOnError,
+    );
   }
 
-  Future<void> syncNow({bool forceFullPull = false}) {
+  Future<void> syncNow({
+    bool forceFullPull = false,
+    bool rethrowOnError = false,
+  }) {
     final inFlight = _inFlight;
     if (inFlight != null) {
       return inFlight;
     }
 
-    final future = _runSync(forceFullPull: forceFullPull);
+    final future = _runSync(
+      forceFullPull: forceFullPull,
+      rethrowOnError: rethrowOnError,
+    );
     _inFlight = future.whenComplete(() {
       _inFlight = null;
     });
@@ -101,7 +113,10 @@ class SyncController extends StateNotifier<SyncState> {
     );
   }
 
-  Future<void> _runSync({required bool forceFullPull}) async {
+  Future<void> _runSync({
+    required bool forceFullPull,
+    required bool rethrowOnError,
+  }) async {
     if (!AppEnv.enableExperimentalSync) {
       return;
     }
@@ -199,6 +214,10 @@ class SyncController extends StateNotifier<SyncState> {
         nextRetryAt: retryAt,
         failureCount: failureCount,
       );
+
+      if (rethrowOnError) {
+        rethrow;
+      }
     }
   }
 

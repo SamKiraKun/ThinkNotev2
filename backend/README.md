@@ -22,6 +22,8 @@ npm test
 
 ## API Endpoints
 
+- `GET /account/me`: Resolve the authenticated account profile
+- `DELETE /account`: Delete the authenticated account and user data
 - `GET /notes`: List all notes
 - `POST /notes`: Create a note
 - `GET /notes/:id`: Get a note
@@ -35,16 +37,35 @@ npm test
 - `GET /sync/pull?since=...`: Pull authenticated user changes
 - `POST /sync/push`: Push local note mutations
 
-All `/notes` and `/sync` endpoints require `Authorization: Bearer <Firebase ID token>`.
+All `/account`, `/notes`, and `/sync` endpoints require `Authorization: Bearer <Firebase ID token>`.
+
+Authenticated endpoints return `401` with a structured body when the bearer token is missing or invalid:
+
+```json
+{
+   "success": false,
+   "data": null,
+   "error": "unauthorized",
+   "message": "Missing or invalid authentication token"
+}
+```
 
 ## Production controls
 
+- `PORT`: Render or hosting runtime port, default `3000`.
 - `CORS_ALLOWED_ORIGINS`: comma-separated browser origins allowed in production.
 - `CORS_ALLOW_NO_ORIGIN`: set to `true` only when a deployed native client needs requests without an `Origin` header.
 - `JSON_BODY_LIMIT`: maximum JSON payload size, default `256kb`.
 - `IP_RATE_LIMIT_MAX`: requests per IP per window, default `300`.
 - `USER_RATE_LIMIT_MAX`: authenticated requests per Firebase UID per window, default `120`.
 - `RATE_LIMIT_WINDOW_MS`: rate-limit window duration, default `60000`.
+
+Required Render environment variables for authenticated production use:
+
+- `TURSO_DATABASE_URL`
+- `TURSO_AUTH_TOKEN`
+- `FIREBASE_SERVICE_ACCOUNT_JSON` or the trio of `FIREBASE_PROJECT_ID`, `FIREBASE_CLIENT_EMAIL`, and `FIREBASE_PRIVATE_KEY`
+- `CORS_ALLOWED_ORIGINS` if browser-origin traffic is expected
 
 The API also enforces note payload limits before database writes:
 titles are limited to 200 characters, note content to 100,000 characters,

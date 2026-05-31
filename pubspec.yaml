@@ -37,6 +37,9 @@ dev_dependencies:
   drift_dev: ^2.33.0
   build_runner: ^2.15.0
 
+dependency_overrides:
+  objective_c: 9.4.1
+
 flutter:
   uses-material-design: true
 

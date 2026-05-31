@@ -33,7 +33,11 @@ test("POST /notes rejects requests without a bearer token", async () => {
   const response = await request(app).post("/notes").send({});
 
   assert.equal(response.status, 401);
-  assert.equal(response.body.message, "Missing bearer token");
+  assert.equal(response.body.error, "unauthorized");
+  assert.equal(
+    response.body.message,
+    "Missing or invalid authentication token",
+  );
 });
 
 test("POST /notes enforces the per-user rate limit", async () => {
@@ -56,6 +60,24 @@ test("POST /notes enforces the per-user rate limit", async () => {
   assert.equal(response.status, 429);
   assert.match(response.body.message, /Too many requests/i);
   assert.equal(response.headers["retry-after"], "60");
+});
+
+test("GET /account/me returns the authenticated account", async () => {
+  const app = createApp({
+    authMiddleware: allowAuthenticatedRequest,
+    logger: silentLogger,
+    config: {
+      isProduction: false,
+      corsAllowNoOrigin: true,
+    },
+  });
+
+  const response = await request(app).get("/account/me");
+
+  assert.equal(response.status, 200);
+  assert.equal(response.body.success, true);
+  assert.equal(response.body.data.id, "test-user");
+  assert.equal(response.body.data.email, "test@example.com");
 });
 
 test("POST /notes rejects a request body that exceeds the configured size", async () => {
