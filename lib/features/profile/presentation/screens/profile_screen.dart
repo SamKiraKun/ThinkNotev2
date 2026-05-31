@@ -283,7 +283,9 @@ class ProfileScreen extends ConsumerWidget {
                                   ),
                                   const SizedBox(width: 4),
                                   Text(
-                                    'Retry',
+                                    describeSyncErrorType(
+                                      syncState.lastErrorType,
+                                    ),
                                     style:
                                         TextStyle(color: palette.textSecondary),
                                   ),
@@ -379,7 +381,7 @@ class ProfileScreen extends ConsumerWidget {
     final syncState = ref.read(syncControllerProvider);
     final message = syncState.lastError == null
         ? 'Sync complete.'
-        : 'Sync failed: ${syncState.lastError}';
+        : '${describeSyncErrorType(syncState.lastErrorType)}: ${syncState.lastError}';
     if (!context.mounted) {
       return;
     }

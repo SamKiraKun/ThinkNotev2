@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/config/app_env.dart';
@@ -19,11 +20,20 @@ final syncControllerProvider =
   return SyncController(ref);
 });
 
+enum SyncErrorType {
+  localDatabase,
+  network,
+  authentication,
+  api,
+  unknown,
+}
+
 class SyncState {
   const SyncState({
     this.isSyncing = false,
     this.lastSyncedAt,
     this.lastError,
+    this.lastErrorType,
     this.nextRetryAt,
     this.failureCount = 0,
   });
@@ -31,6 +41,7 @@ class SyncState {
   final bool isSyncing;
   final DateTime? lastSyncedAt;
   final String? lastError;
+  final SyncErrorType? lastErrorType;
   final DateTime? nextRetryAt;
   final int failureCount;
 
@@ -38,6 +49,7 @@ class SyncState {
     bool? isSyncing,
     Object? lastSyncedAt = _syncSentinel,
     Object? lastError = _syncSentinel,
+    Object? lastErrorType = _syncSentinel,
     Object? nextRetryAt = _syncSentinel,
     int? failureCount,
   }) {
@@ -49,6 +61,9 @@ class SyncState {
       lastError: identical(lastError, _syncSentinel)
           ? this.lastError
           : lastError as String?,
+        lastErrorType: identical(lastErrorType, _syncSentinel)
+          ? this.lastErrorType
+          : lastErrorType as SyncErrorType?,
       nextRetryAt: identical(nextRetryAt, _syncSentinel)
           ? this.nextRetryAt
           : nextRetryAt as DateTime?,
@@ -81,6 +96,9 @@ class SyncController extends StateNotifier<SyncState> {
   }) {
     final inFlight = _inFlight;
     if (inFlight != null) {
+      debugPrint(
+        '[SyncController] Sync skipped because another sync is already running.',
+      );
       return inFlight;
     }
 
@@ -118,19 +136,28 @@ class SyncController extends StateNotifier<SyncState> {
     required bool rethrowOnError,
   }) async {
     if (!AppEnv.enableExperimentalSync) {
+      debugPrint('[SyncController] Sync skipped because sync is disabled.');
       return;
     }
 
     final session = _ref.read(currentAuthSessionProvider);
     if (session == null) {
+      debugPrint('[SyncController] Sync skipped because there is no session.');
       return;
     }
+
+    debugPrint(
+      '[SyncController] Sync started for ${session.uid}. forceFullPull=$forceFullPull',
+    );
 
     final localDataSource = _ref.read(notesLocalDataSourceProvider);
     final nextRetryAt = await _readNextRetryAt(localDataSource);
     if (!forceFullPull &&
         nextRetryAt != null &&
         DateTime.now().toUtc().isBefore(nextRetryAt)) {
+      debugPrint(
+        '[SyncController] Sync skipped until ${nextRetryAt.toIso8601String()} because retry backoff is active.',
+      );
       state = state.copyWith(nextRetryAt: nextRetryAt);
       return;
     }
@@ -138,6 +165,7 @@ class SyncController extends StateNotifier<SyncState> {
     state = state.copyWith(
       isSyncing: true,
       lastError: null,
+      lastErrorType: null,
       nextRetryAt: null,
     );
 
@@ -153,14 +181,16 @@ class SyncController extends StateNotifier<SyncState> {
           ? null
           : await localDataSource.readSyncState(_lastServerSyncKey);
 
+      debugPrint(
+        '[SyncController] Sync push started with ${pushedNoteVersions.length} dirty notes and ${pendingDeletes.length} queued deletes.',
+      );
+
       await apiClient.postJson(
         '/sync/push',
         body: _buildPushBody(localStore, pendingDeletes),
       );
 
-      await localDataSource.clearPendingDeleteOperations(
-        pendingDeletes.map((operation) => operation.id).toList(growable: false),
-      );
+      debugPrint('[SyncController] Sync push succeeded. Starting pull.');
 
       final pullResponse = await apiClient.getJson(
         '/sync/pull',
@@ -178,47 +208,64 @@ class SyncController extends StateNotifier<SyncState> {
         syncedAt: payload.serverTime,
       );
       final mergedStore = _mergeStore(acknowledgedStore, payload);
-      await localDataSource.writeStore(mergedStore);
-      await localDataSource.clearPendingDeleteOperations(
-        _queueIdsForRemoteDeletes(payload),
+      await localDataSource.commitSyncResult(
+        store: mergedStore,
+        queueIdsToClear: <String>[
+          ...pendingDeletes.map((operation) => operation.id),
+          ..._queueIdsForRemoteDeletes(payload),
+        ],
+        syncStateUpdates: <String, String>{
+          _lastServerSyncKey: payload.serverTime.toIso8601String(),
+        },
+        syncStateDeletes: const <String>[
+          _nextRetryAtKey,
+          _failureCountKey,
+        ],
       );
-      await localDataSource.writeSyncState(
-        _lastServerSyncKey,
-        payload.serverTime.toIso8601String(),
-      );
-      await localDataSource.deleteSyncState(_nextRetryAtKey);
-      await localDataSource.deleteSyncState(_failureCountKey);
 
       _ref.invalidate(notesControllerProvider);
       state = state.copyWith(
         isSyncing: false,
         lastSyncedAt: payload.serverTime,
         lastError: null,
+        lastErrorType: null,
         nextRetryAt: null,
         failureCount: 0,
       );
-    } catch (error) {
-      final errorMessage =
-          error is ApiException ? error.message : error.toString();
+      debugPrint(
+        '[SyncController] Sync succeeded at ${payload.serverTime.toIso8601String()}.',
+      );
+    } catch (error, stackTrace) {
+      debugPrint(
+        '[SyncController] Sync failed with ${error.runtimeType}: $error',
+      );
+      debugPrintStack(stackTrace: stackTrace);
+
+      final failure = _classifySyncFailure(error);
       final failureCount = state.failureCount + 1;
       final retryAt = _calculateNextRetryAt(failureCount);
 
-      await localDataSource.markDeleteOperationsFailed(
-        pendingDeletes.map((operation) => operation.id).toList(growable: false),
-        errorMessage,
-      );
-      await localDataSource.writeSyncState(
-        _failureCountKey,
-        failureCount.toString(),
-      );
-      await localDataSource.writeSyncState(
-        _nextRetryAtKey,
-        retryAt.toIso8601String(),
-      );
+      try {
+        await localDataSource.recordSyncFailure(
+          queueIds:
+              pendingDeletes.map((operation) => operation.id).toList(growable: false),
+          errorMessage: failure.message,
+          syncStateUpdates: <String, String>{
+            _failureCountKey: failureCount.toString(),
+            _nextRetryAtKey: retryAt.toIso8601String(),
+          },
+        );
+      } catch (persistenceError, persistenceStackTrace) {
+        debugPrint(
+          '[SyncController] Failed to persist sync failure metadata after ${persistenceError.runtimeType}: $persistenceError',
+        );
+        debugPrintStack(stackTrace: persistenceStackTrace);
+      }
 
       state = state.copyWith(
         isSyncing: false,
-        lastError: errorMessage,
+        lastError: failure.message,
+        lastErrorType: failure.type,
         nextRetryAt: retryAt,
         failureCount: failureCount,
       );
@@ -291,6 +338,89 @@ class SyncController extends StateNotifier<SyncState> {
       tags: mergedTags,
     );
   }
+}
+
+String describeSyncErrorType(SyncErrorType? type) {
+  return switch (type) {
+    SyncErrorType.localDatabase => 'Local database issue',
+    SyncErrorType.network => 'Connection issue',
+    SyncErrorType.authentication => 'Authentication issue',
+    SyncErrorType.api => 'Server issue',
+    SyncErrorType.unknown || null => 'Sync issue',
+  };
+}
+
+_SyncFailure _classifySyncFailure(Object error) {
+  if (error is ApiException) {
+    if (error.statusCode == 401) {
+      return const _SyncFailure(
+        type: SyncErrorType.authentication,
+        message:
+            'Your session expired. Sign in again to resume sync. Local notes remain on this device.',
+      );
+    }
+
+    if (error.statusCode == null && _looksLikeNetworkError(error.message)) {
+      return const _SyncFailure(
+        type: SyncErrorType.network,
+        message:
+            'ThinkNote could not reach the server. Your changes stay queued and will retry automatically.',
+      );
+    }
+
+    return _SyncFailure(
+      type: SyncErrorType.api,
+      message: error.message.isEmpty
+          ? 'The server could not complete sync. Your changes stay queued and will retry automatically.'
+          : error.message,
+    );
+  }
+
+  if (_looksLikeLocalDatabaseError(error)) {
+    return const _SyncFailure(
+      type: SyncErrorType.localDatabase,
+      message:
+          'Sync could not update the local database. Your local notes are still available and ThinkNote will retry automatically.',
+    );
+  }
+
+  return const _SyncFailure(
+    type: SyncErrorType.unknown,
+    message:
+        'Sync could not finish. Your local notes are still available and ThinkNote will retry automatically.',
+  );
+}
+
+bool _looksLikeNetworkError(String message) {
+  final normalizedMessage = message.toLowerCase();
+  return normalizedMessage.contains('network') ||
+      normalizedMessage.contains('connection') ||
+      normalizedMessage.contains('internet') ||
+      normalizedMessage.contains('timeout') ||
+      normalizedMessage.contains('timed out') ||
+      normalizedMessage.contains('host lookup');
+}
+
+bool _looksLikeLocalDatabaseError(Object error) {
+  if (error is StateError) {
+    return true;
+  }
+
+  final normalizedMessage = error.toString().toLowerCase();
+  return normalizedMessage.contains('sqlite') ||
+      normalizedMessage.contains('database') ||
+      normalizedMessage.contains('transaction') ||
+      normalizedMessage.contains('begin immediate');
+}
+
+class _SyncFailure {
+  const _SyncFailure({
+    required this.type,
+    required this.message,
+  });
+
+  final SyncErrorType type;
+  final String message;
 }
 
 Map<String, DateTime> _pushedNoteVersions(NotesStoreModel localStore) {

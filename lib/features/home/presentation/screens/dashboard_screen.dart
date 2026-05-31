@@ -212,27 +212,8 @@ class DashboardScreen extends ConsumerWidget {
           );
         },
         loading: () => const _DashboardLoadingState(),
-        error: (error, _) => Center(
-          child: Padding(
-            padding: const EdgeInsets.all(AppSpacing.xxl),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text('Unable to load dashboard', style: AppTypography.headline),
-                const SizedBox(height: AppSpacing.sm),
-                Text(
-                  error.toString().replaceFirst('Exception: ', ''),
-                  style: AppTypography.bodyLarge,
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: AppSpacing.xl),
-                FilledButton(
-                  onPressed: () => ref.invalidate(notesControllerProvider),
-                  child: const Text('Retry'),
-                ),
-              ],
-            ),
-          ),
+        error: (error, _) => _DashboardErrorState(
+          message: _dashboardErrorMessage(error),
         ),
       ),
     );
@@ -245,6 +226,78 @@ class DashboardScreen extends ConsumerWidget {
     }
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Verification email sent.')),
+    );
+  }
+}
+
+String _dashboardErrorMessage(Object error) {
+  final message = error.toString().replaceFirst('Exception: ', '');
+  final normalized = message.toLowerCase();
+  if (normalized.contains('sqlite') ||
+      normalized.contains('database') ||
+      normalized.contains('transaction')) {
+    return 'Your local notes could not be reopened yet. Try loading the dashboard again.';
+  }
+
+  return message;
+}
+
+class _DashboardErrorState extends ConsumerStatefulWidget {
+  const _DashboardErrorState({required this.message});
+
+  final String message;
+
+  @override
+  ConsumerState<_DashboardErrorState> createState() =>
+      _DashboardErrorStateState();
+}
+
+class _DashboardErrorStateState extends ConsumerState<_DashboardErrorState> {
+  bool _isRetrying = false;
+
+  Future<void> _retry() async {
+    if (_isRetrying) {
+      return;
+    }
+
+    setState(() {
+      _isRetrying = true;
+    });
+
+    try {
+      await ref.read(notesControllerProvider.notifier).refresh();
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isRetrying = false;
+        });
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(AppSpacing.xxl),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text('Unable to load dashboard', style: AppTypography.headline),
+            const SizedBox(height: AppSpacing.sm),
+            Text(
+              widget.message,
+              style: AppTypography.bodyLarge,
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: AppSpacing.xl),
+            FilledButton(
+              onPressed: _isRetrying ? null : _retry,
+              child: Text(_isRetrying ? 'Retrying...' : 'Retry'),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

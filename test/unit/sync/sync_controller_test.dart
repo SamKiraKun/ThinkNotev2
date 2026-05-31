@@ -30,7 +30,11 @@ void main() {
       SharedPreferences.setMockInitialValues(<String, Object>{});
       final preferences = await SharedPreferences.getInstance();
       database = AppDatabase.memory();
-      localDataSource = NotesLocalDataSource(preferences, database);
+      localDataSource = NotesLocalDataSource(
+        preferences,
+        database,
+        databaseName: ':memory:',
+      );
       repository = NotesRepositoryImpl(localDataSource);
     });
 
@@ -211,6 +215,86 @@ void main() {
 
       expect(note.syncStatus, NoteSyncStatus.synced);
       expect(note.lastSyncedAt, DateTime.parse('2025-02-01T09:05:05Z'));
+      expect(
+        DateTime.parse(
+          (await localDataSource.readSyncState('last_server_sync_at'))!,
+        ),
+        DateTime.parse('2025-02-01T09:05:05Z'),
+      );
+      expect(await localDataSource.readSyncState('sync_retry_after'), isNull);
+      expect(
+        await localDataSource.readSyncState('sync_failure_count'),
+        isNull,
+      );
+    });
+
+    test('keeps pending deletes queued when pull fails after a successful push',
+        () async {
+      final created = await repository.saveNote(
+        const NoteDraft(
+          title: 'Queued delete',
+          content: 'Keep this tombstone queued until sync fully succeeds.',
+          folderId: 'personal',
+        ),
+      );
+
+      expect(created, isNotNull);
+      await repository.deleteNote(created!.id);
+
+      final authRepository = _FakeAuthRepository();
+      final apiClient = AuthenticatedApiClient(
+        MockClient((request) async {
+          if (request.url.path == '/sync/push') {
+            return _jsonResponse(
+              <String, dynamic>{
+                'success': true,
+                'data': <String, dynamic>{
+                  'server_time': '2025-02-01T09:10:00Z',
+                },
+              },
+            );
+          }
+
+          if (request.url.path == '/sync/pull') {
+            return http.Response(
+              jsonEncode(
+                <String, dynamic>{
+                  'message': 'Backend unavailable for pull.',
+                },
+              ),
+              503,
+              headers: const <String, String>{
+                'content-type': 'application/json',
+              },
+            );
+          }
+
+          throw StateError('Unexpected request to ${request.url}');
+        }),
+        authRepository,
+      );
+
+      final container = ProviderContainer(
+        overrides: [
+          currentAuthSessionProvider.overrideWithValue(
+            const AuthSession(uid: 'user-1'),
+          ),
+          notesLocalDataSourceProvider.overrideWithValue(localDataSource),
+          authenticatedApiClientProvider.overrideWithValue(apiClient),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      await container.read(syncControllerProvider.notifier).syncNow();
+
+      final pendingDeletes = await localDataSource.readPendingDeleteOperations();
+      expect(pendingDeletes, hasLength(1));
+      expect(pendingDeletes.single.entityId, created.id);
+      expect(pendingDeletes.single.retryCount, 1);
+      expect(
+        container.read(syncControllerProvider).lastErrorType,
+        SyncErrorType.api,
+      );
     });
   });
 }

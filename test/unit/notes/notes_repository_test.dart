@@ -18,7 +18,11 @@ void main() {
       final preferences = await SharedPreferences.getInstance();
       database = AppDatabase.memory();
       repository = NotesRepositoryImpl(
-        NotesLocalDataSource(preferences, database),
+        NotesLocalDataSource(
+          preferences,
+          database,
+          databaseName: ':memory:',
+        ),
       );
     });
 

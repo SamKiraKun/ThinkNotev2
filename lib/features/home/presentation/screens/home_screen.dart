@@ -319,7 +319,7 @@ class HomeScreen extends ConsumerWidget {
     final syncState = ref.read(syncControllerProvider);
     final message = syncState.lastError == null
         ? 'Sync complete.'
-        : 'Sync failed: ${syncState.lastError}';
+        : '${describeSyncErrorType(syncState.lastErrorType)}: ${syncState.lastError}';
     if (!context.mounted) {
       return;
     }

@@ -21,6 +21,7 @@ void main() {
     final dataSource = NotesLocalDataSource(
       preferences,
       database,
+      databaseName: ':memory:',
       cipher: cipher,
     );
 

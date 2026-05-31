@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../bootstrap/dependency_injection.dart';
@@ -14,14 +15,27 @@ final notesControllerProvider =
     AsyncNotifierProvider<NotesController, NotesState>(NotesController.new);
 
 class NotesController extends AsyncNotifier<NotesState> {
+  Future<void>? _refreshInFlight;
+
   @override
   Future<NotesState> build() async {
     return _load();
   }
 
-  Future<void> refresh() async {
-    state = const AsyncLoading();
-    state = AsyncData(await _load());
+  Future<void> refresh() {
+    final inFlight = _refreshInFlight;
+    if (inFlight != null) {
+      debugPrint(
+        '[NotesController] Notes refresh skipped because a load is already in flight.',
+      );
+      return inFlight;
+    }
+
+    final future = _refreshNotes();
+    _refreshInFlight = future.whenComplete(() {
+      _refreshInFlight = null;
+    });
+    return _refreshInFlight!;
   }
 
   Future<void> moveToTrash(String id) async {
@@ -133,14 +147,32 @@ class NotesController extends AsyncNotifier<NotesState> {
   }
 
   Future<NotesState> _load() async {
-    final store = await ref.read(notesRepositoryProvider).loadStore();
-    return NotesState(
-      notes: store.notes,
-      folders: store.folders,
-      tags: store.tags,
-      recentSearches: store.recentSearches,
-      preferences: store.preferences,
-    );
+    debugPrint('[NotesController] Dashboard load started.');
+    try {
+      final store = await ref.read(notesRepositoryProvider).loadStore();
+      final notesState = NotesState(
+        notes: store.notes,
+        folders: store.folders,
+        tags: store.tags,
+        recentSearches: store.recentSearches,
+        preferences: store.preferences,
+      );
+      debugPrint(
+        '[NotesController] Dashboard load succeeded with ${store.notes.length} notes, ${store.folders.length} folders, and ${store.tags.length} tags.',
+      );
+      return notesState;
+    } catch (error, stackTrace) {
+      debugPrint(
+        '[NotesController] Dashboard load failed with ${error.runtimeType}: $error',
+      );
+      debugPrintStack(stackTrace: stackTrace);
+      rethrow;
+    }
+  }
+
+  Future<void> _refreshNotes() async {
+    state = const AsyncLoading();
+    state = await AsyncValue.guard(_load);
   }
 
   void _scheduleSync() {

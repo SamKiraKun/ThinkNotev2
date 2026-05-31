@@ -151,7 +151,8 @@ final flutterSecureStorageProvider = Provider<FlutterSecureStorage>((ref) {
 
 final localNotesCipherProvider = Provider<LocalNotesCipher>((ref) {
   final keyNamespace = AppEnv.enableExperimentalSync
-      ? ref.watch(currentAuthSessionProvider)?.uid ?? 'default'
+    ? ref.watch(currentAuthSessionProvider.select((session) => session?.uid)) ??
+      'default'
       : 'default';
 
   return SecureLocalNotesCipher(

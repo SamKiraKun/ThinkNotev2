@@ -160,8 +160,8 @@ class _SyncHeaderButton extends ConsumerWidget {
               statusIcon = Icons.sync_rounded;
               statusColor = AppColors.brandPrimary;
             } else if (syncState.lastError != null) {
-              statusTitle = 'Sync Attention Required';
-              statusDesc = 'Last attempt failed: ${syncState.lastError}';
+              statusTitle = describeSyncErrorType(syncState.lastErrorType);
+              statusDesc = syncState.lastError!;
               statusIcon = Icons.warning_amber_rounded;
               statusColor = AppColors.textDanger;
             } else if (syncState.lastSyncedAt != null) {
