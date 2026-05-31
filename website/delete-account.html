@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Account and Data Deletion — ThinkNote</title>
+  
+  <meta name="description" content="Instruction page and automated email request portal to permanently delete your ThinkNote account, notes, folders, and synced data in compliance with Play Store policies.">
+  
+  <!-- CSS Stylesheet -->
+  <link rel="stylesheet" href="css/styles.css">
+  
+  <!-- Favicon Reference -->
+  <link rel="icon" type="image/png" href="favicon.png">
+</head>
+<body>
+
+  <!-- Sticky Accessibility Navigation -->
+  <header class="header">
+    <div class="container header-container">
+      <a href="index.html" class="logo-link">
+        <span class="logo-icon" aria-hidden="true">T</span>
+        <span>ThinkNote</span>
+      </a>
+      
+      <button class="menu-toggle" aria-label="Open main menu" aria-expanded="false" aria-controls="primary-navigation">
+        &#9776;
+      </button>
+      
+      <nav id="primary-navigation">
+        <ul class="nav-menu">
+          <li><a href="index.html" class="nav-link">Home</a></li>
+          <li><a href="privacy-policy.html" class="nav-link">Privacy Policy</a></li>
+          <li><a href="delete-account.html" class="nav-link active">Delete Account</a></li>
+          <li><a href="terms.html" class="nav-link">Terms of Service</a></li>
+          <li><a href="#contact" class="nav-link">Contact</a></li>
+          <li><a href="#" class="nav-cta">Get App</a></li>
+        </ul>
+      </nav>
+    </div>
+  </header>
+
+  <main class="legal-layout">
+    <div class="container">
+      <header class="legal-header">
+        <span class="section-label">User Safety & Control</span>
+        <h1>Account & Data Deletion</h1>
+        <p class="legal-meta">Learn how to instantly purge your profile and notes backup from our secure database.</p>
+      </header>
+      
+      <div class="legal-content">
+        <div class="legal-highlight-box">
+          <p>
+            ThinkNote places you in full command of your space. We support direct, automated deletion of your authenticated profile and synced material. This action cannot be reversed.
+          </p>
+        </div>
+
+        <section>
+          <h2>How to Delete Your Account & Associated Notes</h2>
+          <p>
+            We provide two convenient paths to request or execute complete data purging:
+          </p>
+          
+          <h3>Method 1: Direct In-App Deletion (Recommended)</h3>
+          <p>
+            The fastest way to purge your sync profile is directly within the ThinkNote application. This sequence does not require human queue times:
+          </p>
+          <ol>
+            <li>Launch the <strong>ThinkNote</strong> app on your device.</li>
+            <li>Tap on your **Profile** tab in the bottom navigation shell (located far right).</li>
+            <li>Select **Delete Account** or **Delete Account and Data**.</li>
+            <li>Read the security alert, input verification details if requested, and confirm execution.</li>
+            <li>The system will instantly contact Firebase and the ThinkNote API, deleting your authentication credentials, cloud-backed folders, custom tags, and all registered notes. Local cached records are also wiped when the app logs out.</li>
+          </ol>
+          
+          <h3 style="margin-top:2rem;">Method 2: Email Deletion Request</h3>
+          <p>
+            If you have uninstalled the application or can no longer log in, you can request that our support team manually purge all cloud-synced account data.
+          </p>
+          <p>
+            Please email our support coordinator at <a href="mailto:support@unicef.edu.eu.org">support@unicef.edu.eu.org</a>, incorporating the following points:
+          </p>
+          <ul>
+            <li><strong>Subject Line</strong>: Account Deletion Request — ThinkNote</li>
+            <li><strong>Support Email</strong>: The exact email address used to register your account on Firebase.</li>
+            <li><strong>Explicit Request</strong>: A simple sentence stating that you want to delete your account profile and all online notes.</li>
+          </ul>
+          <p>
+            Our support coordinator will verify the request ownership and complete the deletion sequence. You will receive a confirmation message once the purge is successful.
+          </p>
+        </section>
+
+        <section>
+          <h2>What Data Will Be Deleted?</h2>
+          <p>
+            When an account deletion request is processed through the in-app sequence or support email:
+          </p>
+          <ul>
+            <li><strong>Authentication Identity</strong>: Your complete Firebase login profile, email address, password hashes, and user ID are removed.</li>
+            <li><strong>Notes Database</strong>: Every note, drafts list, pinned position, trash categorization, and favorite tag associated with your user ID on our backend database is completely dropped.</li>
+            <li><strong>Workspace Structures</strong>: Custom tag labels and organized folder metadata linked to your user ID are deleted.</li>
+            <li><strong>Device Cache</strong>: The app-local database files are cleared upon the successful completion of the in-app deletion flow.</li>
+          </ul>
+        </section>
+
+        <section>
+          <h2>What Data May Be Retained?</h2>
+          <p>
+            Once deletion is confirmed, your files are wiped immediately from active production node databases. However:
+          </p>
+          <ul>
+            <li><strong>System Backups</strong>: Encrypted system backup copies made pre-deletion may persist for up to 30 days before being completely and automatically overwritten.</li>
+            <li><strong>Technical Logging</strong>: Standard server diagnostic tracking logs (which do not contain decrypted note bodies or direct user contents) may retain basic request transaction metrics for performance monitoring and diagnostic safety before recycling.</li>
+          </ul>
+        </section>
+
+        <section id="contact">
+          <h2>Need Assistance?</h2>
+          <p>
+            If you encounter problems or have concerns regarding automated account purging, feel free to contact our technical desk:
+          </p>
+          <ul>
+            <li><strong>Email Support</strong>: <a href="mailto:support@unicef.edu.eu.org">support@unicef.edu.eu.org</a></li>
+          </ul>
+        </section>
+      </div>
+    </div>
+  </main>
+
+  <!-- Complete Standard Sticky Footer -->
+  <footer class="footer">
+    <div class="container">
+      <div class="footer-nav">
+        <div class="footer-logo">
+          <span class="logo-icon" aria-hidden="true">T</span>
+          <span>ThinkNote</span>
+        </div>
+        <ul class="footer-links">
+          <li><a href="privacy-policy.html" class="footer-link">Privacy Policy</a></li>
+          <li><a href="delete-account.html" class="footer-link">Delete Account</a></li>
+          <li><a href="terms.html" class="footer-link">Terms of Service</a></li>
+          <li><a href="#contact" class="footer-link">Support Support</a></li>
+        </ul>
+      </div>
+      
+      <hr class="footer-divider">
+      
+      <div class="footer-bottom">
+        <p class="footer-copyright">
+          &copy; <span id="current-year"></span> ThinkNote. All rights reserved.
+        </p>
+        <p class="footer-compliance-disclaimer">
+          <strong>Play Store Compliance Notice:</strong> This app incorporates functional Firebase secure sign-in and remote note cloud sync. Detailed data handling complies with policies. No affiliation, partnership, or official representation of UNICEF is implied; support routing handles app-specific database synchronization.
+        </p>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Script Actions -->
+  <script src="js/main.js"></script>
+</body>
+</html>

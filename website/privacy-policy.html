@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Privacy Policy — ThinkNote</title>
+  
+  <meta name="description" content="ThinkNote Privacy Policy describes how we handle user data, local on-device database encryption, and cloud synchronization securely and transparently.">
+  
+  <!-- CSS Stylesheet -->
+  <link rel="stylesheet" href="css/styles.css">
+  
+  <!-- Favicon Reference -->
+  <link rel="icon" type="image/png" href="favicon.png">
+</head>
+<body>
+
+  <!-- Sticky Accessibility Navigation -->
+  <header class="header">
+    <div class="container header-container">
+      <a href="index.html" class="logo-link">
+        <span class="logo-icon" aria-hidden="true">T</span>
+        <span>ThinkNote</span>
+      </a>
+      
+      <button class="menu-toggle" aria-label="Open main menu" aria-expanded="false" aria-controls="primary-navigation">
+        &#9776;
+      </button>
+      
+      <nav id="primary-navigation">
+        <ul class="nav-menu">
+          <li><a href="index.html" class="nav-link">Home</a></li>
+          <li><a href="privacy-policy.html" class="nav-link active">Privacy Policy</a></li>
+          <li><a href="delete-account.html" class="nav-link">Delete Account</a></li>
+          <li><a href="terms.html" class="nav-link">Terms of Service</a></li>
+          <li><a href="#contact" class="nav-link">Contact</a></li>
+          <li><a href="#" class="nav-cta">Get App</a></li>
+        </ul>
+      </nav>
+    </div>
+  </header>
+
+  <main class="legal-layout">
+    <div class="container">
+      <header class="legal-header">
+        <span class="section-label">Legal & Compliance</span>
+        <h1>Privacy Policy</h1>
+        <p class="legal-meta">Effective Date: 2026-05-26</p>
+      </header>
+      
+      <div class="legal-content">
+        <div class="legal-highlight-box">
+          <p>
+            Summary: ThinkNote is an offline-first notes application. It lets users create an account with Firebase Authentication, stores note data locally on the device for fast access, and syncs note data, folders, and tags to the ThinkNote backend when sync is enabled for the signed-in account.
+          </p>
+        </div>
+
+        <section>
+          <h2>1. Introduction</h2>
+          <p>
+            ThinkNote ("we", "our", or "us") is committed to protecting your privacy. This Privacy Policy describes how we collect, use, process, and safeguard your data when you use the ThinkNote mobile application and services. By accessing or using ThinkNote, you acknowledge and agree to the compilation and use of data outlined in this document.
+          </p>
+        </section>
+
+        <section>
+          <h2>2. Information We Collect</h2>
+          <p>
+            To provide a fully synchronized and offline-first typing experience, we process specific categories of information based on whether cloud sync is active:
+          </p>
+          <ul>
+            <li>
+              <strong>Account Credentials</strong>: We use Firebase Authentication for user accounts. This involves your account identifiers, such as user ID, email address, password hashes, and optional profile records (like display name or photo URL).
+            </li>
+            <li>
+              <strong>User Notes & Workspace Content</strong>: If cloud sync is enabled, we store your notes, title drafts, tags, folders, favorites, pinned states, and archive/trash categories on the secure backend database.
+            </li>
+            <li>
+              <strong>On-Device Databases</strong>: Notes, tag mappings, recent search histories, and layout preferences are stored on your local device for instant access.
+            </li>
+            <li>
+              <strong>Technical Diagnostics</strong>: Timestamps, authentication tokens, IP/rate-limiting parameters, and diagnostic crash events (via Sentry if configured with Sentry DSN) are collected to ensure service stability.
+            </li>
+          </ul>
+        </section>
+
+        <section>
+          <h2>3. How We Use Information</h2>
+          <p>
+            We process the collected information solely to power, secure, and improve your note-taking workspace:
+          </p>
+          <ul>
+            <li>To verify your identity and manage accounts during Firebase registration.</li>
+            <li>To synchronize and back up your note collections across multiple active logins.</li>
+            <li>To provide offline availability with local caching fallback structures.</li>
+            <li>To enforce rate-limiting protections, eliminate security vulnerabilities, and resolve software crashes.</li>
+            <li>To respond directly to technical assistance and privacy requests.</li>
+          </ul>
+        </section>
+
+        <section>
+          <h2>4. Data Storage and Security</h2>
+          <p>
+            Device-level safety and secure transport are primary objectives:
+          </p>
+          <p>
+            <strong>On-Device Encryption</strong>: Local notes, folders, and tag labels are encrypted inside a device-protected SQLite database using an application secret. While this safeguards against simple file extraction, it is not "end-to-end encryption." Anyone with physical access to your unlocked device, or sophisticated root-level tools on a compromised device, could expose the active RAM or app-private storage.
+          </p>
+          <p>
+            <strong>Transport Security</strong>: All network transmissions between the ThinkNote app and our backend API are mandated over industry-standard TLS encryption (HTTPS). 
+          </p>
+          <p>
+            Please note that no technical transmission or database storage mechanism can guarantee 100% absolute security against determined interceptors or client-side physical compromises.
+          </p>
+        </section>
+
+        <section>
+          <h2>5. Third-Party Services</h2>
+          <p>
+            ThinkNote integrates the following trusted third-party providers to secure authentication and provide cloud hosting:
+          </p>
+          <ul>
+            <li>
+              <strong>Firebase Authentication (Google LLC)</strong>: For securing your account profile, registration, and email sign-ins under Google's Privacy Policies.
+            </li>
+            <li>
+              <strong>Google Cloud Platform</strong>: For hosting the secure cloud database and backend API nodes.
+            </li>
+            <li>
+              <strong>Sentry (Functional Software, Inc.)</strong>: If active in release builds, Sentry receives diagnostic crash event metrics stripped of default personally identifying information.
+            </li>
+          </ul>
+        </section>
+
+        <section>
+          <h2>6. Data Sharing</h2>
+          <p>
+            We believe that your thoughts must remain your own. ThinkNote does not sell, rent, or lease your notes, profile details, or email addresses to advertisers, data brokers, or third parties. We only share processed credentials or note contents:
+          </p>
+          <ul>
+            <li>When executing database transitions commanded by your user profile (Firebase or API requests).</li>
+            <li>When strictly necessary to comply with the law, court orders, or governmental security directives.</li>
+            <li>When defending against technical exploits, malicious attacks, or system rate-limits.</li>
+          </ul>
+        </section>
+
+        <section>
+          <h2>7. User Rights</h2>
+          <p>
+            You retain absolute command over your notes and personal profiles:
+          </p>
+          <ul>
+            <li><strong>Access and Export</strong>: You can check, edit, and access all your notes in real time. Backups can also be exported locally to your clipboard or local text directories.</li>
+            <li><strong>Correction</strong>: You can change titles, update folders, or amend note bodies at any moment directly inside the editor.</li>
+            <li><strong>Portability & Fallback</strong>: All note content remains editable offline even without database network coverage.</li>
+          </ul>
+        </section>
+
+        <section>
+          <h2>8. Account and Data Deletion</h2>
+          <p>
+            To purge all information linked to your profile, you can use the complete account deletion functionality located directly in the app:
+          </p>
+          <ol>
+            <li>Navigate to your Profile Settings inside ThinkNote.</li>
+            <li>Select "Delete Account and Data" and confirm the process.</li>
+            <li>This sequence triggers Firebase to delete your authentication record and instantly purges your synced folders, tags, and notes on the API server.</li>
+          </ol>
+          <p>
+            If you lose access to the app, you may request manual deletion of your cloud-synced account and associated notes at any time by emailing us at <a href="mailto:support@unicef.edu.eu.org">support@unicef.edu.eu.org</a>.
+          </p>
+        </section>
+
+        <section>
+          <h2>9. Children’s Privacy</h2>
+          <p>
+            ThinkNote is not intended to knowingly collect or process personal identifying information from children under the age of 13. If we discover that a child under 13 has registered for a Firebase sync account, we will take immediate steps to remove their credential records and note backups from the servers.
+          </p>
+        </section>
+
+        <section>
+          <h2>10. Changes to This Policy</h2>
+          <p>
+            We may occasionally update this Privacy Policy to reflect app enhancements or structural changes to Google or Firebase requirements. Any modifications will be declared with a fresh "Effective Date" posted clearly at the top of this page.
+          </p>
+        </section>
+
+        <section id="contact">
+          <h2>11. Contact Us</h2>
+          <p>
+            Please route privacy questions, data requests, or complaints directly to our support inbox:
+          </p>
+          <ul>
+            <li><strong>Email</strong>: <a href="mailto:support@unicef.edu.eu.org">support@unicef.edu.eu.org</a></li>
+            <li><strong>Web</strong>: <a href="index.html">ThinkNote Home</a></li>
+          </ul>
+        </section>
+      </div>
+    </div>
+  </main>
+
+  <!-- Complete Standard Sticky Footer -->
+  <footer class="footer">
+    <div class="container">
+      <div class="footer-nav">
+        <div class="footer-logo">
+          <span class="logo-icon" aria-hidden="true">T</span>
+          <span>ThinkNote</span>
+        </div>
+        <ul class="footer-links">
+          <li><a href="privacy-policy.html" class="footer-link">Privacy Policy</a></li>
+          <li><a href="delete-account.html" class="footer-link">Delete Account</a></li>
+          <li><a href="terms.html" class="footer-link">Terms of Service</a></li>
+          <li><a href="#contact" class="footer-link">Support Support</a></li>
+        </ul>
+      </div>
+      
+      <hr class="footer-divider">
+      
+      <div class="footer-bottom">
+        <p class="footer-copyright">
+          &copy; <span id="current-year"></span> ThinkNote. All rights reserved.
+        </p>
+        <p class="footer-compliance-disclaimer">
+          <strong>Play Store Compliance Notice:</strong> This app incorporates functional Firebase secure sign-in and remote note cloud sync. Detailed data handling complies with policies. No affiliation, partnership, or official representation of UNICEF is implied; support routing handles app-specific database synchronization.
+        </p>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Script Actions -->
+  <script src="js/main.js"></script>
+</body>
+</html>
