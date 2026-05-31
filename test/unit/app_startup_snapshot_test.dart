@@ -58,7 +58,7 @@ void main() {
     expect(authRepository.signOutCalls, 1);
     expect(
       container.read(authStartupNoticeProvider),
-      contains('maintenance'),
+      'Service unavailable',
     );
   });
 }
