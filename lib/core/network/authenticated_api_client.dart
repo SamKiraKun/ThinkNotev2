@@ -130,9 +130,25 @@ class AuthenticatedApiClient {
   }
 
   Map<String, dynamic> _decodeResponse(http.Response response) {
-    final decoded = response.body.isEmpty
-        ? const <String, dynamic>{}
-        : jsonDecode(response.body) as Map<String, dynamic>;
+    final rawBody = response.body.trim();
+    if (rawBody.isEmpty) {
+      if (response.statusCode >= 400) {
+        throw ApiException(
+          'Request failed.',
+          statusCode: response.statusCode,
+        );
+      }
+      return const <String, dynamic>{};
+    }
+
+    if (_looksLikeHtmlResponse(response, rawBody)) {
+      throw ApiException(
+        _unexpectedHtmlMessage(response, rawBody),
+        statusCode: response.statusCode,
+      );
+    }
+
+    final decoded = _decodeJsonMap(response, rawBody);
 
     if (response.statusCode >= 400) {
       throw ApiException(
@@ -142,5 +158,37 @@ class AuthenticatedApiClient {
     }
 
     return decoded;
+  }
+
+  Map<String, dynamic> _decodeJsonMap(http.Response response, String rawBody) {
+    try {
+      final decoded = jsonDecode(rawBody);
+      if (decoded is Map<String, dynamic>) {
+        return decoded;
+      }
+
+      throw ApiException(
+        'Unexpected API response format.',
+        statusCode: response.statusCode,
+      );
+    } on FormatException {
+      throw ApiException(
+        'Unexpected response from the ThinkNote API. Confirm that API_URL points to the backend API and that the service is returning JSON.',
+        statusCode: response.statusCode,
+      );
+    }
+  }
+
+  bool _looksLikeHtmlResponse(http.Response response, String rawBody) {
+    final contentType = response.headers['content-type']?.toLowerCase() ?? '';
+    return contentType.contains('text/html') || rawBody.startsWith('<!DOCTYPE html') || rawBody.startsWith('<html');
+  }
+
+  String _unexpectedHtmlMessage(http.Response response, String rawBody) {
+    if (response.statusCode == 503 || rawBody.toLowerCase().contains('service suspended')) {
+      return 'The ThinkNote backend is unavailable right now. The configured API returned an HTML service-suspended page instead of JSON. Verify that the backend deployment is active and that API_URL points to the API service.';
+    }
+
+    return 'The configured API returned HTML instead of JSON. Verify that API_URL points to the ThinkNote backend API, not a website or error page.';
   }
 }

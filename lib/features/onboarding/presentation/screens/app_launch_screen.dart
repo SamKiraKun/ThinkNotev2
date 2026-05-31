@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/extensions/context_extensions.dart';
+import '../../../../core/network/authenticated_api_client.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_gradients.dart';
 import '../../../../core/theme/app_radius.dart';
@@ -33,7 +34,7 @@ class AppLaunchScreen extends ConsumerWidget {
                   child: startup.when(
                     loading: () => const _SplashVisual(),
                     error: (error, _) => _LaunchErrorState(
-                      message: error.toString().replaceFirst('Exception: ', ''),
+                      message: _describeLaunchError(error),
                       onRetry: () {
                         ref.invalidate(onboardingControllerProvider);
                         ref.invalidate(notesControllerProvider);
@@ -50,6 +51,14 @@ class AppLaunchScreen extends ConsumerWidget {
       ),
     );
   }
+}
+
+String _describeLaunchError(Object error) {
+  if (error is ApiException) {
+    return error.message;
+  }
+
+  return error.toString().replaceFirst('Exception: ', '');
 }
 
 class _LaunchBackdrop extends StatelessWidget {
