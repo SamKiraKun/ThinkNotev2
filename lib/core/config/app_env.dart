@@ -18,9 +18,9 @@ enum AppFlavor {
 final class AppEnv {
   AppEnv._();
 
-  static const String _defaultDevelopmentApiUrl =
-      'https://api.unicef.edu.eu.org';
-  static const String _activeApiHost = 'api.unicef.edu.eu.org';
+  static const String canonicalApiUrl = 'https://api.unicef.edu.eu.org';
+  static const String canonicalApiHost = 'api.unicef.edu.eu.org';
+  static const String _defaultDevelopmentApiUrl = canonicalApiUrl;
   static const String _retiredApiHost = 'api.unicefindia.edu.eu.org';
 
   static const String apiUrl = String.fromEnvironment(
@@ -107,11 +107,7 @@ final class AppEnv {
       );
     }
 
-    if (flavor == AppFlavor.production) {
-      if (parsedApiUri.scheme != 'https') {
-        throw StateError('Production API_URL must use HTTPS.');
-      }
-    }
+    final normalizedApiUri = normalizeApiUri(parsedApiUri);
 
     _requireNonEmpty('FIREBASE_API_KEY', firebaseApiKey);
     _requireNonEmpty(
@@ -133,8 +129,16 @@ final class AppEnv {
       _requireNonEmpty('API_URL', apiUrl);
     }
 
-    if (flavor == AppFlavor.production && parsedApiUri.scheme != 'https') {
-      throw StateError('Production API_URL must use HTTPS.');
+    if (parsedApiUri.path.isNotEmpty && parsedApiUri.path != '/') {
+      throw StateError('API_URL must be the backend origin, not a route path.');
+    }
+
+    if (flavor == AppFlavor.production &&
+        !isCanonicalProductionApiUri(normalizedApiUri)) {
+      throw StateError(
+        'Production API_URL must be $canonicalApiUrl. '
+        'Do not ship production builds pointed at localhost, Render, staging, or placeholder endpoints.',
+      );
     }
   }
 
@@ -186,7 +190,14 @@ final class AppEnv {
       return apiUri;
     }
 
-    return apiUri.replace(host: _activeApiHost);
+    return apiUri.replace(host: canonicalApiHost);
+  }
+
+  static bool isCanonicalProductionApiUri(Uri apiUri) {
+    final normalizedApiUri = normalizeApiUri(apiUri);
+    return normalizedApiUri.scheme == 'https' &&
+        normalizedApiUri.host.toLowerCase() == canonicalApiHost &&
+        (normalizedApiUri.path.isEmpty || normalizedApiUri.path == '/');
   }
 
   static bool get usesRetiredApiHost {

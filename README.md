@@ -2,7 +2,7 @@
 
 This workspace contains the ThinkNote Flutter client with Riverpod state management, `go_router` navigation, local SQLite persistence, and Android release configuration.
 
-ThinkNote now targets a mandatory-authentication notes release. The Flutter client initializes Firebase on supported platforms, requires email/password sign-in before the user can access the app shell, keeps a per-account local cache, and syncs notes, folders, and tags through the backend API at `https://api.unicef.edu.eu.org` unless `API_URL` is overridden.
+ThinkNote now targets a mandatory-authentication notes release. The Flutter client initializes Firebase on supported platforms, requires email/password sign-in before the user can access the app shell, keeps a per-account local cache, and syncs notes, folders, and tags through the backend API at `https://api.unicef.edu.eu.org`. Production builds must use that canonical API origin.
 
 ## Run the app
 
@@ -19,7 +19,7 @@ flutter pub get
 ```bash
 flutter run \
   --dart-define=APP_FLAVOR=development \
-  --dart-define=API_URL=https://your-api.example.com \
+  --dart-define=API_URL=https://api.unicef.edu.eu.org \
   --dart-define=FIREBASE_API_KEY=... \
   --dart-define=FIREBASE_ANDROID_APP_ID=... \
   --dart-define=FIREBASE_MESSAGING_SENDER_ID=... \
@@ -38,7 +38,7 @@ The Flutter client is configured entirely through compile-time `--dart-define` v
 Supported client defines:
 
 - `APP_FLAVOR`
-- `API_URL` (required outside development and must be HTTPS in production)
+- `API_URL` (defaults to `https://api.unicef.edu.eu.org`; production builds must use this canonical origin)
 - `FIREBASE_API_KEY`
 - `FIREBASE_APP_ID` (generic fallback app id)
 - `FIREBASE_ANDROID_APP_ID`
@@ -58,7 +58,7 @@ Canonical Android release build from a Bash-compatible shell:
 
 ```bash
 APP_FLAVOR=production \
-API_URL=https://your-api.example.com \
+API_URL=https://api.unicef.edu.eu.org \
 FIREBASE_API_KEY=... \
 FIREBASE_ANDROID_APP_ID=... \
 FIREBASE_MESSAGING_SENDER_ID=... \
@@ -70,7 +70,7 @@ Canonical Android release build from Windows Command Prompt or PowerShell:
 
 ```bat
 set "APP_FLAVOR=production"
-set "API_URL=https://your-api.example.com"
+set "API_URL=https://api.unicef.edu.eu.org"
 set "FIREBASE_API_KEY=..."
 set "FIREBASE_ANDROID_APP_ID=..."
 set "FIREBASE_MESSAGING_SENDER_ID=..."
@@ -78,7 +78,7 @@ set "FIREBASE_PROJECT_ID=..."
 scripts\android\build_release_artifacts.cmd
 ```
 
-Authenticated builds must pass Firebase client settings. Production builds must use an HTTPS `API_URL`.
+Authenticated builds must pass Firebase client settings. Production builds must use `API_URL=https://api.unicef.edu.eu.org`; the release scripts default to this value when `API_URL` is omitted and reject non-canonical production API origins.
 
 CircleCI is the canonical Android release builder. It signs the release,
 stores the Play AAB separately from the QA APK, and archives release metadata

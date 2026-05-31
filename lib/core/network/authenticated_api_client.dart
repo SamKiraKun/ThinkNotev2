@@ -9,15 +9,37 @@ import '../../features/auth/auth_providers.dart';
 import '../../features/auth/domain/repositories/auth_repository.dart';
 import '../config/app_env.dart';
 
+enum ApiFailureKind {
+  timeout,
+  noInternet,
+  dns,
+  tls,
+  serverUnreachable,
+  authentication,
+  authorization,
+  validation,
+  notFound,
+  conflict,
+  rateLimited,
+  server,
+  invalidResponse,
+  unknown,
+}
+
 class ApiException implements Exception {
-  const ApiException(this.message, {this.statusCode});
+  const ApiException(
+    this.message, {
+    this.statusCode,
+    this.kind = ApiFailureKind.unknown,
+  });
 
   final String message;
   final int? statusCode;
+  final ApiFailureKind kind;
 
   @override
   String toString() =>
-      'ApiException(statusCode: $statusCode, message: $message)';
+      'ApiException(kind: $kind, statusCode: $statusCode, message: $message)';
 }
 
 final httpClientProvider = Provider<http.Client>((ref) {
@@ -61,6 +83,32 @@ class AuthenticatedApiClient {
       );
     });
     return _decodeResponse(response);
+  }
+
+  Future<Map<String, dynamic>> getPublicJson(
+    String path, {
+    Map<String, String>? queryParameters,
+  }) async {
+    final uri = _buildUri(path, queryParameters: queryParameters);
+    final response = await _sendPublic('GET', uri, (headers) {
+      return _httpClient.get(
+        uri,
+        headers: headers,
+      );
+    });
+    return _decodeResponse(response);
+  }
+
+  Future<void> verifyBackendHealth() async {
+    final response = await getPublicJson('/health');
+    if (response['status'] == 'ok') {
+      return;
+    }
+
+    throw const ApiException(
+      'The ThinkNote backend health check did not return status ok.',
+      kind: ApiFailureKind.server,
+    );
   }
 
   Future<Map<String, dynamic>> postJson(
@@ -124,10 +172,38 @@ class AuthenticatedApiClient {
       _debugLogFailure(method, uri, error, stackTrace);
       throw const ApiException(
         'The ThinkNote backend took too long to respond. Check your connection and try again.',
+        kind: ApiFailureKind.timeout,
       );
     } on http.ClientException catch (error, stackTrace) {
       _debugLogFailure(method, uri, error, stackTrace);
-      throw ApiException(_describeClientException(error));
+      throw _clientException(error);
+    }
+  }
+
+  Future<http.Response> _sendPublic(
+    String method,
+    Uri uri,
+    Future<http.Response> Function(Map<String, String> headers) send,
+  ) async {
+    try {
+      _debugLogRequest(method, uri);
+      final response = await _sendWithTimeout(
+        send,
+        const <String, String>{
+          'accept': 'application/json',
+        },
+      );
+      _debugLogResponse(method, uri, response);
+      return response;
+    } on TimeoutException catch (error, stackTrace) {
+      _debugLogFailure(method, uri, error, stackTrace);
+      throw const ApiException(
+        'The ThinkNote backend health check timed out.',
+        kind: ApiFailureKind.timeout,
+      );
+    } on http.ClientException catch (error, stackTrace) {
+      _debugLogFailure(method, uri, error, stackTrace);
+      throw _clientException(error);
     }
   }
 
@@ -169,6 +245,7 @@ class AuthenticatedApiClient {
         throw ApiException(
           _fallbackHttpErrorMessage(response.statusCode),
           statusCode: response.statusCode,
+          kind: _failureKindForStatusCode(response.statusCode),
         );
       }
       return const <String, dynamic>{};
@@ -178,6 +255,9 @@ class AuthenticatedApiClient {
       throw ApiException(
         _unexpectedHtmlMessage(response, rawBody),
         statusCode: response.statusCode,
+        kind: response.statusCode >= 500
+            ? ApiFailureKind.server
+            : ApiFailureKind.invalidResponse,
       );
     }
 
@@ -190,6 +270,7 @@ class AuthenticatedApiClient {
             ? message
             : _fallbackHttpErrorMessage(response.statusCode),
         statusCode: response.statusCode,
+        kind: _failureKindForStatusCode(response.statusCode),
       );
     }
 
@@ -206,22 +287,27 @@ class AuthenticatedApiClient {
       throw ApiException(
         'Unexpected API response format.',
         statusCode: response.statusCode,
+        kind: ApiFailureKind.invalidResponse,
       );
     } on FormatException {
       throw ApiException(
         'Unexpected response from the ThinkNote API. Confirm that API_URL points to the backend API and that the service is returning JSON.',
         statusCode: response.statusCode,
+        kind: ApiFailureKind.invalidResponse,
       );
     }
   }
 
   bool _looksLikeHtmlResponse(http.Response response, String rawBody) {
     final contentType = response.headers['content-type']?.toLowerCase() ?? '';
-    return contentType.contains('text/html') || rawBody.startsWith('<!DOCTYPE html') || rawBody.startsWith('<html');
+    return contentType.contains('text/html') ||
+        rawBody.startsWith('<!DOCTYPE html') ||
+        rawBody.startsWith('<html');
   }
 
   String _unexpectedHtmlMessage(http.Response response, String rawBody) {
-    if (response.statusCode == 503 || rawBody.toLowerCase().contains('service suspended')) {
+    if (response.statusCode == 503 ||
+        rawBody.toLowerCase().contains('service suspended')) {
       return 'The ThinkNote backend is unavailable right now. The configured API returned an HTML service-suspended page instead of JSON. Verify that the backend deployment is active and that API_URL points to the API service.';
     }
 
@@ -233,31 +319,79 @@ class AuthenticatedApiClient {
       400 => 'The request sent to the ThinkNote backend was invalid.',
       401 => 'Your session could not be verified. Sign in again.',
       403 => 'You do not have permission to perform that action.',
-      404 => 'The configured ThinkNote API route was not found. Verify that API_URL points to the active backend deployment.',
-      408 => 'The ThinkNote backend took too long to respond. Check your connection and try again.',
-      409 => 'The request could not be completed because of a conflict on the backend.',
-      422 => 'The server rejected the request data. Review the provided information and try again.',
-      429 => 'Too many requests were sent to the ThinkNote backend. Try again in a moment.',
-      _ when statusCode >= 500 => 'The ThinkNote backend is temporarily unavailable. Please try again in a few minutes.',
+      404 =>
+        'The configured ThinkNote API route was not found. Verify that API_URL points to the active backend deployment.',
+      408 =>
+        'The ThinkNote backend took too long to respond. Check your connection and try again.',
+      409 =>
+        'The request could not be completed because of a conflict on the backend.',
+      422 =>
+        'The server rejected the request data. Review the provided information and try again.',
+      429 =>
+        'Too many requests were sent to the ThinkNote backend. Try again in a moment.',
+      _ when statusCode >= 500 =>
+        'The ThinkNote backend is temporarily unavailable. Please try again in a few minutes.',
       _ => 'Request failed.',
     };
   }
 
-  String _describeClientException(http.ClientException error) {
+  ApiFailureKind _failureKindForStatusCode(int statusCode) {
+    return switch (statusCode) {
+      400 || 422 => ApiFailureKind.validation,
+      401 => ApiFailureKind.authentication,
+      403 => ApiFailureKind.authorization,
+      404 => ApiFailureKind.notFound,
+      408 => ApiFailureKind.timeout,
+      409 => ApiFailureKind.conflict,
+      429 => ApiFailureKind.rateLimited,
+      _ when statusCode >= 500 => ApiFailureKind.server,
+      _ => ApiFailureKind.unknown,
+    };
+  }
+
+  ApiException _clientException(http.ClientException error) {
     final message = error.message.toLowerCase();
-    if (message.contains('certificate') || message.contains('handshake')) {
-      return 'A secure connection to the ThinkNote backend could not be established. Check the backend certificate configuration and try again.';
+    if (message.contains('certificate') ||
+        message.contains('handshake') ||
+        message.contains('tls') ||
+        message.contains('ssl')) {
+      return const ApiException(
+        'A secure connection to the ThinkNote backend could not be established. Check the backend certificate configuration and try again.',
+        kind: ApiFailureKind.tls,
+      );
     }
 
     if (message.contains('failed host lookup') ||
-        message.contains('network is unreachable') ||
-        message.contains('connection refused') ||
-        message.contains('connection reset') ||
-        message.contains('connection closed')) {
-      return 'Unable to reach the ThinkNote backend. Check your internet connection and verify that API_URL points to the active server.';
+        message.contains('no address associated') ||
+        message.contains('name or service not known')) {
+      return const ApiException(
+        'DNS lookup failed for the ThinkNote backend. Verify that API_URL points to the active server.',
+        kind: ApiFailureKind.dns,
+      );
     }
 
-    return 'A network error prevented ThinkNote from reaching the backend. Please try again.';
+    if (message.contains('connection refused') ||
+        message.contains('connection reset') ||
+        message.contains('connection closed') ||
+        message.contains('broken pipe')) {
+      return const ApiException(
+        'The ThinkNote backend could not be reached at the configured address.',
+        kind: ApiFailureKind.serverUnreachable,
+      );
+    }
+
+    if (message.contains('network is unreachable') ||
+        message.contains('software caused connection abort')) {
+      return const ApiException(
+        'No internet route is available to the ThinkNote backend. Check your connection and try again.',
+        kind: ApiFailureKind.noInternet,
+      );
+    }
+
+    return const ApiException(
+      'A network error prevented ThinkNote from reaching the backend. Please try again.',
+      kind: ApiFailureKind.noInternet,
+    );
   }
 
   void _debugLogRequest(String method, Uri uri) {

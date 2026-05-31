@@ -30,6 +30,11 @@ $enableAnalytics = if ([string]::IsNullOrWhiteSpace($env:ENABLE_ANALYTICS)) {
 }
 
 $enableExperimentalSync = 'true'
+$canonicalApiUrl = 'https://api.unicef.edu.eu.org'
+if ([string]::IsNullOrWhiteSpace($env:API_URL)) {
+  $env:API_URL = $canonicalApiUrl
+}
+$normalizedApiUrl = $env:API_URL.TrimEnd('/')
 $firebaseAndroidAppId = if ([string]::IsNullOrWhiteSpace($env:FIREBASE_ANDROID_APP_ID)) {
   $env:FIREBASE_APP_ID
 } else {
@@ -37,7 +42,6 @@ $firebaseAndroidAppId = if ([string]::IsNullOrWhiteSpace($env:FIREBASE_ANDROID_A
 }
 
 foreach ($requiredVar in @(
-  'API_URL',
   'FIREBASE_API_KEY',
   'FIREBASE_MESSAGING_SENDER_ID',
   'FIREBASE_PROJECT_ID'
@@ -53,8 +57,9 @@ if ([string]::IsNullOrWhiteSpace($firebaseAndroidAppId)) {
   exit 1
 }
 
-if ($appFlavor -eq 'production' -and -not $env:API_URL.StartsWith('https://')) {
-  Write-Host 'Production authenticated builds must use an HTTPS API_URL.'
+if ($appFlavor -eq 'production' -and $normalizedApiUrl -ne $canonicalApiUrl) {
+  Write-Host "Production authenticated builds must use API_URL=$canonicalApiUrl."
+  Write-Host 'Do not ship production builds pointed at localhost, Render, staging, or placeholder endpoints.'
   exit 1
 }
 
@@ -158,6 +163,7 @@ $manifest = [ordered]@{
   app_flavor = $appFlavor
   enable_analytics = $enableAnalytics
   enable_experimental_sync = $enableExperimentalSync
+  api_url = $normalizedApiUrl
   target_sdk = $targetSdk
   play_artifact = 'build/app/outputs/bundle/release/app-release.aab'
   qa_artifact = 'build/app/outputs/flutter-apk/app-release.apk'

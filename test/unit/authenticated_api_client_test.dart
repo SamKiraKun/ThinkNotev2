@@ -6,7 +6,8 @@ import 'package:thinknote/features/auth/domain/entities/auth_session.dart';
 import 'package:thinknote/features/auth/domain/repositories/auth_repository.dart';
 
 void main() {
-  test('throws a readable ApiException when the backend returns HTML', () async {
+  test('throws a readable ApiException when the backend returns HTML',
+      () async {
     final client = AuthenticatedApiClient(
       MockClient((request) async {
         expect(request.headers['accept'], 'application/json');
@@ -26,6 +27,7 @@ void main() {
       throwsA(
         isA<ApiException>()
             .having((error) => error.statusCode, 'statusCode', 503)
+            .having((error) => error.kind, 'kind', ApiFailureKind.server)
             .having(
               (error) => error.message,
               'message',
@@ -47,16 +49,19 @@ void main() {
     await expectLater(
       () => client.getJson('/account/me'),
       throwsA(
-        isA<ApiException>().having(
-          (error) => error.message,
-          'message',
-          contains('took too long to respond'),
-        ),
+        isA<ApiException>()
+            .having((error) => error.kind, 'kind', ApiFailureKind.timeout)
+            .having(
+              (error) => error.message,
+              'message',
+              contains('took too long to respond'),
+            ),
       ),
     );
   });
 
-  test('throws a precise ApiException when the backend route is missing', () async {
+  test('throws a precise ApiException when the backend route is missing',
+      () async {
     final client = AuthenticatedApiClient(
       MockClient((request) async {
         return http.Response(
@@ -73,6 +78,7 @@ void main() {
       throwsA(
         isA<ApiException>()
             .having((error) => error.statusCode, 'statusCode', 404)
+            .having((error) => error.kind, 'kind', ApiFailureKind.notFound)
             .having(
               (error) => error.message,
               'message',
@@ -80,6 +86,25 @@ void main() {
             ),
       ),
     );
+  });
+
+  test('verifies the public backend health endpoint before sync', () async {
+    final client = AuthenticatedApiClient(
+      MockClient((request) async {
+        expect(request.url.path, '/health');
+        expect(request.headers['accept'], 'application/json');
+        expect(request.headers.containsKey('authorization'), isFalse);
+
+        return http.Response(
+          '{"status":"ok","message":"Backend is running!"}',
+          200,
+          headers: const {'content-type': 'application/json'},
+        );
+      }),
+      _FakeAuthRepository(),
+    );
+
+    await client.verifyBackendHealth();
   });
 }
 

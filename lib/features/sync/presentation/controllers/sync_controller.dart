@@ -21,10 +21,19 @@ final syncControllerProvider =
 });
 
 enum SyncErrorType {
+  noInternet,
+  dns,
+  tls,
+  timeout,
+  serverUnreachable,
   localDatabase,
-  network,
   authentication,
+  authorization,
+  validation,
+  conflict,
+  rateLimited,
   api,
+  invalidResponse,
   unknown,
 }
 
@@ -61,7 +70,7 @@ class SyncState {
       lastError: identical(lastError, _syncSentinel)
           ? this.lastError
           : lastError as String?,
-        lastErrorType: identical(lastErrorType, _syncSentinel)
+      lastErrorType: identical(lastErrorType, _syncSentinel)
           ? this.lastErrorType
           : lastErrorType as SyncErrorType?,
       nextRetryAt: identical(nextRetryAt, _syncSentinel)
@@ -181,6 +190,9 @@ class SyncController extends StateNotifier<SyncState> {
           ? null
           : await localDataSource.readSyncState(_lastServerSyncKey);
 
+      debugPrint('[SyncController] Checking backend health before sync.');
+      await apiClient.verifyBackendHealth();
+
       debugPrint(
         '[SyncController] Sync push started with ${pushedNoteVersions.length} dirty notes and ${pendingDeletes.length} queued deletes.',
       );
@@ -247,8 +259,9 @@ class SyncController extends StateNotifier<SyncState> {
 
       try {
         await localDataSource.recordSyncFailure(
-          queueIds:
-              pendingDeletes.map((operation) => operation.id).toList(growable: false),
+          queueIds: pendingDeletes
+              .map((operation) => operation.id)
+              .toList(growable: false),
           errorMessage: failure.message,
           syncStateUpdates: <String, String>{
             _failureCountKey: failureCount.toString(),
@@ -342,17 +355,26 @@ class SyncController extends StateNotifier<SyncState> {
 
 String describeSyncErrorType(SyncErrorType? type) {
   return switch (type) {
+    SyncErrorType.noInternet => 'No internet connection',
+    SyncErrorType.dns => 'DNS issue',
+    SyncErrorType.tls => 'Connection security issue',
+    SyncErrorType.timeout => 'Connection timeout',
+    SyncErrorType.serverUnreachable => 'Server unreachable',
     SyncErrorType.localDatabase => 'Local database issue',
-    SyncErrorType.network => 'Connection issue',
     SyncErrorType.authentication => 'Authentication issue',
+    SyncErrorType.authorization => 'Permission issue',
+    SyncErrorType.validation => 'Sync data issue',
+    SyncErrorType.conflict => 'Sync conflict',
+    SyncErrorType.rateLimited => 'Retry later',
     SyncErrorType.api => 'Server issue',
+    SyncErrorType.invalidResponse => 'Invalid server response',
     SyncErrorType.unknown || null => 'Sync issue',
   };
 }
 
 _SyncFailure _classifySyncFailure(Object error) {
   if (error is ApiException) {
-    if (error.statusCode == 401) {
+    if (error.kind == ApiFailureKind.authentication) {
       return const _SyncFailure(
         type: SyncErrorType.authentication,
         message:
@@ -360,16 +382,13 @@ _SyncFailure _classifySyncFailure(Object error) {
       );
     }
 
-    if (error.statusCode == null && _looksLikeNetworkError(error.message)) {
-      return const _SyncFailure(
-        type: SyncErrorType.network,
-        message:
-            'ThinkNote could not reach the server. Your changes stay queued and will retry automatically.',
-      );
+    final networkFailure = _networkFailureForApiError(error);
+    if (networkFailure != null) {
+      return networkFailure;
     }
 
     return _SyncFailure(
-      type: SyncErrorType.api,
+      type: _syncErrorTypeForApiFailure(error.kind),
       message: error.message.isEmpty
           ? 'The server could not complete sync. Your changes stay queued and will retry automatically.'
           : error.message,
@@ -391,14 +410,55 @@ _SyncFailure _classifySyncFailure(Object error) {
   );
 }
 
-bool _looksLikeNetworkError(String message) {
-  final normalizedMessage = message.toLowerCase();
-  return normalizedMessage.contains('network') ||
-      normalizedMessage.contains('connection') ||
-      normalizedMessage.contains('internet') ||
-      normalizedMessage.contains('timeout') ||
-      normalizedMessage.contains('timed out') ||
-      normalizedMessage.contains('host lookup');
+_SyncFailure? _networkFailureForApiError(ApiException error) {
+  return switch (error.kind) {
+    ApiFailureKind.noInternet => const _SyncFailure(
+        type: SyncErrorType.noInternet,
+        message:
+            'No internet connection is available. Your changes stay queued and will retry automatically.',
+      ),
+    ApiFailureKind.dns => const _SyncFailure(
+        type: SyncErrorType.dns,
+        message:
+            'ThinkNote could not resolve the backend address. Your changes stay queued and will retry automatically.',
+      ),
+    ApiFailureKind.tls => const _SyncFailure(
+        type: SyncErrorType.tls,
+        message:
+            'ThinkNote could not establish a secure HTTPS connection to the backend. Your changes stay queued and will retry automatically.',
+      ),
+    ApiFailureKind.timeout => const _SyncFailure(
+        type: SyncErrorType.timeout,
+        message:
+            'The backend took too long to respond. Your changes stay queued and will retry automatically.',
+      ),
+    ApiFailureKind.serverUnreachable => const _SyncFailure(
+        type: SyncErrorType.serverUnreachable,
+        message:
+            'ThinkNote could not reach the server. Your changes stay queued and will retry automatically.',
+      ),
+    _ => null,
+  };
+}
+
+SyncErrorType _syncErrorTypeForApiFailure(ApiFailureKind kind) {
+  return switch (kind) {
+    ApiFailureKind.authentication => SyncErrorType.authentication,
+    ApiFailureKind.authorization => SyncErrorType.authorization,
+    ApiFailureKind.validation => SyncErrorType.validation,
+    ApiFailureKind.conflict => SyncErrorType.conflict,
+    ApiFailureKind.rateLimited => SyncErrorType.rateLimited,
+    ApiFailureKind.server => SyncErrorType.api,
+    ApiFailureKind.invalidResponse => SyncErrorType.invalidResponse,
+    ApiFailureKind.notFound => SyncErrorType.api,
+    ApiFailureKind.noInternet ||
+    ApiFailureKind.dns ||
+    ApiFailureKind.tls ||
+    ApiFailureKind.timeout ||
+    ApiFailureKind.serverUnreachable =>
+      SyncErrorType.serverUnreachable,
+    ApiFailureKind.unknown => SyncErrorType.unknown,
+  };
 }
 
 bool _looksLikeLocalDatabaseError(Object error) {

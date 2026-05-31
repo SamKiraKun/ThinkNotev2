@@ -57,6 +57,10 @@ void main() {
       final authRepository = _FakeAuthRepository();
       final apiClient = AuthenticatedApiClient(
         MockClient((request) async {
+          if (request.url.path == '/health') {
+            return _healthResponse();
+          }
+
           if (request.url.path == '/sync/push') {
             final payload = jsonDecode(request.body) as Map<String, dynamic>;
             final pushedNotes = payload['notes'] as List<dynamic>;
@@ -154,6 +158,10 @@ void main() {
       final authRepository = _FakeAuthRepository();
       final apiClient = AuthenticatedApiClient(
         MockClient((request) async {
+          if (request.url.path == '/health') {
+            return _healthResponse();
+          }
+
           if (request.url.path == '/sync/push') {
             final payload = jsonDecode(request.body) as Map<String, dynamic>;
             final pushedNotes = payload['notes'] as List<dynamic>;
@@ -174,7 +182,8 @@ void main() {
           }
 
           if (request.url.path == '/sync/pull') {
-            expect(request.url.queryParameters['since'], '2025-02-01T09:00:00Z');
+            expect(
+                request.url.queryParameters['since'], '2025-02-01T09:00:00Z');
 
             return _jsonResponse(
               <String, dynamic>{
@@ -244,6 +253,10 @@ void main() {
       final authRepository = _FakeAuthRepository();
       final apiClient = AuthenticatedApiClient(
         MockClient((request) async {
+          if (request.url.path == '/health') {
+            return _healthResponse();
+          }
+
           if (request.url.path == '/sync/push') {
             return _jsonResponse(
               <String, dynamic>{
@@ -287,7 +300,8 @@ void main() {
 
       await container.read(syncControllerProvider.notifier).syncNow();
 
-      final pendingDeletes = await localDataSource.readPendingDeleteOperations();
+      final pendingDeletes =
+          await localDataSource.readPendingDeleteOperations();
       expect(pendingDeletes, hasLength(1));
       expect(pendingDeletes.single.entityId, created.id);
       expect(pendingDeletes.single.retryCount, 1);
@@ -297,6 +311,19 @@ void main() {
       );
     });
   });
+}
+
+http.Response _healthResponse() {
+  return http.Response(
+    jsonEncode(
+      <String, dynamic>{
+        'status': 'ok',
+        'message': 'Backend is running!',
+      },
+    ),
+    200,
+    headers: const <String, String>{'content-type': 'application/json'},
+  );
 }
 
 http.Response _jsonResponse(Map<String, dynamic> body) {

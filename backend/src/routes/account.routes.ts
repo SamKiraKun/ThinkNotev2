@@ -24,9 +24,10 @@ router.get("/me", async (req, res) => {
       row = result.rows[0] as Record<string, unknown> | undefined;
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
-      if (!message.toLowerCase().includes("no such table: users")) {
+      if (!canFallbackToAuthProfile(message)) {
         throw error;
       }
+      console.error("Failed to read account profile cache:", error);
     }
 
     const user = {
@@ -91,3 +92,14 @@ router.delete("/", async (req, res) => {
 });
 
 export default router;
+
+function canFallbackToAuthProfile(message: string) {
+  const normalized = message.toLowerCase();
+  return (
+    normalized.includes("no such table: users") ||
+    normalized.includes("fetch failed") ||
+    normalized.includes("database unavailable") ||
+    normalized.includes("connection") ||
+    normalized.includes("timeout")
+  );
+}

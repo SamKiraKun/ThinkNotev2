@@ -22,10 +22,10 @@ esac
 
 : "${ENABLE_ANALYTICS:=false}"
 : "${ENABLE_EXPERIMENTAL_SYNC:=true}"
+: "${API_URL:=https://api.unicef.edu.eu.org}"
 : "${FIREBASE_ANDROID_APP_ID:=${FIREBASE_APP_ID:-}}"
 
 required_sync_env=(
-  API_URL
   FIREBASE_API_KEY
   FIREBASE_ANDROID_APP_ID
   FIREBASE_MESSAGING_SENDER_ID
@@ -39,8 +39,11 @@ for var_name in "${required_sync_env[@]}"; do
   fi
 done
 
-if [[ "${APP_FLAVOR}" == "production" && "${API_URL}" != https://* ]]; then
-  echo "Production authenticated builds must use an HTTPS API_URL."
+canonical_api_url="https://api.unicef.edu.eu.org"
+normalized_api_url="${API_URL%/}"
+if [[ "${APP_FLAVOR}" == "production" && "${normalized_api_url}" != "${canonical_api_url}" ]]; then
+  echo "Production authenticated builds must use API_URL=${canonical_api_url}."
+  echo "Do not ship production builds pointed at localhost, Render, staging, or placeholder endpoints."
   exit 1
 fi
 
@@ -103,7 +106,7 @@ if command -v sha256sum >/dev/null 2>&1; then
     > build/release-metadata/artifact-sha256.txt
 fi
 
-printf '{\n  "git_sha": "%s",\n  "circle_build_num": "%s",\n  "app_flavor": "%s",\n  "enable_analytics": "%s",\n  "enable_experimental_sync": "%s",\n  "target_sdk": "%s",\n  "play_artifact": "%s",\n  "qa_artifact": "%s",\n  "r8_mapping": "%s"\n}\n' \
+printf '{\n  "git_sha": "%s",\n  "circle_build_num": "%s",\n  "app_flavor": "%s",\n  "enable_analytics": "%s",\n  "enable_experimental_sync": "%s",\n  "target_sdk": "%s",\n  "play_artifact": "%s",\n  "qa_artifact": "%s",\n  "r8_mapping": "%s",\n  "api_url": "%s"\n}\n' \
   "${CIRCLE_SHA1:-$(git rev-parse HEAD)}" \
   "${CIRCLE_BUILD_NUM:-1}" \
   "${APP_FLAVOR}" \
@@ -113,4 +116,5 @@ printf '{\n  "git_sha": "%s",\n  "circle_build_num": "%s",\n  "app_flavor": "%s"
   "build/app/outputs/bundle/release/app-release.aab" \
   "build/app/outputs/flutter-apk/app-release.apk" \
   "build/release-metadata/r8-mapping.txt" \
+  "${normalized_api_url}" \
   > build/release-metadata/release-manifest.json

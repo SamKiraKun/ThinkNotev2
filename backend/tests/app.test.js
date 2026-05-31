@@ -24,6 +24,27 @@ function allowAuthenticatedRequest(req, _res, next) {
   next();
 }
 
+test("GET /health returns public backend health status", async () => {
+  const app = createApp({
+    logger: silentLogger,
+    dbClient: {
+      async execute() {
+        return { rows: [{ time: "2026-05-31 20:15:55" }] };
+      },
+    },
+    config: {
+      isProduction: false,
+      corsAllowNoOrigin: true,
+    },
+  });
+
+  const response = await request(app).get("/health");
+
+  assert.equal(response.status, 200);
+  assert.equal(response.body.status, "ok");
+  assert.equal(response.body.message, "Backend is running!");
+});
+
 test("POST /notes rejects requests without a bearer token", async () => {
   const app = createApp({
     logger: silentLogger,
