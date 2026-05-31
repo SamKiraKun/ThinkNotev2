@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -50,124 +51,139 @@ class NotesLocalDataSource {
   final SharedPreferences _preferences;
   final AppDatabase _database;
   final LocalNotesCipher _cipher;
+  Future<void> _serializedOperations = Future<void>.value();
 
   Future<NotesStoreModel> readStore() async {
-    await _migrateLegacyPreferencesIfNeeded();
+    return _runSerialized(() async {
+      await _migrateLegacyPreferencesIfNeeded();
 
-    final database = await _database.instance;
-    final notesRows = database.select(
-      'SELECT * FROM notes ORDER BY updated_at DESC',
-    );
-    final folderRows = database.select(
-      'SELECT * FROM folders ORDER BY created_at ASC',
-    );
-    final tagRows = database.select(
-      'SELECT * FROM tags ORDER BY created_at ASC',
-    );
-    final searchRows = database.select(
-      'SELECT * FROM recent_searches ORDER BY position ASC',
-    );
-    final preferences = _readPreferences(database);
-    final shouldRewriteEncryptedFields = _rowsRequireEncryption(
-      notesRows: notesRows,
-      folderRows: folderRows,
-      tagRows: tagRows,
-      searchRows: searchRows,
-    );
+      final database = await _database.instance;
+      final notesRows = database.select(
+        'SELECT * FROM notes ORDER BY updated_at DESC',
+      );
+      final folderRows = database.select(
+        'SELECT * FROM folders ORDER BY created_at ASC',
+      );
+      final tagRows = database.select(
+        'SELECT * FROM tags ORDER BY created_at ASC',
+      );
+      final searchRows = database.select(
+        'SELECT * FROM recent_searches ORDER BY position ASC',
+      );
+      final preferences = _readPreferences(database);
+      final shouldRewriteEncryptedFields = _rowsRequireEncryption(
+        notesRows: notesRows,
+        folderRows: folderRows,
+        tagRows: tagRows,
+        searchRows: searchRows,
+      );
 
-    final store = NotesStoreModel(
-      notes: await _readNotes(notesRows),
-      folders: await _readFolders(folderRows),
-      tags: await _readTags(tagRows),
-      recentSearches: await _readRecentSearches(searchRows),
-      preferences: preferences,
-    ).withDefaults();
+      final store = NotesStoreModel(
+        notes: await _readNotes(notesRows),
+        folders: await _readFolders(folderRows),
+        tags: await _readTags(tagRows),
+        recentSearches: await _readRecentSearches(searchRows),
+        preferences: preferences,
+      ).withDefaults();
 
-    if (notesRows.isEmpty && folderRows.isEmpty && tagRows.isEmpty) {
-      final emptyStore = NotesStoreModel.empty();
-      await _writeStoreToDatabase(emptyStore);
-      return emptyStore;
-    }
+      if (notesRows.isEmpty && folderRows.isEmpty && tagRows.isEmpty) {
+        final emptyStore = NotesStoreModel.empty();
+        await _writeStoreToDatabase(emptyStore);
+        return emptyStore;
+      }
 
-    if (store.folders.length != folderRows.length ||
-        store.tags.length != tagRows.length ||
-        shouldRewriteEncryptedFields) {
-      await _writeStoreToDatabase(store);
-    }
+      if (store.folders.length != folderRows.length ||
+          store.tags.length != tagRows.length ||
+          shouldRewriteEncryptedFields) {
+        await _writeStoreToDatabase(store);
+      }
 
-    return store;
+      return store;
+    });
   }
 
   Future<void> writeStore(NotesStoreModel store) async {
-    await _migrateLegacyPreferencesIfNeeded();
-    await _writeStoreToDatabase(store.withDefaults());
+    await _runSerialized(() async {
+      await _migrateLegacyPreferencesIfNeeded();
+      await _writeStoreToDatabase(store.withDefaults());
+    });
   }
 
   Future<String?> readSyncState(String key) async {
-    final database = await _database.instance;
-    final rows = database.select(
-      'SELECT value FROM sync_state WHERE key = ? LIMIT 1',
-      [key],
-    );
-    if (rows.isEmpty) {
-      return null;
-    }
+    return _runSerialized(() async {
+      final database = await _database.instance;
+      final rows = database.select(
+        'SELECT value FROM sync_state WHERE key = ? LIMIT 1',
+        [key],
+      );
+      if (rows.isEmpty) {
+        return null;
+      }
 
-    return rows.first['value'] as String;
+      return rows.first['value'] as String;
+    });
   }
 
   Future<void> writeSyncState(String key, String value) async {
-    final database = await _database.instance;
-    database.execute(
-      '''
-        INSERT OR REPLACE INTO sync_state (key, value, updated_at)
-        VALUES (?, ?, ?)
-      ''',
-      [key, value, DateTime.now().toIso8601String()],
-    );
+    await _runSerialized(() async {
+      final database = await _database.instance;
+      database.execute(
+        '''
+          INSERT OR REPLACE INTO sync_state (key, value, updated_at)
+          VALUES (?, ?, ?)
+        ''',
+        [key, value, DateTime.now().toIso8601String()],
+      );
+    });
   }
 
   Future<void> deleteSyncState(String key) async {
-    final database = await _database.instance;
-    database.execute(
-      'DELETE FROM sync_state WHERE key = ?',
-      [key],
-    );
+    await _runSerialized(() async {
+      final database = await _database.instance;
+      database.execute(
+        'DELETE FROM sync_state WHERE key = ?',
+        [key],
+      );
+    });
   }
 
   Future<void> upsertDeleteOperation(SyncDeleteOperation operation) async {
-    final database = await _database.instance;
-    database.execute(
-      '''
-        INSERT OR REPLACE INTO sync_queue (
-          id, entity_type, entity_id, operation, payload_json, created_at,
-          retry_count, last_error
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-      ''',
-      [
-        operation.id,
-        operation.entityType.storageValue,
-        operation.entityId,
-        'delete',
-        operation.payloadJsonString,
-        operation.createdAt.toIso8601String(),
-        operation.retryCount,
-        operation.lastError,
-      ],
-    );
+    await _runSerialized(() async {
+      final database = await _database.instance;
+      database.execute(
+        '''
+          INSERT OR REPLACE INTO sync_queue (
+            id, entity_type, entity_id, operation, payload_json, created_at,
+            retry_count, last_error
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        ''',
+        [
+          operation.id,
+          operation.entityType.storageValue,
+          operation.entityId,
+          'delete',
+          operation.payloadJsonString,
+          operation.createdAt.toIso8601String(),
+          operation.retryCount,
+          operation.lastError,
+        ],
+      );
+    });
   }
 
   Future<List<SyncDeleteOperation>> readPendingDeleteOperations() async {
-    final database = await _database.instance;
-    final rows = database.select(
-      '''
-        SELECT *
-        FROM sync_queue
-        WHERE operation = 'delete'
-        ORDER BY created_at ASC
-      ''',
-    );
-    return rows.map(SyncDeleteOperation.fromRow).toList(growable: false);
+    return _runSerialized(() async {
+      final database = await _database.instance;
+      final rows = database.select(
+        '''
+          SELECT *
+          FROM sync_queue
+          WHERE operation = 'delete'
+          ORDER BY created_at ASC
+        ''',
+      );
+      return rows.map(SyncDeleteOperation.fromRow).toList(growable: false);
+    });
   }
 
   Future<void> clearPendingDeleteOperations(List<String> queueIds) async {
@@ -175,12 +191,14 @@ class NotesLocalDataSource {
       return;
     }
 
-    final database = await _database.instance;
-    final placeholders = List.filled(queueIds.length, '?').join(', ');
-    database.execute(
-      'DELETE FROM sync_queue WHERE id IN ($placeholders)',
-      queueIds,
-    );
+    await _runSerialized(() async {
+      final database = await _database.instance;
+      final placeholders = List.filled(queueIds.length, '?').join(', ');
+      database.execute(
+        'DELETE FROM sync_queue WHERE id IN ($placeholders)',
+        queueIds,
+      );
+    });
   }
 
   Future<void> markDeleteOperationsFailed(
@@ -191,20 +209,34 @@ class NotesLocalDataSource {
       return;
     }
 
-    final database = await _database.instance;
-    final placeholders = List.filled(queueIds.length, '?').join(', ');
-    database.execute(
-      '''
-        UPDATE sync_queue
-        SET retry_count = retry_count + 1,
-            last_error = ?
-        WHERE id IN ($placeholders)
-      ''',
-      <Object?>[
-        errorMessage,
-        ...queueIds,
-      ],
-    );
+    await _runSerialized(() async {
+      final database = await _database.instance;
+      final placeholders = List.filled(queueIds.length, '?').join(', ');
+      database.execute(
+        '''
+          UPDATE sync_queue
+          SET retry_count = retry_count + 1,
+              last_error = ?
+          WHERE id IN ($placeholders)
+        ''',
+        <Object?>[
+          errorMessage,
+          ...queueIds,
+        ],
+      );
+    });
+  }
+
+  Future<T> _runSerialized<T>(Future<T> Function() operation) {
+    final completer = Completer<T>();
+    _serializedOperations = _serializedOperations.catchError((_) {}).then((_) async {
+      try {
+        completer.complete(await operation());
+      } catch (error, stackTrace) {
+        completer.completeError(error, stackTrace);
+      }
+    });
+    return completer.future;
   }
 
   Future<void> _migrateLegacyPreferencesIfNeeded() async {

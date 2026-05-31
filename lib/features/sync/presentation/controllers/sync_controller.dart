@@ -142,11 +142,13 @@ class SyncController extends StateNotifier<SyncState> {
     );
 
     List<SyncDeleteOperation> pendingDeletes = const <SyncDeleteOperation>[];
+    Map<String, DateTime> pushedNoteVersions = const <String, DateTime>{};
 
     try {
       final apiClient = _ref.read(authenticatedApiClientProvider);
       final localStore = await localDataSource.readStore();
       pendingDeletes = await localDataSource.readPendingDeleteOperations();
+      pushedNoteVersions = _pushedNoteVersions(localStore);
       final since = forceFullPull
           ? null
           : await localDataSource.readSyncState(_lastServerSyncKey);
@@ -169,7 +171,13 @@ class SyncController extends StateNotifier<SyncState> {
         pullResponse['data'] as Map<String, dynamic>,
       );
 
-      final mergedStore = _mergeStore(localStore, payload);
+      final latestLocalStore = await localDataSource.readStore();
+      final acknowledgedStore = _acknowledgePushedNotes(
+        latestLocalStore,
+        pushedNoteVersions: pushedNoteVersions,
+        syncedAt: payload.serverTime,
+      );
+      final mergedStore = _mergeStore(acknowledgedStore, payload);
       await localDataSource.writeStore(mergedStore);
       await localDataSource.clearPendingDeleteOperations(
         _queueIdsForRemoteDeletes(payload),
@@ -283,6 +291,42 @@ class SyncController extends StateNotifier<SyncState> {
       tags: mergedTags,
     );
   }
+}
+
+Map<String, DateTime> _pushedNoteVersions(NotesStoreModel localStore) {
+  return <String, DateTime>{
+    for (final note in localStore.notes)
+      if (note.syncStatus != NoteSyncStatus.synced) note.id: note.updatedAt,
+  };
+}
+
+NotesStoreModel _acknowledgePushedNotes(
+  NotesStoreModel localStore, {
+  required Map<String, DateTime> pushedNoteVersions,
+  required DateTime syncedAt,
+}) {
+  if (pushedNoteVersions.isEmpty) {
+    return localStore;
+  }
+
+  final updatedNotes = localStore.notes.map((note) {
+    final pushedUpdatedAt = pushedNoteVersions[note.id];
+    if (pushedUpdatedAt == null) {
+      return note;
+    }
+
+    if (!note.updatedAt.isAtSameMomentAs(pushedUpdatedAt)) {
+      return note;
+    }
+
+    return note.copyWith(
+      remoteId: note.remoteId ?? note.id,
+      syncStatus: NoteSyncStatus.synced,
+      lastSyncedAt: syncedAt,
+    );
+  }).toList(growable: false);
+
+  return localStore.copyWith(notes: updatedNotes);
 }
 
 class SyncPullPayload {
