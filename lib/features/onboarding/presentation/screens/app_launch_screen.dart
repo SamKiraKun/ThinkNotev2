@@ -9,6 +9,7 @@ import '../../../../core/theme/app_radius.dart';
 import '../../../../core/theme/app_shadows.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
+import '../../../auth/auth_providers.dart';
 import '../../../notes/presentation/controllers/notes_controller.dart';
 import '../controllers/onboarding_controller.dart';
 
@@ -36,6 +37,7 @@ class AppLaunchScreen extends ConsumerWidget {
                     error: (error, _) => _LaunchErrorState(
                       message: _describeLaunchError(error),
                       onRetry: () {
+                        ref.invalidate(authenticatedAccountProvider);
                         ref.invalidate(onboardingControllerProvider);
                         ref.invalidate(notesControllerProvider);
                         ref.invalidate(appStartupSnapshotProvider);

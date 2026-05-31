@@ -4,6 +4,9 @@ const test = require("node:test");
 const request = require("supertest");
 
 const { createApp } = require("../dist/app");
+const {
+  buildRequireFirebaseAuth,
+} = require("../dist/middleware/auth.middleware");
 
 const silentLogger = {
   error() {},
@@ -78,6 +81,41 @@ test("GET /account/me returns the authenticated account", async () => {
   assert.equal(response.body.success, true);
   assert.equal(response.body.data.id, "test-user");
   assert.equal(response.body.data.email, "test@example.com");
+});
+
+test("GET /account/me still succeeds when syncing the authenticated user record fails", async () => {
+  const authMiddleware = buildRequireFirebaseAuth({
+    verifyIdToken: async () => ({
+      uid: "synced-user",
+      email: "sync@example.com",
+      name: "Sync User",
+      picture: null,
+    }),
+    database: {
+      async execute() {
+        throw new Error("database unavailable during user sync");
+      },
+    },
+    logger: silentLogger,
+  });
+
+  const app = createApp({
+    authMiddleware,
+    logger: silentLogger,
+    config: {
+      isProduction: false,
+      corsAllowNoOrigin: true,
+    },
+  });
+
+  const response = await request(app)
+    .get("/account/me")
+    .set("Authorization", "Bearer valid-token");
+
+  assert.equal(response.status, 200);
+  assert.equal(response.body.success, true);
+  assert.equal(response.body.data.id, "synced-user");
+  assert.equal(response.body.data.email, "sync@example.com");
 });
 
 test("POST /notes rejects a request body that exceeds the configured size", async () => {

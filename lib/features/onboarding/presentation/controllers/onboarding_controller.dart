@@ -131,7 +131,7 @@ final appStartupSnapshotProvider =
     try {
       await ref.read(authenticatedAccountProvider.future);
       startupNotice.state = null;
-    } on ApiException catch (error) {
+    } on ApiException catch (error, stackTrace) {
       if (error.statusCode == 401) {
         startupNotice.state = 'Your session could not be verified. Sign in again.';
         await ref.read(authRepositoryProvider).signOut();
@@ -141,11 +141,13 @@ final appStartupSnapshotProvider =
         );
       }
 
-      startupNotice.state = _describeStartupFailure(error);
-      await ref.read(authRepositoryProvider).signOut();
-      return AppStartupSnapshot(
-        onboardingProfile: onboardingProfile,
-        requiresAuthentication: true,
+      startupNotice.state = null;
+      Error.throwWithStackTrace(
+        ApiException(
+          _describeStartupFailure(error),
+          statusCode: error.statusCode,
+        ),
+        stackTrace,
       );
     }
   }

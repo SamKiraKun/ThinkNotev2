@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../constants/route_names.dart';
+import '../../features/auth/auth_providers.dart';
 import '../../features/onboarding/presentation/controllers/onboarding_controller.dart';
 import '../../features/auth/presentation/screens/app_passcode_unlock_screen.dart';
 
@@ -14,9 +15,14 @@ class RouteGuards {
     final isOnboardingRoute = location == RouteNames.onboarding;
     final isAuthRoute = location == RouteNames.auth;
     final isUnlockRoute = location == RouteNames.unlock;
+    final session = ref.read(currentAuthSessionProvider);
     final startupSnapshot = ref.read(appStartupSnapshotProvider);
 
     if (startupSnapshot.isLoading) {
+      if (session != null) {
+        return isLaunchRoute ? null : RouteNames.launch;
+      }
+
       if (isLaunchRoute || isOnboardingRoute || isAuthRoute) {
         return null;
       }
@@ -24,6 +30,10 @@ class RouteGuards {
     }
 
     if (startupSnapshot.hasError) {
+      if (session != null) {
+        return isLaunchRoute ? null : RouteNames.launch;
+      }
+
       if (isLaunchRoute || isOnboardingRoute || isAuthRoute) {
         return null;
       }

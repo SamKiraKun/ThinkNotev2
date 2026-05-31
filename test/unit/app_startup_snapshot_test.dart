@@ -30,7 +30,39 @@ void main() {
     expect(stopwatch.elapsed, lessThan(const Duration(milliseconds: 300)));
   });
 
-  test('backend bootstrap failures fall back to auth with a friendly notice',
+  test('unauthorized backend bootstrap signs out and falls back to auth',
+      () async {
+    final authRepository = _FakeAuthRepository();
+    final container = ProviderContainer(
+      overrides: [
+        onboardingControllerProvider.overrideWith(
+          () => _TestOnboardingController(_completedProfile),
+        ),
+        currentAuthSessionProvider.overrideWithValue(
+          const AuthSession(uid: 'user-1', email: 'sam@example.com'),
+        ),
+        authRepositoryProvider.overrideWithValue(authRepository),
+        authenticatedAccountProvider.overrideWith(
+          (ref) async => throw const ApiException(
+            'Missing or invalid authentication token',
+            statusCode: 401,
+          ),
+        ),
+      ],
+    );
+    addTearDown(container.dispose);
+
+    final snapshot = await container.read(appStartupSnapshotProvider.future);
+
+    expect(snapshot.requiresAuthentication, isTrue);
+    expect(authRepository.signOutCalls, 1);
+    expect(
+      container.read(authStartupNoticeProvider),
+      contains('verified'),
+    );
+  });
+
+  test('non-auth backend bootstrap failures surface a launch error without signing out',
       () async {
     final authRepository = _FakeAuthRepository();
     final container = ProviderContainer(
@@ -52,14 +84,21 @@ void main() {
     );
     addTearDown(container.dispose);
 
-    final snapshot = await container.read(appStartupSnapshotProvider.future);
-
-    expect(snapshot.requiresAuthentication, isTrue);
-    expect(authRepository.signOutCalls, 1);
-    expect(
-      container.read(authStartupNoticeProvider),
-      'Service unavailable',
+    await expectLater(
+      () => container.read(appStartupSnapshotProvider.future),
+      throwsA(
+        isA<ApiException>()
+            .having((error) => error.statusCode, 'statusCode', 503)
+            .having(
+              (error) => error.message,
+              'message',
+              'Service unavailable',
+            ),
+      ),
     );
+
+    expect(authRepository.signOutCalls, 0);
+    expect(container.read(authStartupNoticeProvider), isNull);
   });
 }
 
