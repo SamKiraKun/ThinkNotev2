@@ -10,6 +10,8 @@ import '../../../../core/theme/app_radius.dart';
 import '../../../../core/theme/app_shadows.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
+import '../../auth_providers.dart';
+import '../../../onboarding/presentation/controllers/onboarding_controller.dart';
 import '../controllers/auth_controller.dart';
 
 class AuthGateScreen extends ConsumerStatefulWidget {
@@ -57,7 +59,11 @@ class _AuthGateScreenState extends ConsumerState<AuthGateScreen>
   Widget build(BuildContext context) {
     final palette = context.palette;
     final authState = ref.watch(authControllerProvider);
-    final isBusy = authState.isLoading;
+    final authSession = ref.watch(currentAuthSessionProvider);
+    final startupSnapshot = ref.watch(appStartupSnapshotProvider);
+    final startupNotice = ref.watch(authStartupNoticeProvider);
+    final isFinishingSignIn = authSession != null && startupSnapshot.isLoading;
+    final isBusy = authState.isLoading || isFinishingSignIn;
 
     ref.listen(authControllerProvider, (previous, next) {
       if (next.hasError) {
@@ -120,6 +126,27 @@ class _AuthGateScreenState extends ConsumerState<AuthGateScreen>
                         ),
                         textAlign: TextAlign.center,
                       ),
+                      if (isFinishingSignIn) ...[
+                        const SizedBox(height: AppSpacing.lg),
+                        _AuthStatusBanner(
+                          icon: Icons.cloud_sync_rounded,
+                          message:
+                              'Finishing secure sign-in and preparing your workspace...',
+                          backgroundColor:
+                              AppColors.brandPrimary.withValues(alpha: 0.12),
+                          foregroundColor: AppColors.brandPrimary,
+                        ),
+                      ],
+                      if (startupNotice != null) ...[
+                        const SizedBox(height: AppSpacing.lg),
+                        _AuthStatusBanner(
+                          icon: Icons.error_outline_rounded,
+                          message: startupNotice,
+                          backgroundColor:
+                              AppColors.textDanger.withValues(alpha: 0.12),
+                          foregroundColor: AppColors.textDanger,
+                        ),
+                      ],
                     ],
                   ),
                   const SizedBox(height: AppSpacing.xxl),
@@ -378,6 +405,48 @@ class _AuthGateScreenState extends ConsumerState<AuthGateScreen>
     }
 
     return 'Authentication failed.';
+  }
+}
+
+class _AuthStatusBanner extends StatelessWidget {
+  const _AuthStatusBanner({
+    required this.icon,
+    required this.message,
+    required this.backgroundColor,
+    required this.foregroundColor,
+  });
+
+  final IconData icon;
+  final String message;
+  final Color backgroundColor;
+  final Color foregroundColor;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(AppSpacing.md),
+      decoration: BoxDecoration(
+        color: backgroundColor,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, size: 18, color: foregroundColor),
+          const SizedBox(width: AppSpacing.sm),
+          Expanded(
+            child: Text(
+              message,
+              style: AppTypography.bodySmall.copyWith(
+                color: foregroundColor,
+                height: 1.4,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
 

@@ -19,7 +19,7 @@ final class AppEnv {
   AppEnv._();
 
   static const String _defaultDevelopmentApiUrl =
-      'https://api.unicefindia.edu.eu.org';
+      'https://api.unicef.edu.eu.org';
 
   static const String apiUrl = String.fromEnvironment(
     'API_URL',

@@ -24,6 +24,8 @@ final currentAuthSessionProvider = Provider<AuthSession?>((ref) {
       ref.watch(authRepositoryProvider).currentSession();
 });
 
+final authStartupNoticeProvider = StateProvider<String?>((ref) => null);
+
 final authenticatedAccountProvider =
     FutureProvider<AuthenticatedAccount?>((ref) async {
   final session = ref.watch(currentAuthSessionProvider);

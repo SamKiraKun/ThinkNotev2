@@ -151,6 +151,25 @@ void main() {
     expect(onboardingController.completedNotifications, isFalse);
   });
 
+  testWidgets('get started opens auth gate without a long launch delay',
+      (tester) async {
+    await _pumpRouter(tester);
+
+    expect(find.text('Write anything instantly.'), findsOneWidget);
+
+    await tester.tap(find.text('Continue'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Continue'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Get Started'));
+    await tester.pump(const Duration(milliseconds: 250));
+
+    expect(find.byType(AuthGateScreen), findsOneWidget);
+    expect(find.text('Sign in to continue.'), findsOneWidget);
+  });
+
   testWidgets('auth screen supports password reset and verification guidance',
       (tester) async {
     final authController = _FakeAuthController();

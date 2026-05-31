@@ -2,7 +2,7 @@
 
 This workspace contains the ThinkNote Flutter client with Riverpod state management, `go_router` navigation, local SQLite persistence, and Android release configuration.
 
-ThinkNote now targets a mandatory-authentication notes release. The Flutter client initializes Firebase on supported platforms, requires email/password sign-in before the user can access the app shell, keeps a per-account local cache, and syncs notes, folders, and tags through the backend API at `https://api.unicefindia.edu.eu.org` unless `API_URL` is overridden.
+ThinkNote now targets a mandatory-authentication notes release. The Flutter client initializes Firebase on supported platforms, requires email/password sign-in before the user can access the app shell, keeps a per-account local cache, and syncs notes, folders, and tags through the backend API at `https://api.unicef.edu.eu.org` unless `API_URL` is overridden.
 
 ## Run the app
 

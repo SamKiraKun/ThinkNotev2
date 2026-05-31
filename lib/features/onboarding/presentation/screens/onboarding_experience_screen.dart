@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
+import '../../../../core/constants/route_names.dart';
 import '../../../../core/extensions/context_extensions.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_gradients.dart';
@@ -8,6 +10,7 @@ import '../../../../core/theme/app_radius.dart';
 import '../../../../core/theme/app_shadows.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
+import '../../../auth/auth_providers.dart';
 import '../../../notes/data/models/app_preferences_model.dart';
 import '../../data/models/onboarding_profile.dart';
 import '../controllers/onboarding_controller.dart';
@@ -587,6 +590,16 @@ class _OnboardingExperienceScreenState
           wantsNotifications: false,
           themePreference: AppThemePreference.system,
         );
+
+    if (!mounted) {
+      return;
+    }
+
+    final hasSession = ref.read(currentAuthSessionProvider) != null;
+    final router = GoRouter.maybeOf(context);
+    if (router != null) {
+      router.go(hasSession ? RouteNames.root : RouteNames.auth);
+    }
   }
 }
 

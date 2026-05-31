@@ -17,11 +17,17 @@ class RouteGuards {
     final startupSnapshot = ref.read(appStartupSnapshotProvider);
 
     if (startupSnapshot.isLoading) {
-      return isLaunchRoute ? null : RouteNames.launch;
+      if (isLaunchRoute || isOnboardingRoute || isAuthRoute) {
+        return null;
+      }
+      return RouteNames.launch;
     }
 
     if (startupSnapshot.hasError) {
-      return isLaunchRoute ? null : RouteNames.launch;
+      if (isLaunchRoute || isOnboardingRoute || isAuthRoute) {
+        return null;
+      }
+      return RouteNames.launch;
     }
 
     final startup = startupSnapshot.requireValue;

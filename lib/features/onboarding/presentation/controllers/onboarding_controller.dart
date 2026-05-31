@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/config/app_env.dart';
@@ -7,8 +9,6 @@ import '../../../../core/constants/storage_keys.dart';
 import '../../../../core/storage/local_storage.dart';
 import '../../../auth/auth_providers.dart';
 import '../../../notes/data/models/app_preferences_model.dart';
-import '../../../notes/presentation/controllers/notes_controller.dart';
-import '../../../sync/presentation/controllers/sync_controller.dart';
 import '../../data/models/onboarding_profile.dart';
 
 final onboardingControllerProvider =
@@ -47,31 +47,6 @@ class OnboardingController extends AsyncNotifier<OnboardingProfile> {
     final normalizedName = workspaceName.trim();
     final sharedPreferences = ref.read(sharedPreferencesProvider);
 
-    await sharedPreferences.setBool(StorageKeys.hasCompletedOnboarding, true);
-    await sharedPreferences.setString(
-      StorageKeys.onboardingWorkspaceName,
-      normalizedName,
-    );
-    await sharedPreferences.setString(
-      StorageKeys.onboardingWorkspaceFocus,
-      workspaceFocus.storageValue,
-    );
-    await sharedPreferences.setBool(
-      StorageKeys.notificationsEnabled,
-      wantsNotifications,
-    );
-    await sharedPreferences.setString(
-      StorageKeys.onboardingThemePreference,
-      themePreference.storageValue,
-    );
-
-    final currentPreferences =
-        ref.read(notesControllerProvider).valueOrNull?.preferences ??
-            const AppPreferencesModel();
-    await ref.read(notesControllerProvider.notifier).updatePreferences(
-          currentPreferences.copyWith(themePreference: themePreference),
-        );
-
     state = AsyncData(
       OnboardingProfile(
         hasCompletedOnboarding: true,
@@ -81,6 +56,48 @@ class OnboardingController extends AsyncNotifier<OnboardingProfile> {
         themePreference: themePreference,
       ),
     );
+
+    unawaited(
+      _persistOnboardingSelection(
+        sharedPreferences: sharedPreferences,
+        workspaceName: normalizedName,
+        workspaceFocus: workspaceFocus,
+        wantsNotifications: wantsNotifications,
+        themePreference: themePreference,
+      ),
+    );
+  }
+
+  Future<void> _persistOnboardingSelection({
+    required dynamic sharedPreferences,
+    required String workspaceName,
+    required WorkspaceFocus workspaceFocus,
+    required bool wantsNotifications,
+    required AppThemePreference themePreference,
+  }) async {
+    try {
+      await Future.wait<void>([
+        sharedPreferences.setBool(StorageKeys.hasCompletedOnboarding, true),
+        sharedPreferences.setString(
+          StorageKeys.onboardingWorkspaceName,
+          workspaceName,
+        ),
+        sharedPreferences.setString(
+          StorageKeys.onboardingWorkspaceFocus,
+          workspaceFocus.storageValue,
+        ),
+        sharedPreferences.setBool(
+          StorageKeys.notificationsEnabled,
+          wantsNotifications,
+        ),
+        sharedPreferences.setString(
+          StorageKeys.onboardingThemePreference,
+          themePreference.storageValue,
+        ),
+      ]);
+    } catch (error, stackTrace) {
+      Zone.current.handleUncaughtError(error, stackTrace);
+    }
   }
 }
 
@@ -105,37 +122,32 @@ class AppStartupSnapshot {
 
 final appStartupSnapshotProvider =
     FutureProvider<AppStartupSnapshot>((ref) async {
-  final startTime = DateTime.now();
-
   final session = ref.watch(currentAuthSessionProvider);
   final onboardingProfile =
       await ref.watch(onboardingControllerProvider.future);
+  final startupNotice = ref.read(authStartupNoticeProvider.notifier);
 
   if (session != null) {
     try {
       await ref.read(authenticatedAccountProvider.future);
-      await ref.read(syncControllerProvider.notifier).syncNow(
-            forceFullPull: true,
-            rethrowOnError: true,
-          );
-      ref.invalidate(notesControllerProvider);
-      await ref.read(notesControllerProvider.future);
+      startupNotice.state = null;
     } on ApiException catch (error) {
       if (error.statusCode == 401) {
+        startupNotice.state = 'Your session could not be verified. Sign in again.';
         await ref.read(authRepositoryProvider).signOut();
         return AppStartupSnapshot(
           onboardingProfile: onboardingProfile,
           requiresAuthentication: true,
         );
       }
-      rethrow;
-    }
-  }
 
-  final elapsed = DateTime.now().difference(startTime);
-  const minDelay = Duration(seconds: 1);
-  if (elapsed < minDelay) {
-    await Future.delayed(minDelay - elapsed);
+      startupNotice.state = _describeStartupFailure(error);
+      await ref.read(authRepositoryProvider).signOut();
+      return AppStartupSnapshot(
+        onboardingProfile: onboardingProfile,
+        requiresAuthentication: true,
+      );
+    }
   }
 
   return AppStartupSnapshot(
@@ -143,3 +155,11 @@ final appStartupSnapshotProvider =
     requiresAuthentication: session == null,
   );
 });
+
+String _describeStartupFailure(ApiException error) {
+  if (error.statusCode == 503) {
+    return "We're currently performing maintenance. Please try again in a few minutes.";
+  }
+
+  return 'The server is temporarily unavailable. Please try again in a few minutes.';
+}
