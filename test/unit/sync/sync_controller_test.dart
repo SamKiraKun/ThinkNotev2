@@ -415,6 +415,54 @@ void main() {
         contains('status=503'),
       );
     });
+
+    test(
+        'surfaces account persistence readiness failures with user-facing sync copy',
+        () async {
+      final authRepository = _FakeAuthRepository();
+      final apiClient = AuthenticatedApiClient(
+        MockClient((request) async {
+          if (request.url.path == '/sync/readiness') {
+            return http.Response(
+              jsonEncode(
+                <String, dynamic>{
+                  'message': 'Account persistence is unavailable',
+                },
+              ),
+              503,
+              headers: const <String, String>{
+                'content-type': 'application/json',
+              },
+            );
+          }
+
+          throw StateError('Unexpected request to ${request.url}');
+        }),
+        authRepository,
+      );
+
+      final container = ProviderContainer(
+        overrides: [
+          currentAuthSessionProvider.overrideWithValue(
+            const AuthSession(uid: 'user-1'),
+          ),
+          notesLocalDataSourceProvider.overrideWithValue(localDataSource),
+          authenticatedApiClientProvider.overrideWithValue(apiClient),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      await container.read(syncControllerProvider.notifier).syncNow();
+
+      final state = container.read(syncControllerProvider);
+      expect(state.lastErrorType, SyncErrorType.api);
+      expect(
+        state.lastError,
+        'ThinkNote signed you in, but the server could not access your account profile yet. Your notes still work on this device and sync will retry automatically.',
+      );
+      expect(state.lastDiagnostic, contains('GET /sync/readiness'));
+      expect(state.lastDiagnostic, contains('status=503'));
+    });
   });
 }
 

@@ -430,11 +430,15 @@ _SyncFailure _classifySyncFailure(Object error) {
       return networkFailure;
     }
 
+    final recoverableServerMessage =
+        _recoverableServerMessageForApiError(error);
+
     return _SyncFailure(
       type: _syncErrorTypeForApiFailure(error.kind),
-      message: error.message.isEmpty
-          ? 'The server could not complete sync. Your changes stay queued and will retry automatically.'
-          : error.message,
+      message: recoverableServerMessage ??
+          (error.message.isEmpty
+              ? 'The server could not complete sync. Your changes stay queued and will retry automatically.'
+              : error.message),
       diagnostic: error.diagnosticSummary,
     );
   }
@@ -452,6 +456,25 @@ _SyncFailure _classifySyncFailure(Object error) {
     message:
         'Sync could not finish. Your local notes are still available and ThinkNote will retry automatically.',
   );
+}
+
+String? _recoverableServerMessageForApiError(ApiException error) {
+  final normalizedMessage = error.message.trim().toLowerCase();
+  final endpoint = error.endpoint?.toLowerCase();
+  final isReadinessCheck = endpoint == '/sync/readiness';
+
+  if (normalizedMessage.contains('account persistence is unavailable')) {
+    return 'ThinkNote signed you in, but the server could not access your account profile yet. Your notes still work on this device and sync will retry automatically.';
+  }
+
+  if (isReadinessCheck &&
+      (normalizedMessage.contains('sync readiness') ||
+          normalizedMessage.contains('status ready') ||
+          normalizedMessage.contains('backend is not ready'))) {
+    return 'The server is not ready to sync this account yet. Your notes still work on this device and ThinkNote will retry automatically.';
+  }
+
+  return null;
 }
 
 _SyncFailure? _networkFailureForApiError(ApiException error) {
