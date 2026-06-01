@@ -296,28 +296,6 @@ class SyncController extends StateNotifier<SyncState> {
         payload.deletedFolders.map((item) => item.id).toSet();
     final deletedTagIds = payload.deletedTags.map((item) => item.id).toSet();
 
-    final mergedNotes = <String, NoteModel>{
-      for (final note in localStore.notes)
-        if (!deletedNoteIds.contains(note.id)) note.id: note,
-    };
-
-    for (final remoteNote in payload.notes) {
-      if (deletedNoteIds.contains(remoteNote.id)) {
-        continue;
-      }
-
-      final localNote = mergedNotes[remoteNote.id];
-      if (localNote == null ||
-          localNote.syncStatus == NoteSyncStatus.synced ||
-          !localNote.updatedAt.isAfter(remoteNote.updatedAt)) {
-        mergedNotes[remoteNote.id] = remoteNote.copyWith(
-          remoteId: remoteNote.remoteId ?? remoteNote.id,
-          syncStatus: NoteSyncStatus.synced,
-          lastSyncedAt: payload.serverTime,
-        );
-      }
-    }
-
     final defaultFolders = localStore.folders
         .where((folder) => folder.isSystem)
         .toList(growable: false);
@@ -329,6 +307,49 @@ class SyncController extends StateNotifier<SyncState> {
             !defaultFolders.any((item) => item.id == folder.id),
       ),
     ];
+    final fallbackFolderId =
+        defaultFolders.isEmpty ? null : defaultFolders.first.id;
+    final availableFolderIds = mergedFolders
+        .map((folder) => folder.id)
+        .toSet();
+
+    NoteModel normalizePulledNote(NoteModel note) {
+      if (fallbackFolderId == null) {
+        return note;
+      }
+
+      final folderId = note.folderId;
+      if (folderId == null || !availableFolderIds.contains(folderId)) {
+        return note.copyWith(folderId: fallbackFolderId);
+      }
+
+      return note;
+    }
+
+    final mergedNotes = <String, NoteModel>{
+      for (final note in localStore.notes)
+        if (!deletedNoteIds.contains(note.id)) note.id: note,
+    };
+
+    for (final remoteNote in payload.notes) {
+      if (deletedNoteIds.contains(remoteNote.id)) {
+        continue;
+      }
+
+      final normalizedRemoteNote = normalizePulledNote(remoteNote);
+
+      final localNote = mergedNotes[normalizedRemoteNote.id];
+      if (localNote == null ||
+          localNote.syncStatus == NoteSyncStatus.synced ||
+          !localNote.updatedAt.isAfter(normalizedRemoteNote.updatedAt)) {
+        mergedNotes[normalizedRemoteNote.id] = normalizedRemoteNote.copyWith(
+          remoteId:
+              normalizedRemoteNote.remoteId ?? normalizedRemoteNote.id,
+          syncStatus: NoteSyncStatus.synced,
+          lastSyncedAt: payload.serverTime,
+        );
+      }
+    }
 
     final localDefaultTags = localStore.tags
         .where((tag) => _defaultTagIds.contains(tag.id))
@@ -590,6 +611,10 @@ Map<String, dynamic> _buildPushBody(
   NotesStoreModel localStore,
   List<SyncDeleteOperation> pendingDeletes,
 ) {
+  final localOnlyFolderIds = localStore.folders
+      .where((folder) => folder.isSystem)
+      .map((folder) => folder.id)
+      .toSet();
   final deletedNotes = <Map<String, dynamic>>[];
   final deletedFolders = <Map<String, dynamic>>[];
   final deletedTags = <Map<String, dynamic>>[];
@@ -608,7 +633,7 @@ Map<String, dynamic> _buildPushBody(
   return <String, dynamic>{
     'notes': localStore.notes
         .where((note) => note.syncStatus != NoteSyncStatus.synced)
-        .map(_noteToPushJson)
+      .map((note) => _noteToPushJson(note, localOnlyFolderIds))
         .toList(growable: false),
     'folders': localStore.folders
         .where((folder) => !folder.isSystem)
@@ -650,12 +675,17 @@ DateTime _calculateNextRetryAt(int failureCount) {
   return DateTime.now().toUtc().add(Duration(seconds: delaySeconds));
 }
 
-Map<String, dynamic> _noteToPushJson(NoteModel note) {
+Map<String, dynamic> _noteToPushJson(
+  NoteModel note,
+  Set<String> localOnlyFolderIds,
+) {
   return <String, dynamic>{
     'id': note.remoteId ?? note.id,
     'title': note.title,
     'content': note.content,
-    'folder_id': note.folderId,
+    'folder_id': localOnlyFolderIds.contains(note.folderId)
+        ? null
+        : note.folderId,
     'tags': note.tags,
     'is_pinned': note.isPinned,
     'is_favorite': note.isFavorite,

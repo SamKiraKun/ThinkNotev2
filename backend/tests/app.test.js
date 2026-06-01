@@ -1,9 +1,14 @@
 const assert = require("node:assert/strict");
+const fs = require("node:fs");
+const os = require("node:os");
+const path = require("node:path");
 const test = require("node:test");
 
+const { createClient } = require("@libsql/client");
 const request = require("supertest");
 
 const { createApp } = require("../dist/app");
+const { createSyncRouter } = require("../dist/routes/sync.routes");
 const {
   buildRequireFirebaseAuth,
 } = require("../dist/middleware/auth.middleware");
@@ -22,6 +27,103 @@ function allowAuthenticatedRequest(req, _res, next) {
     avatarUrl: null,
   };
   next();
+}
+
+const syncTestTimestamp = "2026-06-01T00:00:00.000Z";
+
+async function createSyncTestHarness() {
+  const dbPath = path.join(
+    os.tmpdir(),
+    `thinknote-sync-${process.pid}-${Date.now()}-${Math.random().toString(16).slice(2)}.db`,
+  );
+  const db = createClient({
+    url: `file:${dbPath.replace(/\\/g, "/")}`,
+  });
+  const schema = fs.readFileSync(
+    path.join(__dirname, "../src/db/schema.sql"),
+    "utf8",
+  );
+
+  await db.execute("PRAGMA foreign_keys = ON");
+  await db.executeMultiple(schema);
+  await db.execute({
+    sql: `
+      INSERT INTO users (id, email, name, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?)
+    `,
+    args: [
+      "test-user",
+      "test@example.com",
+      "Test User",
+      syncTestTimestamp,
+      syncTestTimestamp,
+    ],
+  });
+
+  const app = createApp({
+    authMiddleware: allowAuthenticatedRequest,
+    logger: silentLogger,
+    syncRouter: createSyncRouter(db),
+    config: {
+      isProduction: false,
+      corsAllowNoOrigin: true,
+    },
+  });
+
+  return {
+    app,
+    db,
+    async cleanup() {
+      db.close();
+      try {
+        fs.rmSync(dbPath, { force: true });
+      } catch {}
+      try {
+        fs.rmSync(`${dbPath}-shm`, { force: true });
+      } catch {}
+      try {
+        fs.rmSync(`${dbPath}-wal`, { force: true });
+      } catch {}
+    },
+  };
+}
+
+function createFailingSyncDatabase(baseDb) {
+  return {
+    execute(statement, args) {
+      return args === undefined
+        ? baseDb.execute(statement)
+        : baseDb.execute(statement, args);
+    },
+    async transaction(mode) {
+      const transaction = await baseDb.transaction(mode);
+
+      return {
+        get closed() {
+          return transaction.closed;
+        },
+        close() {
+          transaction.close();
+        },
+        commit() {
+          return transaction.commit();
+        },
+        rollback() {
+          return transaction.rollback();
+        },
+        execute(statement, args) {
+          const sql = typeof statement === "string" ? statement : statement.sql;
+          if (sql.includes("INSERT INTO notes")) {
+            throw new Error("forced notes failure");
+          }
+
+          return args === undefined
+            ? transaction.execute(statement)
+            : transaction.execute(statement, args);
+        },
+      };
+    },
+  };
 }
 
 test("GET /health returns public backend health status", async () => {
@@ -179,4 +281,181 @@ test("POST /notes blocks a disallowed browser origin", async () => {
 
   assert.equal(response.status, 403);
   assert.equal(response.body.message, "Origin is not allowed by CORS");
+});
+
+test("POST /sync/push normalizes local-only default folder ids to null", async () => {
+  const harness = await createSyncTestHarness();
+
+  try {
+    const response = await request(harness.app)
+      .post("/sync/push")
+      .send({
+        notes: [
+          {
+            id: "note-default-folder",
+            title: "Title",
+            content: "Content",
+            folder_id: "personal",
+            created_at: syncTestTimestamp,
+            updated_at: syncTestTimestamp,
+          },
+        ],
+      });
+
+    assert.equal(response.status, 200);
+    assert.equal(response.body.success, true);
+
+    const notesResult = await harness.db.execute({
+      sql: `SELECT folder_id FROM notes WHERE id = ? AND user_id = ?`,
+      args: ["note-default-folder", "test-user"],
+    });
+    const foldersResult = await harness.db.execute({
+      sql: `SELECT COUNT(*) AS count FROM folders WHERE user_id = ?`,
+      args: ["test-user"],
+    });
+
+    assert.equal(notesResult.rows.length, 1);
+    assert.equal(notesResult.rows[0].folder_id, null);
+    assert.equal(Number(foldersResult.rows[0].count), 0);
+  } finally {
+    await harness.cleanup();
+  }
+});
+
+test("POST /sync/push clears note folder references before deleting folders", async () => {
+  const harness = await createSyncTestHarness();
+  const deletedAt = "2026-06-01T01:00:00.000Z";
+
+  try {
+    await harness.db.execute({
+      sql: `
+        INSERT INTO folders (id, user_id, name, emoji, color_key, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+      `,
+      args: [
+        "custom-folder",
+        "test-user",
+        "Custom",
+        "📁",
+        "work",
+        syncTestTimestamp,
+        syncTestTimestamp,
+      ],
+    });
+    await harness.db.execute({
+      sql: `
+        INSERT INTO notes (
+          id, user_id, title, content, excerpt, category, folder_id, color_key,
+          emoji, is_pinned, is_favorite, is_archived, is_deleted, created_at,
+          updated_at, deleted_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `,
+      args: [
+        "note-in-folder",
+        "test-user",
+        "Title",
+        "Content",
+        "Content",
+        "Personal",
+        "custom-folder",
+        "personal",
+        "",
+        0,
+        0,
+        0,
+        0,
+        syncTestTimestamp,
+        syncTestTimestamp,
+        null,
+      ],
+    });
+
+    const response = await request(harness.app)
+      .post("/sync/push")
+      .send({
+        deleted_folders: [
+          {
+            id: "custom-folder",
+            deleted_at: deletedAt,
+          },
+        ],
+      });
+
+    assert.equal(response.status, 200);
+    assert.equal(response.body.success, true);
+    const syncedAt = response.body.data.server_time;
+
+    const noteResult = await harness.db.execute({
+      sql: `SELECT folder_id, updated_at FROM notes WHERE id = ? AND user_id = ?`,
+      args: ["note-in-folder", "test-user"],
+    });
+    const folderResult = await harness.db.execute({
+      sql: `SELECT COUNT(*) AS count FROM folders WHERE id = ? AND user_id = ?`,
+      args: ["custom-folder", "test-user"],
+    });
+
+    assert.equal(noteResult.rows.length, 1);
+    assert.equal(noteResult.rows[0].folder_id, null);
+    assert.equal(String(noteResult.rows[0].updated_at), syncedAt);
+    assert.equal(Number(folderResult.rows[0].count), 0);
+  } finally {
+    await harness.cleanup();
+  }
+});
+
+test("POST /sync/push rolls back earlier writes when a later sync step fails", async () => {
+  const harness = await createSyncTestHarness();
+  const app = createApp({
+    authMiddleware: allowAuthenticatedRequest,
+    logger: silentLogger,
+    syncRouter: createSyncRouter(createFailingSyncDatabase(harness.db)),
+    config: {
+      isProduction: false,
+      corsAllowNoOrigin: true,
+    },
+  });
+
+  try {
+    const response = await request(app)
+      .post("/sync/push")
+      .send({
+        folders: [
+          {
+            id: "folder-before-failure",
+            name: "Before failure",
+            color_key: "work",
+            emoji: "📁",
+            created_at: syncTestTimestamp,
+            updated_at: syncTestTimestamp,
+          },
+        ],
+        notes: [
+          {
+            id: "note-after-folder",
+            title: "Title",
+            content: "Content",
+            folder_id: "folder-before-failure",
+            created_at: syncTestTimestamp,
+            updated_at: syncTestTimestamp,
+          },
+        ],
+      });
+
+    assert.equal(response.status, 500);
+    assert.equal(response.body.message, "Failed to push sync changes");
+
+    const folderResult = await harness.db.execute({
+      sql: `SELECT COUNT(*) AS count FROM folders WHERE id = ? AND user_id = ?`,
+      args: ["folder-before-failure", "test-user"],
+    });
+    const noteResult = await harness.db.execute({
+      sql: `SELECT COUNT(*) AS count FROM notes WHERE id = ? AND user_id = ?`,
+      args: ["note-after-folder", "test-user"],
+    });
+
+    assert.equal(Number(folderResult.rows[0].count), 0);
+    assert.equal(Number(noteResult.rows[0].count), 0);
+  } finally {
+    await harness.cleanup();
+  }
 });

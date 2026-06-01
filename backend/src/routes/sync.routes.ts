@@ -24,270 +24,312 @@ import type {
   ValidatedSyncTagPayload,
 } from "../utils/note_validation";
 
-const router = Router();
+type SyncDatabaseClient = Pick<typeof db, "execute" | "transaction">;
+type SyncSqlExecutor = Pick<SyncDatabaseClient, "execute">;
+type SyncTransaction = Awaited<ReturnType<SyncDatabaseClient["transaction"]>>;
 
-router.get("/pull", async (req, res) => {
-  try {
-    const userId = req.user_id;
-    const since = typeof req.query.since === "string" ? req.query.since : null;
-    const noteArgs = since ? [userId, since] : [userId];
-    const noteSinceFilter = since ? "AND updated_at > ?" : "";
-    const deletedArgs = since ? [userId, since] : [userId];
-    const deletedSinceFilter = since ? "AND deleted_at > ?" : "";
+export function createSyncRouter(database: SyncDatabaseClient = db) {
+  const router = Router();
 
-    const [notesResult, foldersResult, tagsResult, deletedResult] = await Promise.all([
-      db.execute({
-        sql: `
-          SELECT * FROM notes
-          WHERE user_id = ? ${noteSinceFilter}
-          ORDER BY updated_at ASC
-        `,
-        args: noteArgs,
-      }),
-      db.execute({
-        sql: `
-          SELECT * FROM folders
-          WHERE user_id = ?
-          ORDER BY created_at ASC
-        `,
-        args: [userId],
-      }),
-      db.execute({
-        sql: `
-          SELECT * FROM tags
-          WHERE user_id = ?
-          ORDER BY created_at ASC
-        `,
-        args: [userId],
-      }),
-      db.execute({
-        sql: `
-          SELECT * FROM deleted_entities
-          WHERE user_id = ? ${deletedSinceFilter}
-          ORDER BY deleted_at ASC
-        `,
-        args: deletedArgs,
-      }),
-    ]);
+  router.get("/pull", async (req, res) => {
+    try {
+      const userId = req.user_id;
+      const since = typeof req.query.since === "string" ? req.query.since : null;
+      const noteArgs = since ? [userId, since] : [userId];
+      const noteSinceFilter = since ? "AND updated_at > ?" : "";
+      const deletedArgs = since ? [userId, since] : [userId];
+      const deletedSinceFilter = since ? "AND deleted_at > ?" : "";
 
-    const noteIds = notesResult.rows.map((row) => String(row.id));
-    const noteTags = await loadNoteTagsByNoteId(userId, noteIds);
-    const deletedEntities = deletedResult.rows.map((row) =>
-      deletedEntityFromRow(row as Record<string, unknown>),
-    );
+      const [notesResult, foldersResult, tagsResult, deletedResult] = await Promise.all([
+        database.execute({
+          sql: `
+            SELECT * FROM notes
+            WHERE user_id = ? ${noteSinceFilter}
+            ORDER BY updated_at ASC
+          `,
+          args: noteArgs,
+        }),
+        database.execute({
+          sql: `
+            SELECT * FROM folders
+            WHERE user_id = ?
+            ORDER BY created_at ASC
+          `,
+          args: [userId],
+        }),
+        database.execute({
+          sql: `
+            SELECT * FROM tags
+            WHERE user_id = ?
+            ORDER BY created_at ASC
+          `,
+          args: [userId],
+        }),
+        database.execute({
+          sql: `
+            SELECT * FROM deleted_entities
+            WHERE user_id = ? ${deletedSinceFilter}
+            ORDER BY deleted_at ASC
+          `,
+          args: deletedArgs,
+        }),
+      ]);
 
-    res.json(
-      successResponse({
-        server_time: new Date().toISOString(),
-        notes: notesResult.rows.map((row) =>
-          noteFromRow(
-            row as Record<string, unknown>,
-            noteTags[String(row.id)] ?? [],
+      const noteIds = notesResult.rows.map((row) => String(row.id));
+      const noteTags = await loadNoteTagsByNoteId(database, userId, noteIds);
+      const deletedEntities = deletedResult.rows.map((row) =>
+        deletedEntityFromRow(row as Record<string, unknown>),
+      );
+
+      res.json(
+        successResponse({
+          server_time: new Date().toISOString(),
+          notes: notesResult.rows.map((row) =>
+            noteFromRow(
+              row as Record<string, unknown>,
+              noteTags[String(row.id)] ?? [],
+            ),
           ),
-        ),
-        folders: foldersResult.rows.map((row) =>
-          folderFromRow(row as Record<string, unknown>),
-        ),
-        tags: tagsResult.rows.map((row) => tagFromRow(row as Record<string, unknown>)),
-        deleted_notes: deletedEntities.filter((item) => item.entity_type === "note"),
-        deleted_folders: deletedEntities.filter((item) => item.entity_type === "folder"),
-        deleted_tags: deletedEntities.filter((item) => item.entity_type === "tag"),
-      }),
-    );
-  } catch (error) {
-    console.error(error);
-    res.status(500).json(errorResponse("Failed to pull sync changes"));
-  }
-});
-
-router.post("/push", async (req, res) => {
-  try {
-    const userId = req.user_id;
-    const body = req.body ?? {};
-    if (body === null || typeof body !== "object" || Array.isArray(body)) {
-      return res
-        .status(400)
-        .json(errorResponse("Request body must be a JSON object"));
-    }
-
-    const rawNotes = (body as Record<string, unknown>).notes;
-    const rawFolders = (body as Record<string, unknown>).folders;
-    const rawTags = (body as Record<string, unknown>).tags;
-    const rawDeletedNotes = (body as Record<string, unknown>).deleted_notes;
-    const rawDeletedFolders = (body as Record<string, unknown>).deleted_folders;
-    const rawDeletedTags = (body as Record<string, unknown>).deleted_tags;
-
-    if (rawNotes !== undefined && !Array.isArray(rawNotes)) {
-      return res.status(400).json(errorResponse("notes must be an array"));
-    }
-    if (rawFolders !== undefined && !Array.isArray(rawFolders)) {
-      return res.status(400).json(errorResponse("folders must be an array"));
-    }
-    if (rawTags !== undefined && !Array.isArray(rawTags)) {
-      return res.status(400).json(errorResponse("tags must be an array"));
-    }
-    if (rawDeletedNotes !== undefined && !Array.isArray(rawDeletedNotes)) {
-      return res.status(400).json(errorResponse("deleted_notes must be an array"));
-    }
-    if (rawDeletedFolders !== undefined && !Array.isArray(rawDeletedFolders)) {
-      return res.status(400).json(errorResponse("deleted_folders must be an array"));
-    }
-    if (rawDeletedTags !== undefined && !Array.isArray(rawDeletedTags)) {
-      return res.status(400).json(errorResponse("deleted_tags must be an array"));
-    }
-
-    const notes = Array.isArray(rawNotes) ? rawNotes : [];
-    const folders = Array.isArray(rawFolders) ? rawFolders : [];
-    const tags = Array.isArray(rawTags) ? rawTags : [];
-    const deletedNotes = Array.isArray(rawDeletedNotes) ? rawDeletedNotes : [];
-    const deletedFolders = Array.isArray(rawDeletedFolders)
-      ? rawDeletedFolders
-      : [];
-    const deletedTags = Array.isArray(rawDeletedTags) ? rawDeletedTags : [];
-
-    if (notes.length > notePayloadLimits.syncNotesPerPush) {
-      return res.status(400).json(
-        errorResponse(
-          `notes must contain ${notePayloadLimits.syncNotesPerPush} items or fewer`,
-        ),
+          folders: foldersResult.rows.map((row) =>
+            folderFromRow(row as Record<string, unknown>),
+          ),
+          tags: tagsResult.rows.map((row) =>
+            tagFromRow(row as Record<string, unknown>),
+          ),
+          deleted_notes: deletedEntities.filter((item) => item.entity_type === "note"),
+          deleted_folders: deletedEntities.filter(
+            (item) => item.entity_type === "folder",
+          ),
+          deleted_tags: deletedEntities.filter((item) => item.entity_type === "tag"),
+        }),
       );
+    } catch (error) {
+      console.error(error);
+      res.status(500).json(errorResponse("Failed to pull sync changes"));
     }
-    if (folders.length > notePayloadLimits.syncFoldersPerPush) {
-      return res.status(400).json(
-        errorResponse(
-          `folders must contain ${notePayloadLimits.syncFoldersPerPush} items or fewer`,
-        ),
-      );
-    }
-    if (tags.length > notePayloadLimits.syncTagsPerPush) {
-      return res.status(400).json(
-        errorResponse(
-          `tags must contain ${notePayloadLimits.syncTagsPerPush} items or fewer`,
-        ),
-      );
-    }
-    if (deletedNotes.length > notePayloadLimits.syncDeletesPerPush) {
-      return res.status(400).json(
-        errorResponse(
-          `deleted_notes must contain ${notePayloadLimits.syncDeletesPerPush} items or fewer`,
-        ),
-      );
-    }
-    if (deletedFolders.length > notePayloadLimits.syncDeletesPerPush) {
-      return res.status(400).json(
-        errorResponse(
-          `deleted_folders must contain ${notePayloadLimits.syncDeletesPerPush} items or fewer`,
-        ),
-      );
-    }
-    if (deletedTags.length > notePayloadLimits.syncDeletesPerPush) {
-      return res.status(400).json(
-        errorResponse(
-          `deleted_tags must contain ${notePayloadLimits.syncDeletesPerPush} items or fewer`,
-        ),
-      );
-    }
+  });
 
-    const validatedNotes: ValidatedSyncNotePayload[] = [];
-    for (let index = 0; index < notes.length; index += 1) {
-      const validated = validateSyncNotePayload(notes[index]);
-      if (!validated.ok) {
+  router.post("/push", async (req, res) => {
+    try {
+      const userId = req.user_id;
+      const body = req.body ?? {};
+      if (body === null || typeof body !== "object" || Array.isArray(body)) {
         return res
           .status(400)
-          .json(errorResponse(`notes[${index}]: ${validated.message}`));
+          .json(errorResponse("Request body must be a JSON object"));
       }
-      validatedNotes.push(validated.value);
-    }
 
-    const validatedFolders: ValidatedSyncFolderPayload[] = [];
-    for (let index = 0; index < folders.length; index += 1) {
-      const validated = validateSyncFolderPayload(folders[index]);
-      if (!validated.ok) {
-        return res
-          .status(400)
-          .json(errorResponse(`folders[${index}]: ${validated.message}`));
+      const rawNotes = (body as Record<string, unknown>).notes;
+      const rawFolders = (body as Record<string, unknown>).folders;
+      const rawTags = (body as Record<string, unknown>).tags;
+      const rawDeletedNotes = (body as Record<string, unknown>).deleted_notes;
+      const rawDeletedFolders = (body as Record<string, unknown>).deleted_folders;
+      const rawDeletedTags = (body as Record<string, unknown>).deleted_tags;
+
+      if (rawNotes !== undefined && !Array.isArray(rawNotes)) {
+        return res.status(400).json(errorResponse("notes must be an array"));
       }
-      validatedFolders.push(validated.value);
-    }
-
-    const validatedTags: ValidatedSyncTagPayload[] = [];
-    for (let index = 0; index < tags.length; index += 1) {
-      const validated = validateSyncTagPayload(tags[index]);
-      if (!validated.ok) {
-        return res
-          .status(400)
-          .json(errorResponse(`tags[${index}]: ${validated.message}`));
+      if (rawFolders !== undefined && !Array.isArray(rawFolders)) {
+        return res.status(400).json(errorResponse("folders must be an array"));
       }
-      validatedTags.push(validated.value);
-    }
-
-    const validatedDeletedNotes: ValidatedSyncDeletePayload[] = [];
-    for (let index = 0; index < deletedNotes.length; index += 1) {
-      const validated = validateSyncDeletePayload(deletedNotes[index]);
-      if (!validated.ok) {
-        return res
-          .status(400)
-          .json(errorResponse(`deleted_notes[${index}]: ${validated.message}`));
+      if (rawTags !== undefined && !Array.isArray(rawTags)) {
+        return res.status(400).json(errorResponse("tags must be an array"));
       }
-      validatedDeletedNotes.push(validated.value);
-    }
+      if (rawDeletedNotes !== undefined && !Array.isArray(rawDeletedNotes)) {
+        return res.status(400).json(errorResponse("deleted_notes must be an array"));
+      }
+      if (rawDeletedFolders !== undefined && !Array.isArray(rawDeletedFolders)) {
+        return res.status(400).json(errorResponse("deleted_folders must be an array"));
+      }
+      if (rawDeletedTags !== undefined && !Array.isArray(rawDeletedTags)) {
+        return res.status(400).json(errorResponse("deleted_tags must be an array"));
+      }
 
-    const validatedDeletedFolders: ValidatedSyncDeletePayload[] = [];
-    for (let index = 0; index < deletedFolders.length; index += 1) {
-      const validated = validateSyncDeletePayload(deletedFolders[index]);
-      if (!validated.ok) {
+      const notes = Array.isArray(rawNotes) ? rawNotes : [];
+      const folders = Array.isArray(rawFolders) ? rawFolders : [];
+      const tags = Array.isArray(rawTags) ? rawTags : [];
+      const deletedNotes = Array.isArray(rawDeletedNotes) ? rawDeletedNotes : [];
+      const deletedFolders = Array.isArray(rawDeletedFolders)
+        ? rawDeletedFolders
+        : [];
+      const deletedTags = Array.isArray(rawDeletedTags) ? rawDeletedTags : [];
+
+      if (notes.length > notePayloadLimits.syncNotesPerPush) {
         return res.status(400).json(
-          errorResponse(`deleted_folders[${index}]: ${validated.message}`),
+          errorResponse(
+            `notes must contain ${notePayloadLimits.syncNotesPerPush} items or fewer`,
+          ),
         );
       }
-      validatedDeletedFolders.push(validated.value);
-    }
-
-    const validatedDeletedTags: ValidatedSyncDeletePayload[] = [];
-    for (let index = 0; index < deletedTags.length; index += 1) {
-      const validated = validateSyncDeletePayload(deletedTags[index]);
-      if (!validated.ok) {
-        return res
-          .status(400)
-          .json(errorResponse(`deleted_tags[${index}]: ${validated.message}`));
+      if (folders.length > notePayloadLimits.syncFoldersPerPush) {
+        return res.status(400).json(
+          errorResponse(
+            `folders must contain ${notePayloadLimits.syncFoldersPerPush} items or fewer`,
+          ),
+        );
       }
-      validatedDeletedTags.push(validated.value);
+      if (tags.length > notePayloadLimits.syncTagsPerPush) {
+        return res.status(400).json(
+          errorResponse(
+            `tags must contain ${notePayloadLimits.syncTagsPerPush} items or fewer`,
+          ),
+        );
+      }
+      if (deletedNotes.length > notePayloadLimits.syncDeletesPerPush) {
+        return res.status(400).json(
+          errorResponse(
+            `deleted_notes must contain ${notePayloadLimits.syncDeletesPerPush} items or fewer`,
+          ),
+        );
+      }
+      if (deletedFolders.length > notePayloadLimits.syncDeletesPerPush) {
+        return res.status(400).json(
+          errorResponse(
+            `deleted_folders must contain ${notePayloadLimits.syncDeletesPerPush} items or fewer`,
+          ),
+        );
+      }
+      if (deletedTags.length > notePayloadLimits.syncDeletesPerPush) {
+        return res.status(400).json(
+          errorResponse(
+            `deleted_tags must contain ${notePayloadLimits.syncDeletesPerPush} items or fewer`,
+          ),
+        );
+      }
+
+      const validatedNotes: ValidatedSyncNotePayload[] = [];
+      for (let index = 0; index < notes.length; index += 1) {
+        const validated = validateSyncNotePayload(notes[index]);
+        if (!validated.ok) {
+          return res
+            .status(400)
+            .json(errorResponse(`notes[${index}]: ${validated.message}`));
+        }
+        validatedNotes.push(validated.value);
+      }
+
+      const validatedFolders: ValidatedSyncFolderPayload[] = [];
+      for (let index = 0; index < folders.length; index += 1) {
+        const validated = validateSyncFolderPayload(folders[index]);
+        if (!validated.ok) {
+          return res
+            .status(400)
+            .json(errorResponse(`folders[${index}]: ${validated.message}`));
+        }
+        validatedFolders.push(validated.value);
+      }
+
+      const validatedTags: ValidatedSyncTagPayload[] = [];
+      for (let index = 0; index < tags.length; index += 1) {
+        const validated = validateSyncTagPayload(tags[index]);
+        if (!validated.ok) {
+          return res
+            .status(400)
+            .json(errorResponse(`tags[${index}]: ${validated.message}`));
+        }
+        validatedTags.push(validated.value);
+      }
+
+      const validatedDeletedNotes: ValidatedSyncDeletePayload[] = [];
+      for (let index = 0; index < deletedNotes.length; index += 1) {
+        const validated = validateSyncDeletePayload(deletedNotes[index]);
+        if (!validated.ok) {
+          return res.status(400).json(
+            errorResponse(`deleted_notes[${index}]: ${validated.message}`),
+          );
+        }
+        validatedDeletedNotes.push(validated.value);
+      }
+
+      const validatedDeletedFolders: ValidatedSyncDeletePayload[] = [];
+      for (let index = 0; index < deletedFolders.length; index += 1) {
+        const validated = validateSyncDeletePayload(deletedFolders[index]);
+        if (!validated.ok) {
+          return res.status(400).json(
+            errorResponse(`deleted_folders[${index}]: ${validated.message}`),
+          );
+        }
+        validatedDeletedFolders.push(validated.value);
+      }
+
+      const validatedDeletedTags: ValidatedSyncDeletePayload[] = [];
+      for (let index = 0; index < deletedTags.length; index += 1) {
+        const validated = validateSyncDeletePayload(deletedTags[index]);
+        if (!validated.ok) {
+          return res.status(400).json(
+            errorResponse(`deleted_tags[${index}]: ${validated.message}`),
+          );
+        }
+        validatedDeletedTags.push(validated.value);
+      }
+
+      const now = new Date().toISOString();
+
+      await withWriteTransaction(database, async (transaction) => {
+        await syncFolders(transaction, userId, validatedFolders, now);
+        await syncTags(transaction, userId, validatedTags, now);
+        await syncNotes(transaction, userId, validatedNotes, now);
+        await syncDeletedNotes(transaction, userId, validatedDeletedNotes, now);
+        await syncDeletedFolders(
+          transaction,
+          userId,
+          validatedDeletedFolders,
+          now,
+        );
+        await syncDeletedTags(transaction, userId, validatedDeletedTags, now);
+      });
+
+      res.json(
+        successResponse({
+          server_time: now,
+        }),
+      );
+    } catch (error) {
+      console.error(error);
+      res.status(500).json(errorResponse("Failed to push sync changes"));
     }
+  });
 
-    const now = new Date().toISOString();
+  return router;
+}
 
-    await syncFolders(userId, validatedFolders, now);
-    await syncTags(userId, validatedTags, now);
-    await syncNotes(userId, validatedNotes, now);
-    await syncDeletedNotes(userId, validatedDeletedNotes, now);
-    await syncDeletedFolders(userId, validatedDeletedFolders, now);
-    await syncDeletedTags(userId, validatedDeletedTags, now);
+async function withWriteTransaction<T>(
+  database: SyncDatabaseClient,
+  operation: (transaction: SyncTransaction) => Promise<T>,
+) {
+  const transaction = await database.transaction("write");
 
-    res.json(
-      successResponse({
-        server_time: now,
-      }),
-    );
+  try {
+    const result = await operation(transaction);
+    await transaction.commit();
+    return result;
   } catch (error) {
-    console.error(error);
-    res.status(500).json(errorResponse("Failed to push sync changes"));
+    if (!transaction.closed) {
+      await transaction.rollback().catch((rollbackError) => {
+        console.error("Failed to roll back sync transaction", rollbackError);
+      });
+    }
+    throw error;
+  } finally {
+    transaction.close();
   }
-});
+}
 
 async function syncFolders(
+  database: SyncSqlExecutor,
   userId: string,
   folders: ValidatedSyncFolderPayload[],
   now: string,
 ) {
   for (const folder of folders) {
-    if (await hasDeletionTombstone(userId, "folder", folder.id)) {
+    if (await hasDeletionTombstone(database, userId, "folder", folder.id)) {
       continue;
     }
 
     const createdAt = folder.created_at ?? now;
     const updatedAt = folder.updated_at ?? createdAt;
 
-    await db.execute({
+    await database.execute({
       sql: `
         INSERT INTO folders (
           id, user_id, name, emoji, color_key, created_at, updated_at
@@ -314,19 +356,20 @@ async function syncFolders(
 }
 
 async function syncTags(
+  database: SyncSqlExecutor,
   userId: string,
   tags: ValidatedSyncTagPayload[],
   now: string,
 ) {
   for (const tag of tags) {
-    if (await hasDeletionTombstone(userId, "tag", tag.id)) {
+    if (await hasDeletionTombstone(database, userId, "tag", tag.id)) {
       continue;
     }
 
     const createdAt = tag.created_at ?? now;
     const updatedAt = tag.updated_at ?? createdAt;
 
-    await db.execute({
+    await database.execute({
       sql: `
         INSERT INTO tags (
           id, user_id, name, emoji, color_key, created_at, updated_at
@@ -352,16 +395,18 @@ async function syncTags(
 }
 
 async function syncNotes(
+  database: SyncSqlExecutor,
   userId: string,
   notes: ValidatedSyncNotePayload[],
   now: string,
 ) {
-  const deletedFolderIds = await loadDeletedEntityIds(userId, "folder");
-  const deletedTagLabels = await loadDeletedTagLabels(userId);
+  const deletedFolderIds = await loadDeletedEntityIds(database, userId, "folder");
+  const availableFolderIds = await loadFolderIds(database, userId);
+  const deletedTagLabels = await loadDeletedTagLabels(database, userId);
 
   for (const note of notes) {
     const id = note.id ?? randomUUID();
-    if (await hasDeletionTombstone(userId, "note", id)) {
+    if (await hasDeletionTombstone(database, userId, "note", id)) {
       continue;
     }
 
@@ -370,9 +415,12 @@ async function syncNotes(
     const title = note.title ?? "";
     const content = note.content ?? "";
     const normalizedFolderId =
-      note.folder_id && deletedFolderIds.has(note.folder_id)
+      note.folder_id == null || note.folder_id === ""
         ? null
-        : note.folder_id ?? null;
+        : deletedFolderIds.has(note.folder_id) ||
+            !availableFolderIds.has(note.folder_id)
+          ? null
+          : note.folder_id;
     const noteTags = (note.tags ?? []).filter(
       (label) => !deletedTagLabels.has(label.trim().toLowerCase()),
     );
@@ -381,7 +429,7 @@ async function syncNotes(
       continue;
     }
 
-    await db.execute({
+    await database.execute({
       sql: `
         INSERT INTO notes (
           id, user_id, title, content, excerpt, category, folder_id, color_key,
@@ -425,14 +473,14 @@ async function syncNotes(
       ],
     });
 
-    await db.execute({
+    await database.execute({
       sql: `DELETE FROM note_tags WHERE note_id = ?`,
       args: [id],
     });
 
     for (const label of noteTags) {
-      const tagId = await ensureTagExists(userId, label, now);
-      await db.execute({
+      const tagId = await ensureTagExists(database, userId, label, now);
+      await database.execute({
         sql: `
           INSERT OR REPLACE INTO note_tags (note_id, tag_id)
           VALUES (?, ?)
@@ -444,18 +492,19 @@ async function syncNotes(
 }
 
 async function syncDeletedNotes(
+  database: SyncSqlExecutor,
   userId: string,
   notes: ValidatedSyncDeletePayload[],
   now: string,
 ) {
   for (const note of notes) {
     const deletedAt = note.deleted_at ?? now;
-    await recordDeletionTombstone(userId, "note", note.id, deletedAt);
-    await db.execute({
+    await recordDeletionTombstone(database, userId, "note", note.id, deletedAt);
+    await database.execute({
       sql: `DELETE FROM note_tags WHERE note_id = ?`,
       args: [note.id],
     });
-    await db.execute({
+    await database.execute({
       sql: `DELETE FROM notes WHERE id = ? AND user_id = ?`,
       args: [note.id, userId],
     });
@@ -463,14 +512,24 @@ async function syncDeletedNotes(
 }
 
 async function syncDeletedFolders(
+  database: SyncSqlExecutor,
   userId: string,
   folders: ValidatedSyncDeletePayload[],
   now: string,
 ) {
   for (const folder of folders) {
     const deletedAt = folder.deleted_at ?? now;
-    await recordDeletionTombstone(userId, "folder", folder.id, deletedAt);
-    await db.execute({
+    await recordDeletionTombstone(database, userId, "folder", folder.id, deletedAt);
+    await database.execute({
+      sql: `
+        UPDATE notes
+        SET folder_id = NULL,
+            updated_at = ?
+        WHERE folder_id = ? AND user_id = ?
+      `,
+      args: [now, folder.id, userId],
+    });
+    await database.execute({
       sql: `DELETE FROM folders WHERE id = ? AND user_id = ?`,
       args: [folder.id, userId],
     });
@@ -478,13 +537,14 @@ async function syncDeletedFolders(
 }
 
 async function syncDeletedTags(
+  database: SyncSqlExecutor,
   userId: string,
   tags: ValidatedSyncDeletePayload[],
   now: string,
 ) {
   for (const tag of tags) {
     const deletedAt = tag.deleted_at ?? now;
-    const existing = await db.execute({
+    const existing = await database.execute({
       sql: `SELECT name FROM tags WHERE id = ? AND user_id = ? LIMIT 1`,
       args: [tag.id, userId],
     });
@@ -493,17 +553,18 @@ async function syncDeletedTags(
       : null;
 
     await recordDeletionTombstone(
+      database,
       userId,
       "tag",
       tag.id,
       deletedAt,
       existingLabel == null ? undefined : { label: existingLabel },
     );
-    await db.execute({
+    await database.execute({
       sql: `DELETE FROM note_tags WHERE tag_id = ?`,
       args: [tag.id],
     });
-    await db.execute({
+    await database.execute({
       sql: `DELETE FROM tags WHERE id = ? AND user_id = ?`,
       args: [tag.id, userId],
     });
@@ -511,11 +572,12 @@ async function syncDeletedTags(
 }
 
 async function hasDeletionTombstone(
+  database: SyncSqlExecutor,
   userId: string,
   entityType: string,
   entityId: string,
 ) {
-  const result = await db.execute({
+  const result = await database.execute({
     sql: `
       SELECT 1
       FROM deleted_entities
@@ -528,8 +590,12 @@ async function hasDeletionTombstone(
   return result.rows.length > 0;
 }
 
-async function loadDeletedEntityIds(userId: string, entityType: string) {
-  const result = await db.execute({
+async function loadDeletedEntityIds(
+  database: SyncSqlExecutor,
+  userId: string,
+  entityType: string,
+) {
+  const result = await database.execute({
     sql: `
       SELECT entity_id
       FROM deleted_entities
@@ -541,8 +607,21 @@ async function loadDeletedEntityIds(userId: string, entityType: string) {
   return new Set(result.rows.map((row) => String(row.entity_id)));
 }
 
-async function loadDeletedTagLabels(userId: string) {
-  const result = await db.execute({
+async function loadFolderIds(database: SyncSqlExecutor, userId: string) {
+  const result = await database.execute({
+    sql: `
+      SELECT id
+      FROM folders
+      WHERE user_id = ?
+    `,
+    args: [userId],
+  });
+
+  return new Set(result.rows.map((row) => String(row.id)));
+}
+
+async function loadDeletedTagLabels(database: SyncSqlExecutor, userId: string) {
+  const result = await database.execute({
     sql: `
       SELECT payload_json
       FROM deleted_entities
@@ -573,13 +652,14 @@ async function loadDeletedTagLabels(userId: string) {
 }
 
 async function recordDeletionTombstone(
+  database: SyncSqlExecutor,
   userId: string,
   entityType: string,
   entityId: string,
   deletedAt: string,
   payload: Record<string, unknown> = {},
 ) {
-  await db.execute({
+  await database.execute({
     sql: `
       INSERT INTO deleted_entities (
         user_id, entity_type, entity_id, deleted_at, payload_json
@@ -593,8 +673,13 @@ async function recordDeletionTombstone(
   });
 }
 
-async function ensureTagExists(userId: string, label: string, now: string) {
-  const existing = await db.execute({
+async function ensureTagExists(
+  database: SyncSqlExecutor,
+  userId: string,
+  label: string,
+  now: string,
+) {
+  const existing = await database.execute({
     sql: `
       SELECT id FROM tags
       WHERE user_id = ? AND lower(name) = lower(?)
@@ -608,7 +693,7 @@ async function ensureTagExists(userId: string, label: string, now: string) {
   }
 
   const tagId = randomUUID();
-  await db.execute({
+  await database.execute({
     sql: `
       INSERT INTO tags (id, user_id, name, emoji, color_key, created_at, updated_at)
       VALUES (?, ?, ?, ?, ?, ?, ?)
@@ -618,13 +703,17 @@ async function ensureTagExists(userId: string, label: string, now: string) {
   return tagId;
 }
 
-async function loadNoteTagsByNoteId(userId: string, noteIds: string[]) {
+async function loadNoteTagsByNoteId(
+  database: SyncSqlExecutor,
+  userId: string,
+  noteIds: string[],
+) {
   if (noteIds.length === 0) {
     return {} as Record<string, string[]>;
   }
 
   const placeholders = noteIds.map(() => "?").join(", ");
-  const result = await db.execute({
+  const result = await database.execute({
     sql: `
       SELECT nt.note_id, t.name
       FROM note_tags nt
@@ -647,5 +736,7 @@ async function loadNoteTagsByNoteId(userId: string, noteIds: string[]) {
 
   return tagsByNoteId;
 }
+
+const router = createSyncRouter();
 
 export default router;

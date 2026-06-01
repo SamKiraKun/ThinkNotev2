@@ -237,6 +237,103 @@ void main() {
       );
     });
 
+    test('preserves the default local folder contract across sync', () async {
+      final store = NotesStoreModel.empty().copyWith(
+        notes: <NoteModel>[
+          NoteModel(
+            id: 'note-default-folder',
+            title: 'Personal note',
+            content: 'Stored under the local default folder.',
+            folderId: 'personal',
+            createdAt: DateTime.parse('2025-02-01T10:00:00Z'),
+            updatedAt: DateTime.parse('2025-02-01T10:00:00Z'),
+            syncStatus: NoteSyncStatus.pendingCreate,
+          ),
+        ],
+      );
+      await localDataSource.writeStore(store);
+
+      final authRepository = _FakeAuthRepository();
+      final apiClient = AuthenticatedApiClient(
+        MockClient((request) async {
+          if (request.url.path == '/health') {
+            return _healthResponse();
+          }
+
+          if (request.url.path == '/sync/push') {
+            final payload = jsonDecode(request.body) as Map<String, dynamic>;
+            final pushedNotes = payload['notes'] as List<dynamic>;
+            final pushedNote = pushedNotes.single as Map<String, dynamic>;
+
+            expect(pushedNote['folder_id'], isNull);
+
+            return _jsonResponse(
+              <String, dynamic>{
+                'success': true,
+                'data': <String, dynamic>{
+                  'server_time': '2025-02-01T10:05:00Z',
+                },
+              },
+            );
+          }
+
+          if (request.url.path == '/sync/pull') {
+            return _jsonResponse(
+              <String, dynamic>{
+                'success': true,
+                'data': <String, dynamic>{
+                  'server_time': '2025-02-01T10:05:05Z',
+                  'notes': <Map<String, dynamic>>[
+                    <String, dynamic>{
+                      'id': 'note-default-folder',
+                      'title': 'Personal note',
+                      'content': 'Stored under the local default folder.',
+                      'folder_id': null,
+                      'tags': const <String>[],
+                      'is_pinned': false,
+                      'is_favorite': false,
+                      'is_archived': false,
+                      'is_deleted': false,
+                      'created_at': '2025-02-01T10:00:00Z',
+                      'updated_at': '2025-02-01T10:00:00Z',
+                    },
+                  ],
+                  'folders': const <Map<String, dynamic>>[],
+                  'tags': const <Map<String, dynamic>>[],
+                  'deleted_notes': const <Map<String, dynamic>>[],
+                  'deleted_folders': const <Map<String, dynamic>>[],
+                  'deleted_tags': const <Map<String, dynamic>>[],
+                },
+              },
+            );
+          }
+
+          throw StateError('Unexpected request to ${request.url}');
+        }),
+        authRepository,
+      );
+
+      final container = ProviderContainer(
+        overrides: [
+          currentAuthSessionProvider.overrideWithValue(
+            const AuthSession(uid: 'user-1'),
+          ),
+          notesLocalDataSourceProvider.overrideWithValue(localDataSource),
+          authenticatedApiClientProvider.overrideWithValue(apiClient),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      await container.read(syncControllerProvider.notifier).syncNow();
+
+      final syncedStore = await localDataSource.readStore();
+      final note = syncedStore.notes.single;
+
+      expect(note.folderId, 'personal');
+      expect(note.syncStatus, NoteSyncStatus.synced);
+      expect(note.lastSyncedAt, DateTime.parse('2025-02-01T10:05:05Z'));
+    });
+
     test('keeps pending deletes queued when pull fails after a successful push',
         () async {
       final created = await repository.saveNote(
