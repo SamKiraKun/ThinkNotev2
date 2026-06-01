@@ -108,7 +108,10 @@ class DashboardScreen extends ConsumerWidget {
                     previewLines: notesState.preferences.previewLines,
                     onTap: () => context.push(
                       RouteNames.editor,
-                      extra: <String, dynamic>{'noteId': note.id},
+                      extra: <String, dynamic>{
+                        'noteId': note.id,
+                        'initialNote': note,
+                      },
                     ),
                     onPinTap: () => ref
                         .read(notesControllerProvider.notifier)
@@ -194,7 +197,10 @@ class DashboardScreen extends ConsumerWidget {
                       previewLines: notesState.preferences.previewLines,
                       onTap: () => context.push(
                         RouteNames.editor,
-                        extra: <String, dynamic>{'noteId': note.id},
+                        extra: <String, dynamic>{
+                          'noteId': note.id,
+                          'initialNote': note,
+                        },
                       ),
                       onPinTap: () => ref
                           .read(notesControllerProvider.notifier)

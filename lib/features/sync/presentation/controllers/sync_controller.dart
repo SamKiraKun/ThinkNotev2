@@ -94,6 +94,8 @@ class SyncController extends StateNotifier<SyncState> {
 
   final Ref _ref;
   Future<void>? _inFlight;
+  bool _rerunAfterInFlight = false;
+  bool _rerunForceFullPull = false;
 
   Future<void> scheduleSync({
     bool forceFullPull = false,
@@ -111,20 +113,49 @@ class SyncController extends StateNotifier<SyncState> {
   }) {
     final inFlight = _inFlight;
     if (inFlight != null) {
+      _rerunAfterInFlight = true;
+      _rerunForceFullPull = _rerunForceFullPull || forceFullPull;
       debugPrint(
-        '[SyncController] Sync skipped because another sync is already running.',
+        '[SyncController] Sync queued because another sync is already running.',
       );
       return inFlight;
     }
 
-    final future = _runSync(
-      forceFullPull: forceFullPull,
+    _rerunAfterInFlight = false;
+    _rerunForceFullPull = false;
+    final future = _drainSyncQueue(
+      initialForceFullPull: forceFullPull,
       rethrowOnError: rethrowOnError,
     );
     _inFlight = future.whenComplete(() {
       _inFlight = null;
     });
     return _inFlight!;
+  }
+
+  Future<void> _drainSyncQueue({
+    required bool initialForceFullPull,
+    required bool rethrowOnError,
+  }) async {
+    var forceFullPull = initialForceFullPull;
+
+    while (true) {
+      await _runSync(
+        forceFullPull: forceFullPull,
+        rethrowOnError: rethrowOnError,
+      );
+
+      if (!_rerunAfterInFlight) {
+        return;
+      }
+
+      forceFullPull = _rerunForceFullPull;
+      _rerunAfterInFlight = false;
+      _rerunForceFullPull = false;
+      debugPrint(
+        '[SyncController] Running queued sync with the latest local changes.',
+      );
+    }
   }
 
   Future<void> _restoreSyncMetadata() async {
@@ -320,17 +351,25 @@ class SyncController extends StateNotifier<SyncState> {
         defaultFolders.isEmpty ? null : defaultFolders.first.id;
     final availableFolderIds = mergedFolders.map((folder) => folder.id).toSet();
 
-    NoteModel normalizePulledNote(NoteModel note) {
+    NoteModel normalizePulledNote(NoteModel note, {NoteModel? localNote}) {
+      final folderId = note.folderId;
+      if (folderId != null && availableFolderIds.contains(folderId)) {
+        return note;
+      }
+
+      final localFolderId = localNote?.folderId;
+      if (localFolderId != null && availableFolderIds.contains(localFolderId)) {
+        debugPrint(
+          '[SyncController] Preserving local folder $localFolderId for note ${note.id} because the remote payload did not include a valid folder.',
+        );
+        return note.copyWith(folderId: localFolderId);
+      }
+
       if (fallbackFolderId == null) {
         return note;
       }
 
-      final folderId = note.folderId;
-      if (folderId == null || !availableFolderIds.contains(folderId)) {
-        return note.copyWith(folderId: fallbackFolderId);
-      }
-
-      return note;
+      return note.copyWith(folderId: fallbackFolderId);
     }
 
     final mergedNotes = <String, NoteModel>{
@@ -343,9 +382,12 @@ class SyncController extends StateNotifier<SyncState> {
         continue;
       }
 
-      final normalizedRemoteNote = normalizePulledNote(remoteNote);
+      final localNote = mergedNotes[remoteNote.id];
+      final normalizedRemoteNote = normalizePulledNote(
+        remoteNote,
+        localNote: localNote,
+      );
 
-      final localNote = mergedNotes[normalizedRemoteNote.id];
       if (localNote == null ||
           localNote.syncStatus == NoteSyncStatus.synced ||
           !localNote.updatedAt.isAfter(normalizedRemoteNote.updatedAt)) {
@@ -664,10 +706,9 @@ Map<String, dynamic> _buildPushBody(
   NotesStoreModel localStore,
   List<SyncDeleteOperation> pendingDeletes,
 ) {
-  final localOnlyFolderIds = localStore.folders
-      .where((folder) => folder.isSystem)
-      .map((folder) => folder.id)
-      .toSet();
+  final foldersById = <String, FolderModel>{
+    for (final folder in localStore.folders) folder.id: folder,
+  };
   final deletedNotes = <Map<String, dynamic>>[];
   final deletedFolders = <Map<String, dynamic>>[];
   final deletedTags = <Map<String, dynamic>>[];
@@ -686,7 +727,7 @@ Map<String, dynamic> _buildPushBody(
   return <String, dynamic>{
     'notes': localStore.notes
         .where((note) => note.syncStatus != NoteSyncStatus.synced)
-        .map((note) => _noteToPushJson(note, localOnlyFolderIds))
+        .map((note) => _noteToPushJson(note, foldersById))
         .toList(growable: false),
     'folders': localStore.folders
         .where((folder) => !folder.isSystem)
@@ -730,14 +771,26 @@ DateTime _calculateNextRetryAt(int failureCount) {
 
 Map<String, dynamic> _noteToPushJson(
   NoteModel note,
-  Set<String> localOnlyFolderIds,
+  Map<String, FolderModel> foldersById,
 ) {
+  final folder = note.folderId == null ? null : foldersById[note.folderId!];
+  final isSystemFolder =
+      folder?.isSystem ?? FolderModel.isSystemId(note.folderId);
+
+  if (isSystemFolder && note.folderId != null) {
+    debugPrint(
+      '[SyncController] Preserving system folder ${note.folderId} for note ${note.id} through category metadata.',
+    );
+  }
+
   return <String, dynamic>{
     'id': note.remoteId ?? note.id,
     'title': note.title,
     'content': note.content,
-    'folder_id':
-        localOnlyFolderIds.contains(note.folderId) ? null : note.folderId,
+    'folder_id': isSystemFolder ? null : note.folderId,
+    'category': folder?.name,
+    'color_key': folder?.colorKey,
+    'emoji': folder?.emoji,
     'tags': note.tags,
     'is_pinned': note.isPinned,
     'is_favorite': note.isFavorite,

@@ -22,14 +22,8 @@ class NotesRepositoryImpl implements NotesRepository {
   }
 
   @override
-  Future<NoteModel?> getNoteById(String id) async {
-    final store = await loadStore();
-    for (final note in store.notes) {
-      if (note.id == id) {
-        return note;
-      }
-    }
-    return null;
+  Future<NoteModel?> getNoteById(String id) {
+    return _localDataSource.readNoteById(id);
   }
 
   @override
@@ -44,9 +38,8 @@ class NotesRepositoryImpl implements NotesRepository {
       return null;
     }
 
-    final nextFolderId = draft.folderId ?? _fallbackFolderId(store.folders);
-
     if (existingIndex == -1) {
+      final nextFolderId = draft.folderId ?? _fallbackFolderId(store.folders);
       final createdNote = NoteModel(
         id: draft.id ?? _uuid.v4(),
         title: draft.title.trim(),
@@ -60,15 +53,16 @@ class NotesRepositoryImpl implements NotesRepository {
         syncStatus: NoteSyncStatus.pendingCreate,
       );
 
-      final updatedStore = store.copyWith(
-        notes: <NoteModel>[createdNote, ...store.notes],
+      await _localDataSource.upsertNoteWithTags(
+        note: createdNote,
         tags: _mergeTags(store.tags, normalizedTags),
       );
-      await _localDataSource.writeStore(updatedStore);
       return createdNote;
     }
 
     final current = store.notes[existingIndex];
+    final nextFolderId =
+        draft.folderId ?? current.folderId ?? _fallbackFolderId(store.folders);
     final updatedNote = current.copyWith(
       title: draft.title.trim(),
       content: draft.content.trimRight(),
@@ -82,13 +76,10 @@ class NotesRepositoryImpl implements NotesRepository {
       syncStatus: _pendingMutationStatus(current),
     );
 
-    final updatedNotes = List<NoteModel>.from(store.notes)
-      ..[existingIndex] = updatedNote;
-    final updatedStore = store.copyWith(
-      notes: updatedNotes,
+    await _localDataSource.upsertNoteWithTags(
+      note: updatedNote,
       tags: _mergeTags(store.tags, normalizedTags),
     );
-    await _localDataSource.writeStore(updatedStore);
     return updatedNote;
   }
 

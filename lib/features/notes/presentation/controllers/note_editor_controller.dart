@@ -1,9 +1,12 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:uuid/uuid.dart';
 
 import '../../../../bootstrap/dependency_injection.dart';
 import '../../../../core/utils/debouncer.dart';
+import '../../data/models/note_model.dart';
 import '../../domain/repositories/notes_repository.dart';
 import '../../../sync/presentation/controllers/sync_controller.dart';
 import 'notes_controller.dart';
@@ -12,10 +15,12 @@ class NoteEditorArgs {
   const NoteEditorArgs({
     this.noteId,
     this.initialFolderId,
+    this.initialNote,
   });
 
   final String? noteId;
   final String? initialFolderId;
+  final NoteModel? initialNote;
 }
 
 class NoteEditorState {
@@ -116,10 +121,20 @@ final noteEditorControllerProvider = StateNotifierProvider.autoDispose
 });
 
 class NoteEditorController extends StateNotifier<NoteEditorState> {
-  NoteEditorController(this._ref, this._args)
-      : _repository = _ref.read(notesRepositoryProvider),
+  NoteEditorController(this._ref, NoteEditorArgs args)
+      : _args = args,
+        _repository = _ref.read(notesRepositoryProvider),
         _debouncer = Debouncer(const Duration(milliseconds: 450)),
-        super(NoteEditorState.loading(initialFolderId: _args.initialFolderId)) {
+        _syncDebouncer = Debouncer(const Duration(milliseconds: 1200)),
+        _draftNoteId = args.noteId ?? const Uuid().v4(),
+        super(
+          args.initialNote == null
+              ? NoteEditorState.loading(initialFolderId: args.initialFolderId)
+              : _stateFromNote(
+                  args.initialNote,
+                  initialFolderId: args.initialFolderId,
+                ),
+        ) {
     _load();
   }
 
@@ -127,38 +142,52 @@ class NoteEditorController extends StateNotifier<NoteEditorState> {
   final NoteEditorArgs _args;
   final NotesRepository _repository;
   final Debouncer _debouncer;
+  final Debouncer _syncDebouncer;
+  final String _draftNoteId;
+  Future<void>? _persistInFlight;
+  bool _persistAgainAfterInFlight = false;
+  int _editRevision = 0;
 
   Future<void> _load() async {
     final noteId = _args.noteId;
     if (noteId == null) {
-      state = state.copyWith(isLoading: false);
+      if (state.isLoading) {
+        state = state.copyWith(isLoading: false);
+      }
       return;
     }
 
+    final revisionAtStart = _editRevision;
+    final stopwatch = Stopwatch()..start();
     final existing = await _repository.getNoteById(noteId);
-    if (existing == null) {
-      state = state.copyWith(isLoading: false, noteId: null);
+    stopwatch.stop();
+    debugPrint(
+      '[NoteEditorController] Loaded note $noteId in ${stopwatch.elapsedMilliseconds} ms.',
+    );
+    if (!mounted || _editRevision != revisionAtStart) {
       return;
     }
 
-    state = NoteEditorState(
-      noteId: existing.id,
-      title: existing.title,
-      content: existing.content,
-      folderId: existing.folderId ?? _args.initialFolderId,
-      tags: existing.tags,
-      isPinned: existing.isPinned,
-      isFavorite: existing.isFavorite,
-      isArchived: existing.isArchived,
-      isLoading: false,
-      isSaving: false,
-      hasChanges: false,
-      errorMessage: null,
-      lastSavedAt: existing.updatedAt,
+    if (existing == null) {
+      if (_args.initialNote == null) {
+        state = state.copyWith(isLoading: false, noteId: null);
+      } else {
+        state = state.copyWith(isLoading: false);
+      }
+      return;
+    }
+
+    state = _stateFromNote(
+      existing,
+      initialFolderId: _args.initialFolderId,
     );
   }
 
   void updateTitle(String value) {
+    if (!mounted) {
+      return;
+    }
+    _markEdited();
     state = state.copyWith(
       title: value,
       hasChanges: true,
@@ -168,6 +197,10 @@ class NoteEditorController extends StateNotifier<NoteEditorState> {
   }
 
   void updateContent(String value) {
+    if (!mounted) {
+      return;
+    }
+    _markEdited();
     state = state.copyWith(
       content: value,
       hasChanges: true,
@@ -177,6 +210,10 @@ class NoteEditorController extends StateNotifier<NoteEditorState> {
   }
 
   void setFolder(String folderId) {
+    if (!mounted) {
+      return;
+    }
+    _markEdited();
     state = state.copyWith(
       folderId: folderId,
       hasChanges: true,
@@ -186,6 +223,10 @@ class NoteEditorController extends StateNotifier<NoteEditorState> {
   }
 
   void togglePinned() {
+    if (!mounted) {
+      return;
+    }
+    _markEdited();
     state = state.copyWith(
       isPinned: !state.isPinned,
       hasChanges: true,
@@ -195,6 +236,10 @@ class NoteEditorController extends StateNotifier<NoteEditorState> {
   }
 
   void toggleFavorite() {
+    if (!mounted) {
+      return;
+    }
+    _markEdited();
     state = state.copyWith(
       isFavorite: !state.isFavorite,
       hasChanges: true,
@@ -226,6 +271,10 @@ class NoteEditorController extends StateNotifier<NoteEditorState> {
   }
 
   void replaceTags(List<String> tags) {
+    if (!mounted) {
+      return;
+    }
+    _markEdited();
     state = state.copyWith(
       tags: tags,
       hasChanges: true,
@@ -234,9 +283,15 @@ class NoteEditorController extends StateNotifier<NoteEditorState> {
     _scheduleSave();
   }
 
-  Future<void> saveNow() async {
+  Future<void> saveNow({bool queueSyncImmediately = false}) async {
+    if (!mounted) {
+      return;
+    }
     await _debouncer.flush();
-    await _persist();
+    await _persistLatest();
+    if (queueSyncImmediately) {
+      _scheduleSyncNow();
+    }
   }
 
   Future<void> deleteCurrentNote() async {
@@ -250,10 +305,34 @@ class NoteEditorController extends StateNotifier<NoteEditorState> {
   }
 
   void _scheduleSave() {
-    _debouncer.run(_persist);
+    _debouncer.run(_persistLatest);
   }
 
-  Future<void> _persist() async {
+  Future<void> _persistLatest() {
+    final inFlight = _persistInFlight;
+    if (inFlight != null) {
+      _persistAgainAfterInFlight = true;
+      return inFlight;
+    }
+
+    final future = _drainPersistQueue();
+    _persistInFlight = future.whenComplete(() {
+      _persistInFlight = null;
+    });
+    return _persistInFlight!;
+  }
+
+  Future<void> _drainPersistQueue() async {
+    do {
+      _persistAgainAfterInFlight = false;
+      await _persistSnapshot();
+    } while (_persistAgainAfterInFlight && mounted);
+  }
+
+  Future<void> _persistSnapshot() async {
+    if (!mounted) {
+      return;
+    }
     if (state.isLoading || !state.hasChanges) {
       return;
     }
@@ -263,48 +342,70 @@ class NoteEditorController extends StateNotifier<NoteEditorState> {
       return;
     }
 
-    state = state.copyWith(
-      isSaving: true,
-      errorMessage: null,
+    final revisionAtStart = _editRevision;
+    final draft = NoteDraft(
+      id: state.noteId ?? _draftNoteId,
+      title: state.title,
+      content: state.content,
+      folderId: state.folderId,
+      tags: state.tags,
+      isPinned: state.isPinned,
+      isFavorite: state.isFavorite,
     );
 
-    try {
-      final saved = await _repository.saveNote(
-        NoteDraft(
-          id: state.noteId,
-          title: state.title,
-          content: state.content,
-          folderId: state.folderId,
-          tags: state.tags,
-          isPinned: state.isPinned,
-          isFavorite: state.isFavorite,
-        ),
+    if (mounted) {
+      state = state.copyWith(
+        isSaving: true,
+        errorMessage: null,
       );
+    }
 
-      if (saved == null) {
-        state = state.copyWith(
-          isSaving: false,
-          hasChanges: false,
-        );
+    try {
+      final saved = await _repository.saveNote(draft);
+
+      if (!mounted) {
         return;
       }
 
+      if (saved == null) {
+        final hasNewerEditorChanges = _editRevision != revisionAtStart;
+        state = state.copyWith(
+          isSaving: false,
+          hasChanges: hasNewerEditorChanges,
+        );
+        if (hasNewerEditorChanges) {
+          _scheduleSave();
+        }
+        return;
+      }
+
+      final hasNewerEditorChanges = _editRevision != revisionAtStart;
+      final current = state;
       state = state.copyWith(
         noteId: saved.id,
-        title: saved.title,
-        content: saved.content,
-        folderId: saved.folderId,
-        tags: saved.tags,
-        isPinned: saved.isPinned,
-        isFavorite: saved.isFavorite,
-        isArchived: saved.isArchived,
+        title: hasNewerEditorChanges ? current.title : saved.title,
+        content: hasNewerEditorChanges ? current.content : saved.content,
+        folderId: hasNewerEditorChanges ? current.folderId : saved.folderId,
+        tags: hasNewerEditorChanges ? current.tags : saved.tags,
+        isPinned: hasNewerEditorChanges ? current.isPinned : saved.isPinned,
+        isFavorite:
+            hasNewerEditorChanges ? current.isFavorite : saved.isFavorite,
+        isArchived:
+            hasNewerEditorChanges ? current.isArchived : saved.isArchived,
         isSaving: false,
-        hasChanges: false,
+        hasChanges: hasNewerEditorChanges,
         lastSavedAt: saved.updatedAt,
       );
       _scheduleSync();
       _ref.invalidate(notesControllerProvider);
+
+      if (hasNewerEditorChanges) {
+        _scheduleSave();
+      }
     } catch (error) {
+      if (!mounted) {
+        return;
+      }
       state = state.copyWith(
         isSaving: false,
         errorMessage: 'Unable to save this note right now.',
@@ -315,12 +416,56 @@ class NoteEditorController extends StateNotifier<NoteEditorState> {
   @override
   void dispose() {
     _debouncer.dispose();
+    _syncDebouncer.dispose();
     super.dispose();
   }
 
+  void _markEdited() {
+    _editRevision += 1;
+  }
+
   void _scheduleSync() {
+    if (!mounted) {
+      return;
+    }
+    _syncDebouncer.run(() {
+      return _ref.read(syncControllerProvider.notifier).scheduleSync();
+    });
+  }
+
+  void _scheduleSyncNow() {
+    if (!mounted) {
+      return;
+    }
     unawaited(_ref.read(syncControllerProvider.notifier).scheduleSync());
   }
+}
+
+NoteEditorState _stateFromNote(
+  NoteModel? note, {
+  String? initialFolderId,
+}) {
+  if (note == null) {
+    return NoteEditorState.loading(initialFolderId: initialFolderId).copyWith(
+      isLoading: false,
+    );
+  }
+
+  return NoteEditorState(
+    noteId: note.id,
+    title: note.title,
+    content: note.content,
+    folderId: note.folderId ?? initialFolderId,
+    tags: note.tags,
+    isPinned: note.isPinned,
+    isFavorite: note.isFavorite,
+    isArchived: note.isArchived,
+    isLoading: false,
+    isSaving: false,
+    hasChanges: false,
+    errorMessage: null,
+    lastSavedAt: note.updatedAt,
+  );
 }
 
 const Object _editorSentinel = Object();

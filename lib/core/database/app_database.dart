@@ -82,7 +82,8 @@ class AppDatabase {
     String? databaseName,
   }) {
     final completer = Completer<T>();
-    _serializedOperations = _serializedOperations.catchError((_) {}).then((_) async {
+    _serializedOperations =
+        _serializedOperations.catchError((_) {}).then((_) async {
       try {
         final database = await getDatabase(databaseName: databaseName);
         completer.complete(await operation(database));
@@ -297,8 +298,10 @@ class AppDatabase {
       );
 
       CREATE INDEX IF NOT EXISTS notes_updated_idx ON notes(updated_at);
+      CREATE INDEX IF NOT EXISTS notes_folder_idx ON notes(folder_id);
       CREATE INDEX IF NOT EXISTS notes_deleted_idx ON notes(is_deleted);
       CREATE INDEX IF NOT EXISTS notes_archived_idx ON notes(is_archived);
+      CREATE INDEX IF NOT EXISTS notes_sync_status_idx ON notes(sync_status);
       CREATE INDEX IF NOT EXISTS sync_queue_created_idx ON sync_queue(created_at);
     ''');
   }

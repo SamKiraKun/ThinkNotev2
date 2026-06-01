@@ -293,7 +293,10 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                             }
                             context.push(
                               RouteNames.editor,
-                              extra: <String, dynamic>{'noteId': note.id},
+                              extra: <String, dynamic>{
+                                'noteId': note.id,
+                                'initialNote': note,
+                              },
                             );
                           },
                         );
@@ -367,7 +370,10 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                     }
                     context.push(
                       RouteNames.editor,
-                      extra: <String, dynamic>{'noteId': note.id},
+                      extra: <String, dynamic>{
+                        'noteId': note.id,
+                        'initialNote': note,
+                      },
                     );
                   },
                   onPinTap: () => ref

@@ -57,13 +57,7 @@ class FolderModel extends FolderEntity {
 
   static List<FolderModel> defaults() {
     final createdAt = DateTime.now();
-    return const <({String id, String name, String colorKey, String emoji})>[
-      (id: 'personal', name: 'Personal', colorKey: 'personal', emoji: '💜'),
-      (id: 'study', name: 'Study', colorKey: 'study', emoji: '📚'),
-      (id: 'ideas', name: 'Ideas', colorKey: 'ideas', emoji: '💡'),
-      (id: 'work', name: 'Work', colorKey: 'work', emoji: '💼'),
-      (id: 'journal', name: 'Journal', colorKey: 'journal', emoji: '✍️'),
-    ].map((folder) {
+    return _systemFolderDescriptors.map((folder) {
       return FolderModel(
         id: folder.id,
         name: folder.name,
@@ -75,4 +69,60 @@ class FolderModel extends FolderEntity {
       );
     }).toList(growable: false);
   }
+
+  static bool isSystemId(String? id) {
+    final normalizedId = id?.trim().toLowerCase();
+    if (normalizedId == null || normalizedId.isEmpty) {
+      return false;
+    }
+
+    return _systemFolderIds.contains(normalizedId);
+  }
+
+  static String? inferSystemFolderId({
+    String? folderId,
+    String? colorKey,
+    String? name,
+  }) {
+    final normalizedFolderId = folderId?.trim();
+    if (normalizedFolderId != null && normalizedFolderId.isNotEmpty) {
+      return normalizedFolderId;
+    }
+
+    final normalizedName = name?.trim().toLowerCase();
+    if (normalizedName != null && normalizedName.isNotEmpty) {
+      for (final folder in _systemFolderDescriptors) {
+        if (folder.name.toLowerCase() == normalizedName) {
+          return folder.id;
+        }
+      }
+
+      return null;
+    }
+
+    final normalizedColorKey = colorKey?.trim().toLowerCase();
+    if (normalizedColorKey != null &&
+        _systemFolderIds.contains(normalizedColorKey)) {
+      return normalizedColorKey;
+    }
+
+    return null;
+  }
 }
+
+const List<({String id, String name, String colorKey, String emoji})>
+    _systemFolderDescriptors = <({
+  String id,
+  String name,
+  String colorKey,
+  String emoji,
+})>[
+  (id: 'personal', name: 'Personal', colorKey: 'personal', emoji: '💖'),
+  (id: 'study', name: 'Study', colorKey: 'study', emoji: '📚'),
+  (id: 'ideas', name: 'Ideas', colorKey: 'ideas', emoji: '💡'),
+  (id: 'work', name: 'Work', colorKey: 'work', emoji: '💼'),
+  (id: 'journal', name: 'Journal', colorKey: 'journal', emoji: '✍️'),
+];
+
+final Set<String> _systemFolderIds =
+    _systemFolderDescriptors.map((folder) => folder.id).toSet();

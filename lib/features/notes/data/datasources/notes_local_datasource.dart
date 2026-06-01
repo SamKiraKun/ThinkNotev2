@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sqlite3/sqlite3.dart';
@@ -117,6 +118,38 @@ class NotesLocalDataSource {
       (database) => _writeStoreToDatabase(database, store.withDefaults()),
       debugLabel: 'write notes store',
     );
+  }
+
+  Future<void> upsertNoteWithTags({
+    required NoteModel note,
+    required List<TagModel> tags,
+  }) async {
+    await _migrateLegacyPreferencesIfNeeded();
+    await _runWriteTransaction(
+      (database) => _upsertNoteWithTagsToDatabase(database, note, tags),
+      debugLabel: 'upsert note',
+    );
+  }
+
+  Future<NoteModel?> readNoteById(String id) async {
+    await _migrateLegacyPreferencesIfNeeded();
+    final stopwatch = Stopwatch()..start();
+    final note = await _runSerialized((database) async {
+      final rows = database.select(
+        'SELECT * FROM notes WHERE id = ? LIMIT 1',
+        [id],
+      );
+      if (rows.isEmpty) {
+        return null;
+      }
+
+      return _noteFromRow(rows.first);
+    });
+    stopwatch.stop();
+    debugPrint(
+      '[NotesLocalDataSource] Loaded note $id in ${stopwatch.elapsedMilliseconds} ms.',
+    );
+    return note;
   }
 
   Future<String?> readSyncState(String key) async {
@@ -370,7 +403,8 @@ class NotesLocalDataSource {
         ]);
       }
 
-      for (final entry in _preferencesToMap(normalizedStore.preferences).entries) {
+      for (final entry
+          in _preferencesToMap(normalizedStore.preferences).entries) {
         insertPreference.execute([entry.key, entry.value]);
       }
 
@@ -391,6 +425,78 @@ class NotesLocalDataSource {
       insertNote.close();
       insertSearch.close();
       insertPreference.close();
+      insertNoteTag.close();
+    }
+  }
+
+  Future<void> _upsertNoteWithTagsToDatabase(
+    Database database,
+    NoteModel note,
+    List<TagModel> tags,
+  ) async {
+    final normalizedTags = <String, TagModel>{
+      for (final tag in tags) tag.label.toLowerCase(): tag,
+    };
+    final insertTag = database.prepare('''
+        INSERT OR REPLACE INTO tags (
+          id, remote_id, label, emoji, created_at, updated_at, sync_status,
+          last_synced_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      ''');
+    final insertNote = database.prepare('''
+        INSERT OR REPLACE INTO notes (
+          id, remote_id, title, content, folder_id, tags_json, is_pinned,
+          is_favorite, is_archived, is_deleted, created_at, updated_at,
+          deleted_at, sync_status, last_synced_at, server_version
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ''');
+    final insertNoteTag = database.prepare('''
+        INSERT OR REPLACE INTO note_tags (note_id, tag_id) VALUES (?, ?)
+      ''');
+
+    try {
+      for (final tag in tags) {
+        insertTag.execute([
+          tag.id,
+          null,
+          await _cipher.encrypt(tag.label),
+          tag.emoji,
+          tag.createdAt.toIso8601String(),
+          tag.updatedAt.toIso8601String(),
+          'synced',
+          null,
+        ]);
+      }
+
+      insertNote.execute([
+        note.id,
+        note.remoteId,
+        await _cipher.encrypt(note.title),
+        await _cipher.encrypt(note.content),
+        note.folderId,
+        await _cipher.encrypt(jsonEncode(note.tags)),
+        _boolToInt(note.isPinned),
+        _boolToInt(note.isFavorite),
+        _boolToInt(note.isArchived),
+        _boolToInt(note.isDeleted),
+        note.createdAt.toIso8601String(),
+        note.updatedAt.toIso8601String(),
+        note.deletedAt?.toIso8601String(),
+        note.syncStatus.storageValue,
+        note.lastSyncedAt?.toIso8601String(),
+        note.serverVersion,
+      ]);
+
+      database.execute('DELETE FROM note_tags WHERE note_id = ?', [note.id]);
+      for (final label in note.tags) {
+        final tag = normalizedTags[label.toLowerCase()];
+        if (tag != null) {
+          insertNoteTag.execute([note.id, tag.id]);
+        }
+      }
+    } finally {
+      insertTag.close();
+      insertNote.close();
       insertNoteTag.close();
     }
   }

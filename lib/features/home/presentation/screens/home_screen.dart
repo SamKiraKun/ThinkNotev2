@@ -185,7 +185,10 @@ class HomeScreen extends ConsumerWidget {
                     onTap: () {
                       context.push(
                         RouteNames.editor,
-                        extra: <String, dynamic>{'noteId': featuredNote.id},
+                        extra: <String, dynamic>{
+                          'noteId': featuredNote.id,
+                          'initialNote': featuredNote,
+                        },
                       );
                     },
                   );
@@ -234,7 +237,10 @@ class HomeScreen extends ConsumerWidget {
                   onTap: () {
                     context.push(
                       RouteNames.editor,
-                      extra: <String, dynamic>{'noteId': note.id},
+                      extra: <String, dynamic>{
+                        'noteId': note.id,
+                        'initialNote': note,
+                      },
                     );
                   },
                   onPinTap: () => ref

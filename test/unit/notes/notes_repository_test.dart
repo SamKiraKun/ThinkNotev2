@@ -4,6 +4,7 @@ import 'package:thinknote/core/database/app_database.dart';
 import 'package:thinknote/features/notes/data/datasources/notes_local_datasource.dart';
 import 'package:thinknote/features/notes/data/models/app_preferences_model.dart';
 import 'package:thinknote/features/notes/data/repositories/notes_repository_impl.dart';
+import 'package:thinknote/features/notes/domain/entities/note_entity.dart';
 import 'package:thinknote/features/notes/domain/repositories/notes_repository.dart';
 
 void main() {
@@ -46,6 +47,57 @@ void main() {
       expect(store.notes, hasLength(1));
       expect(store.notes.first.displayTitle, 'Dream life plan');
       expect(store.notes.first.tags, contains('Goals'));
+    });
+
+    test('upserts autosave drafts with a stable note id', () async {
+      final created = await repository.saveNote(
+        const NoteDraft(
+          id: 'draft-note-1',
+          title: 'First autosave',
+          content: 'Initial local content.',
+          folderId: 'personal',
+        ),
+      );
+      final updated = await repository.saveNote(
+        const NoteDraft(
+          id: 'draft-note-1',
+          title: 'First autosave',
+          content: 'Latest local content.',
+          folderId: 'personal',
+        ),
+      );
+
+      final store = await repository.loadStore();
+
+      expect(created?.id, 'draft-note-1');
+      expect(updated?.id, 'draft-note-1');
+      expect(store.notes, hasLength(1));
+      expect(store.notes.single.id, 'draft-note-1');
+      expect(store.notes.single.content, 'Latest local content.');
+      expect(store.notes.single.syncStatus, NoteSyncStatus.pendingCreate);
+    });
+
+    test('preserves an existing folder when an update omits folderId',
+        () async {
+      final created = await repository.saveNote(
+        const NoteDraft(
+          id: 'folder-preserve-note',
+          title: 'Work draft',
+          content: 'Keep this in Work.',
+          folderId: 'work',
+        ),
+      );
+
+      final updated = await repository.saveNote(
+        const NoteDraft(
+          id: 'folder-preserve-note',
+          title: 'Work draft',
+          content: 'Still in Work after the update.',
+        ),
+      );
+
+      expect(created?.folderId, 'work');
+      expect(updated?.folderId, 'work');
     });
 
     test('moves notes to trash, restores them, and deletes permanently',

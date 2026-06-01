@@ -453,6 +453,56 @@ test("POST /sync/push normalizes local-only default folder ids to null", async (
   }
 });
 
+test("sync pull returns system-folder metadata for notes without remote folder rows", async () => {
+  const harness = await createSyncTestHarness();
+
+  try {
+    const pushResponse = await request(harness.app)
+      .post("/sync/push")
+      .send({
+        notes: [
+          {
+            id: "note-work-folder",
+            title: "Work note",
+            content: "Keep the Work system folder semantics.",
+            folder_id: null,
+            category: "Work",
+            color_key: "work",
+            emoji: "💼",
+            created_at: syncTestTimestamp,
+            updated_at: syncTestTimestamp,
+          },
+        ],
+      });
+
+    assert.equal(pushResponse.status, 200);
+    assert.equal(pushResponse.body.success, true);
+
+    const notesResult = await harness.db.execute({
+      sql: `SELECT folder_id, category, color_key, emoji FROM notes WHERE id = ? AND user_id = ?`,
+      args: ["note-work-folder", "test-user"],
+    });
+    assert.equal(notesResult.rows.length, 1);
+    assert.equal(notesResult.rows[0].folder_id, null);
+    assert.equal(notesResult.rows[0].category, "Work");
+    assert.equal(notesResult.rows[0].color_key, "work");
+    assert.equal(notesResult.rows[0].emoji, "💼");
+
+    const pullResponse = await request(harness.app).get("/sync/pull");
+
+    assert.equal(pullResponse.status, 200);
+    assert.equal(pullResponse.body.success, true);
+    assert.equal(pullResponse.body.data.notes.length, 1);
+    assert.equal(pullResponse.body.data.notes[0].id, "note-work-folder");
+    assert.equal(pullResponse.body.data.notes[0].folder_id, null);
+    assert.equal(pullResponse.body.data.notes[0].category, "Work");
+    assert.equal(pullResponse.body.data.notes[0].color_key, "work");
+    assert.equal(pullResponse.body.data.notes[0].emoji, "💼");
+  } finally {
+    await harness.cleanup();
+  }
+});
+
 test("GET /sync/readiness verifies schema and authenticated write readiness", async () => {
   const harness = await createSyncTestHarness();
 

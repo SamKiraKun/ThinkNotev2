@@ -12,6 +12,8 @@ import '../../../../core/theme/app_typography.dart';
 import '../../../../core/utils/date_formatter.dart';
 import '../../../../shared/widgets/app_confirmation_dialog.dart';
 import '../../../folders/data/models/folder_model.dart';
+import '../../data/models/note_model.dart';
+import '../../../sync/presentation/controllers/sync_controller.dart';
 import '../../../notes/presentation/controllers/notes_controller.dart';
 import '../controllers/note_editor_controller.dart';
 import '../widgets/note_editor_toolbar.dart';
@@ -21,10 +23,12 @@ class NoteEditorScreen extends ConsumerStatefulWidget {
     super.key,
     this.noteId,
     this.initialFolderId,
+    this.initialNote,
   });
 
   final String? noteId;
   final String? initialFolderId;
+  final NoteModel? initialNote;
 
   @override
   ConsumerState<NoteEditorScreen> createState() => _NoteEditorScreenState();
@@ -43,6 +47,7 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
     _args = NoteEditorArgs(
       noteId: widget.noteId,
       initialFolderId: widget.initialFolderId,
+      initialNote: widget.initialNote,
     );
     _titleController = TextEditingController();
     _bodyController = TextEditingController();
@@ -66,15 +71,13 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
     final editorController =
         ref.read(noteEditorControllerProvider(_args).notifier);
     final notesState = ref.watch(notesControllerProvider).valueOrNull;
+    final syncState = ref.watch(syncControllerProvider);
     final folder = notesState?.folderById(editorState.folderId);
     final isNewNote = editorState.noteId == null;
     final wordCount = _countWords(editorState.content);
     final readTime = DateFormatter.estimateReadTime(editorState.content);
-    final saveLabel = editorState.isSaving
-        ? 'Saving'
-        : editorState.lastSavedAt == null
-            ? 'Autosave ready'
-            : 'Saved ${DateFormatter.formatRelative(editorState.lastSavedAt!)}';
+    final saveLabel = _saveLabel(editorState, syncState);
+    final saveIcon = _saveIcon(editorState, syncState);
 
     ref.listen(noteEditorControllerProvider(_args), (previous, next) {
       if (previous?.errorMessage != next.errorMessage &&
@@ -231,15 +234,16 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
                           ),
                           const SizedBox(width: AppSpacing.sm),
                           FilledButton(
-                            onPressed: editorState.isSaving
-                                ? null
-                                : editorController.saveNow,
+                            onPressed: () async {
+                              FocusScope.of(context).unfocus();
+                              await _saveAndClose(editorController);
+                            },
                             style: FilledButton.styleFrom(
                               backgroundColor: AppColors.brandPrimary,
                               minimumSize: const Size(88, 48),
                             ),
                             child: Text(
-                              editorState.isSaving ? 'Saving' : 'Done',
+                              'Done',
                               style: AppTypography.buttonLabel,
                             ),
                           ),
@@ -312,7 +316,7 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
                                         ),
                                       ),
                                       _EditorInfoChip(
-                                        icon: Icons.cloud_done_outlined,
+                                        icon: saveIcon,
                                         label: saveLabel,
                                       ),
                                     ],
@@ -499,7 +503,7 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
   }
 
   Future<void> _saveAndClose(NoteEditorController controller) async {
-    await controller.saveNow();
+    await controller.saveNow(queueSyncImmediately: true);
 
     if (!mounted) {
       return;
@@ -773,6 +777,50 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
     }
     return null;
   }
+}
+
+String _saveLabel(NoteEditorState editorState, SyncState syncState) {
+  if (editorState.isSaving || editorState.hasChanges) {
+    return 'Saving locally...';
+  }
+
+  if (syncState.isSyncing) {
+    return 'Syncing...';
+  }
+
+  if (syncState.lastError != null) {
+    return switch (syncState.lastErrorType) {
+      SyncErrorType.noInternet ||
+      SyncErrorType.dns ||
+      SyncErrorType.tls ||
+      SyncErrorType.timeout ||
+      SyncErrorType.serverUnreachable =>
+        'Offline - will sync later',
+      _ => 'Sync failed - retrying',
+    };
+  }
+
+  if (editorState.lastSavedAt == null) {
+    return 'Autosave ready';
+  }
+
+  return 'Saved ${DateFormatter.formatRelative(editorState.lastSavedAt!)}';
+}
+
+IconData _saveIcon(NoteEditorState editorState, SyncState syncState) {
+  if (editorState.isSaving || editorState.hasChanges) {
+    return Icons.save_outlined;
+  }
+
+  if (syncState.isSyncing) {
+    return Icons.cloud_sync_outlined;
+  }
+
+  if (syncState.lastError != null) {
+    return Icons.cloud_off_outlined;
+  }
+
+  return Icons.cloud_done_outlined;
 }
 
 class _EditorActionChip extends StatelessWidget {

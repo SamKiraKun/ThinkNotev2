@@ -57,7 +57,10 @@ class ArchivedNotesScreen extends ConsumerWidget {
                   onTap: () {
                     context.push(
                       RouteNames.editor,
-                      extra: <String, dynamic>{'noteId': note.id},
+                      extra: <String, dynamic>{
+                        'noteId': note.id,
+                        'initialNote': note,
+                      },
                     );
                   },
                   trailing: PopupMenuButton<String>(

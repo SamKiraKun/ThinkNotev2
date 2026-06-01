@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -134,6 +135,113 @@ void main() {
       expect(note.syncStatus, isNot(NoteSyncStatus.synced));
     });
 
+    test('runs one queued sync after local edits are saved during active sync',
+        () async {
+      final created = await repository.saveNote(
+        const NoteDraft(
+          title: 'Launch plan',
+          content: 'Initial draft',
+          folderId: 'personal',
+        ),
+      );
+
+      expect(created, isNotNull);
+
+      final originalNote = created!;
+      final pushedPayloads = <Map<String, dynamic>>[];
+      var pullCount = 0;
+      late ProviderContainer container;
+      final authRepository = _FakeAuthRepository();
+      final apiClient = AuthenticatedApiClient(
+        MockClient((request) async {
+          if (request.url.path == '/sync/readiness') {
+            return _healthResponse();
+          }
+
+          if (request.url.path == '/sync/push') {
+            pushedPayloads
+                .add(jsonDecode(request.body) as Map<String, dynamic>);
+            return _jsonResponse(
+              <String, dynamic>{
+                'success': true,
+                'data': <String, dynamic>{
+                  'server_time': '2025-02-01T09:00:0${pushedPayloads.length}Z',
+                },
+              },
+            );
+          }
+
+          if (request.url.path == '/sync/pull') {
+            pullCount += 1;
+            if (pullCount == 1) {
+              await repository.saveNote(
+                NoteDraft(
+                  id: originalNote.id,
+                  title: originalNote.title,
+                  content: 'Queued edit while first sync is active',
+                  folderId: originalNote.folderId,
+                  tags: originalNote.tags,
+                  isPinned: originalNote.isPinned,
+                  isFavorite: originalNote.isFavorite,
+                ),
+              );
+              unawaited(
+                container.read(syncControllerProvider.notifier).scheduleSync(),
+              );
+            }
+
+            return _jsonResponse(
+              <String, dynamic>{
+                'success': true,
+                'data': <String, dynamic>{
+                  'server_time': '2025-02-01T09:05:0${pullCount}Z',
+                  'notes': const <Map<String, dynamic>>[],
+                  'folders': const <Map<String, dynamic>>[],
+                  'tags': const <Map<String, dynamic>>[],
+                  'deleted_notes': const <Map<String, dynamic>>[],
+                  'deleted_folders': const <Map<String, dynamic>>[],
+                  'deleted_tags': const <Map<String, dynamic>>[],
+                },
+              },
+            );
+          }
+
+          throw StateError('Unexpected request to ${request.url}');
+        }),
+        authRepository,
+      );
+
+      container = ProviderContainer(
+        overrides: [
+          currentAuthSessionProvider.overrideWithValue(
+            const AuthSession(uid: 'user-1'),
+          ),
+          notesLocalDataSourceProvider.overrideWithValue(localDataSource),
+          authenticatedApiClientProvider.overrideWithValue(apiClient),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      await container.read(syncControllerProvider.notifier).syncNow();
+
+      expect(pushedPayloads, hasLength(2));
+      expect(
+        ((pushedPayloads.first['notes'] as List<dynamic>).single
+            as Map<String, dynamic>)['content'],
+        'Initial draft',
+      );
+      expect(
+        ((pushedPayloads.last['notes'] as List<dynamic>).single
+            as Map<String, dynamic>)['content'],
+        'Queued edit while first sync is active',
+      );
+
+      final store = await repository.loadStore();
+      final note = store.notes.single;
+      expect(note.content, 'Queued edit while first sync is active');
+      expect(note.syncStatus, NoteSyncStatus.synced);
+    });
+
     test('marks pushed notes synced even when incremental pull is empty',
         () async {
       final store = NotesStoreModel.empty().copyWith(
@@ -237,14 +345,14 @@ void main() {
       );
     });
 
-    test('preserves the default local folder contract across sync', () async {
+    test('preserves system folder assignments across sync', () async {
       final store = NotesStoreModel.empty().copyWith(
         notes: <NoteModel>[
           NoteModel(
-            id: 'note-default-folder',
-            title: 'Personal note',
-            content: 'Stored under the local default folder.',
-            folderId: 'personal',
+            id: 'note-work-folder',
+            title: 'Work note',
+            content: 'Stored under the Work folder.',
+            folderId: 'work',
             createdAt: DateTime.parse('2025-02-01T10:00:00Z'),
             updatedAt: DateTime.parse('2025-02-01T10:00:00Z'),
             syncStatus: NoteSyncStatus.pendingCreate,
@@ -266,6 +374,8 @@ void main() {
             final pushedNote = pushedNotes.single as Map<String, dynamic>;
 
             expect(pushedNote['folder_id'], isNull);
+            expect(pushedNote['category'], 'Work');
+            expect(pushedNote['color_key'], 'work');
 
             return _jsonResponse(
               <String, dynamic>{
@@ -285,10 +395,12 @@ void main() {
                   'server_time': '2025-02-01T10:05:05Z',
                   'notes': <Map<String, dynamic>>[
                     <String, dynamic>{
-                      'id': 'note-default-folder',
-                      'title': 'Personal note',
-                      'content': 'Stored under the local default folder.',
+                      'id': 'note-work-folder',
+                      'title': 'Work note',
+                      'content': 'Stored under the Work folder.',
                       'folder_id': null,
+                      'category': 'Work',
+                      'color_key': 'work',
                       'tags': const <String>[],
                       'is_pinned': false,
                       'is_favorite': false,
@@ -329,9 +441,98 @@ void main() {
       final syncedStore = await localDataSource.readStore();
       final note = syncedStore.notes.single;
 
-      expect(note.folderId, 'personal');
+      expect(note.folderId, 'work');
       expect(note.syncStatus, NoteSyncStatus.synced);
       expect(note.lastSyncedAt, DateTime.parse('2025-02-01T10:05:05Z'));
+    });
+
+    test('keeps the local folder when an older remote payload omits it',
+        () async {
+      final store = NotesStoreModel.empty().copyWith(
+        notes: <NoteModel>[
+          NoteModel(
+            id: 'note-local-folder',
+            remoteId: 'note-local-folder',
+            title: 'Work note',
+            content: 'Keep the local folder during merge.',
+            folderId: 'work',
+            createdAt: DateTime.parse('2025-02-01T10:00:00Z'),
+            updatedAt: DateTime.parse('2025-02-01T10:00:00Z'),
+            syncStatus: NoteSyncStatus.synced,
+          ),
+        ],
+      );
+      await localDataSource.writeStore(store);
+
+      final authRepository = _FakeAuthRepository();
+      final apiClient = AuthenticatedApiClient(
+        MockClient((request) async {
+          if (request.url.path == '/sync/readiness') {
+            return _healthResponse();
+          }
+
+          if (request.url.path == '/sync/push') {
+            return _jsonResponse(
+              <String, dynamic>{
+                'success': true,
+                'data': <String, dynamic>{
+                  'server_time': '2025-02-01T10:05:00Z',
+                },
+              },
+            );
+          }
+
+          if (request.url.path == '/sync/pull') {
+            return _jsonResponse(
+              <String, dynamic>{
+                'success': true,
+                'data': <String, dynamic>{
+                  'server_time': '2025-02-01T10:05:05Z',
+                  'notes': <Map<String, dynamic>>[
+                    <String, dynamic>{
+                      'id': 'note-local-folder',
+                      'title': 'Work note',
+                      'content': 'Keep the local folder during merge.',
+                      'folder_id': null,
+                      'tags': const <String>[],
+                      'is_pinned': false,
+                      'is_favorite': false,
+                      'is_archived': false,
+                      'is_deleted': false,
+                      'created_at': '2025-02-01T10:00:00Z',
+                      'updated_at': '2025-02-01T10:00:00Z',
+                    },
+                  ],
+                  'folders': const <Map<String, dynamic>>[],
+                  'tags': const <Map<String, dynamic>>[],
+                  'deleted_notes': const <Map<String, dynamic>>[],
+                  'deleted_folders': const <Map<String, dynamic>>[],
+                  'deleted_tags': const <Map<String, dynamic>>[],
+                },
+              },
+            );
+          }
+
+          throw StateError('Unexpected request to ${request.url}');
+        }),
+        authRepository,
+      );
+
+      final container = ProviderContainer(
+        overrides: [
+          currentAuthSessionProvider.overrideWithValue(
+            const AuthSession(uid: 'user-1'),
+          ),
+          notesLocalDataSourceProvider.overrideWithValue(localDataSource),
+          authenticatedApiClientProvider.overrideWithValue(apiClient),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      await container.read(syncControllerProvider.notifier).syncNow();
+
+      final syncedStore = await localDataSource.readStore();
+      expect(syncedStore.notes.single.folderId, 'work');
     });
 
     test('keeps pending deletes queued when pull fails after a successful push',

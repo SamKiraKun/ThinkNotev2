@@ -1,3 +1,4 @@
+import '../../../folders/data/models/folder_model.dart';
 import '../../domain/entities/note_entity.dart';
 
 class NoteModel extends NoteEntity {
@@ -30,7 +31,11 @@ class NoteModel extends NoteEntity {
       isFavorite: json['is_favorite'] as bool? ?? false,
       isArchived: json['is_archived'] as bool? ?? false,
       isDeleted: json['is_deleted'] as bool? ?? false,
-      folderId: json['folder_id'] as String?,
+      folderId: FolderModel.inferSystemFolderId(
+        folderId: json['folder_id'] as String?,
+        colorKey: json['color_key'] as String?,
+        name: json['category'] as String?,
+      ),
       tags: (json['tags'] as List<dynamic>? ?? const <dynamic>[])
           .map((tag) => tag.toString())
           .toList(growable: false),
@@ -39,8 +44,7 @@ class NoteModel extends NoteEntity {
       deletedAt: json['deleted_at'] == null
           ? null
           : DateTime.parse(json['deleted_at'] as String),
-      syncStatus:
-          NoteSyncStatusX.fromStorage(json['sync_status'] as String?),
+      syncStatus: NoteSyncStatusX.fromStorage(json['sync_status'] as String?),
       lastSyncedAt: json['last_synced_at'] == null
           ? null
           : DateTime.parse(json['last_synced_at'] as String),
@@ -88,9 +92,8 @@ class NoteModel extends NoteEntity {
   }) {
     return NoteModel(
       id: id,
-      remoteId: identical(remoteId, _sentinel)
-          ? this.remoteId
-          : remoteId as String?,
+      remoteId:
+          identical(remoteId, _sentinel) ? this.remoteId : remoteId as String?,
       title: title ?? this.title,
       content: content ?? this.content,
       folderId:

@@ -4,6 +4,7 @@ import '../../features/auth/presentation/screens/auth_gate_screen.dart';
 import '../../features/auth/presentation/screens/app_passcode_unlock_screen.dart';
 import '../../features/onboarding/presentation/screens/app_launch_screen.dart';
 import '../../features/onboarding/presentation/screens/onboarding_experience_screen.dart';
+import '../../features/notes/data/models/note_model.dart';
 import '../../features/notes/presentation/screens/archived_notes_screen.dart';
 import '../../features/notes/presentation/screens/note_editor_screen.dart';
 import '../../features/notes/presentation/screens/trash_screen.dart';
@@ -45,6 +46,7 @@ List<RouteBase> buildAppRoutes() {
         return NoteEditorScreen(
           noteId: extra['noteId'] as String?,
           initialFolderId: extra['initialFolderId'] as String?,
+          initialNote: extra['initialNote'] as NoteModel?,
         );
       },
     ),
