@@ -1,8 +1,18 @@
 import { createApp, resolveServerPort } from "./app";
+import { ensureDatabaseSchema } from "./db/schema_migrations";
 
-const app = createApp();
-const port = resolveServerPort();
+async function main() {
+  await ensureDatabaseSchema();
 
-app.listen(port, () => {
-  console.log(`Server is running on port ${port}`);
+  const app = createApp();
+  const port = resolveServerPort();
+
+  app.listen(port, () => {
+    console.log(`Server is running on port ${port}`);
+  });
+}
+
+void main().catch((error) => {
+  console.error("Failed to start ThinkNote backend:", error);
+  process.exit(1);
 });

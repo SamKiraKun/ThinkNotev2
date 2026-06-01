@@ -9,6 +9,7 @@ const { Router } = require("express");
 const request = require("supertest");
 
 const { createApp } = require("../dist/app");
+const { ensureDatabaseSchema } = require("../dist/db/schema_migrations");
 const { createSyncRouter } = require("../dist/routes/sync.routes");
 const { createAccountRouter } = require("../dist/routes/account.routes");
 const {
@@ -478,6 +479,158 @@ test("GET /sync/readiness verifies schema and authenticated write readiness", as
     assert.equal(stateResult.rows.length, 1);
   } finally {
     await harness.cleanup();
+  }
+});
+
+test("schema bootstrap makes authenticated sync readiness work on a fresh database", async () => {
+  const dbPath = path.join(
+    os.tmpdir(),
+    `thinknote-bootstrap-${process.pid}-${Date.now()}-${Math.random().toString(16).slice(2)}.db`,
+  );
+  const db = createClient({
+    url: `file:${dbPath.replace(/\\/g, "/")}`,
+  });
+
+  try {
+    await ensureDatabaseSchema(db, silentLogger);
+
+    const authMiddleware = buildRequireFirebaseAuth({
+      verifyIdToken: async () => ({
+        uid: "fresh-user",
+        email: "fresh@example.com",
+        name: "Fresh User",
+        picture: null,
+      }),
+      database: db,
+      logger: silentLogger,
+    });
+    const app = createApp({
+      authMiddleware,
+      logger: silentLogger,
+      syncRouter: createSyncRouter(db),
+      config: {
+        isProduction: false,
+        corsAllowNoOrigin: true,
+      },
+    });
+
+    const response = await request(app)
+      .get("/sync/readiness")
+      .set("Authorization", "Bearer valid-token");
+
+    assert.equal(response.status, 200);
+    assert.equal(response.body.success, true);
+    assert.equal(response.body.data.status, "ready");
+
+    const userResult = await db.execute({
+      sql: `SELECT id, email FROM users WHERE id = ?`,
+      args: ["fresh-user"],
+    });
+    const syncStateResult = await db.execute({
+      sql: `SELECT value FROM sync_state WHERE user_id = ? AND key = ?`,
+      args: ["fresh-user", "__readiness_probe"],
+    });
+
+    assert.equal(userResult.rows.length, 1);
+    assert.equal(userResult.rows[0].email, "fresh@example.com");
+    assert.equal(syncStateResult.rows.length, 1);
+  } finally {
+    db.close();
+    try {
+      fs.rmSync(dbPath, { force: true });
+    } catch {}
+    try {
+      fs.rmSync(`${dbPath}-shm`, { force: true });
+    } catch {}
+    try {
+      fs.rmSync(`${dbPath}-wal`, { force: true });
+    } catch {}
+  }
+});
+
+test("schema bootstrap relaxes legacy users constraints for Firebase auth", async () => {
+  const dbPath = path.join(
+    os.tmpdir(),
+    `thinknote-legacy-users-${process.pid}-${Date.now()}-${Math.random().toString(16).slice(2)}.db`,
+  );
+  const db = createClient({
+    url: `file:${dbPath.replace(/\\/g, "/")}`,
+  });
+
+  try {
+    await db.execute(`
+      CREATE TABLE users (
+        id TEXT PRIMARY KEY,
+        email TEXT UNIQUE NOT NULL,
+        password_hash TEXT NOT NULL,
+        name TEXT,
+        avatar_url TEXT,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+      )
+    `);
+    await ensureDatabaseSchema(db, silentLogger);
+
+    const columns = await db.execute("PRAGMA table_info(users)");
+    const emailColumn = columns.rows.find((row) => row.name === "email");
+    const passwordHashColumn = columns.rows.find(
+      (row) => row.name === "password_hash",
+    );
+    const indexList = await db.execute("PRAGMA index_list(users)");
+    let hasUniqueEmailIndex = false;
+    for (const index of indexList.rows) {
+      if (Number(index.unique) !== 1) {
+        continue;
+      }
+
+      const indexInfo = await db.execute(`PRAGMA index_info(${index.name})`);
+      const indexColumns = indexInfo.rows.map((row) => row.name);
+      hasUniqueEmailIndex =
+        hasUniqueEmailIndex ||
+        (indexColumns.length === 1 && indexColumns[0] === "email");
+    }
+
+    assert.equal(Number(emailColumn.notnull), 0);
+    assert.equal(Number(passwordHashColumn.notnull), 0);
+    assert.equal(hasUniqueEmailIndex, false);
+
+    const authMiddleware = buildRequireFirebaseAuth({
+      verifyIdToken: async () => ({
+        uid: "firebase-user",
+        email: "firebase@example.com",
+        name: "Firebase User",
+        picture: null,
+      }),
+      database: db,
+      logger: silentLogger,
+    });
+    const app = createApp({
+      authMiddleware,
+      logger: silentLogger,
+      syncRouter: createSyncRouter(db),
+      config: {
+        isProduction: false,
+        corsAllowNoOrigin: true,
+      },
+    });
+
+    const response = await request(app)
+      .get("/sync/readiness")
+      .set("Authorization", "Bearer valid-token");
+
+    assert.equal(response.status, 200);
+    assert.equal(response.body.success, true);
+  } finally {
+    db.close();
+    try {
+      fs.rmSync(dbPath, { force: true });
+    } catch {}
+    try {
+      fs.rmSync(`${dbPath}-shm`, { force: true });
+    } catch {}
+    try {
+      fs.rmSync(`${dbPath}-wal`, { force: true });
+    } catch {}
   }
 });
 

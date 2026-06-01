@@ -793,3 +793,32 @@ Still requiring runtime verification:
   schema, and correct `CORS_ALLOWED_ORIGINS` for any Flutter web origin.
 - Flutter wrapper-based tests could not be run in this session because
   `flutter.bat` hung even on `--version`; the direct Dart analyzer path worked.
+
+## 18. Implementation Progress - June 1, 2026 Sync Readiness 503 Fix
+
+Completed a backend remediation for the signed-in `/sync/readiness` 503 shown
+by the app:
+
+- Backend startup now applies the idempotent SQL schema before serving requests.
+- Startup also migrates the legacy `users` table shape that required
+  `email TEXT UNIQUE NOT NULL` and `password_hash TEXT NOT NULL`, which could
+  make Firebase-authenticated account persistence fail with 503 before sync
+  push/pull ran.
+- Added route regression coverage proving an empty database can bootstrap,
+  persist the authenticated Firebase user, and pass `GET /sync/readiness`.
+- Added legacy-schema regression coverage proving the old `users` constraints
+  are relaxed and Firebase auth can reach sync readiness.
+
+Verification completed:
+
+- `npm.cmd test` in `backend/` passed all 15 backend tests.
+- `git diff --check` passed without whitespace errors.
+
+Remaining runtime work:
+
+- Deploy the backend change, restart the API service, then sign in on the
+  failing device and confirm `GET /sync/readiness` returns 200 with the same
+  Firebase account.
+- If a 503 remains, use the displayed `x-request-id` to inspect the backend log
+  because the code path should now distinguish schema/bootstrap failure from
+  Firebase Admin credentials or Turso connectivity failure.
