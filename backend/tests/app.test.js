@@ -317,6 +317,59 @@ test("authenticated profile persistence retries without email when a stale email
   assert.equal(profileWrites[1][1], null);
 });
 
+test("authenticated profile persistence falls back for legacy users tables without avatar_url", async () => {
+  const profileWrites = [];
+  const authMiddleware = buildRequireFirebaseAuth({
+    verifyIdToken: async () => ({
+      uid: "legacy-user",
+      email: "legacy@example.com",
+      name: "Legacy User",
+      picture: "https://example.com/avatar.png",
+    }),
+    database: {
+      async execute(statement) {
+        profileWrites.push(statement.sql);
+        if (statement.sql.includes("avatar_url")) {
+          throw new Error("table users has no column named avatar_url");
+        }
+
+        return { rows: [] };
+      },
+    },
+    logger: silentLogger,
+  });
+  const accountRouter = Router();
+  accountRouter.get("/me", (req, res) => {
+    res.json({
+      success: true,
+      data: {
+        id: req.user_id,
+        email: req.auth_user.email,
+      },
+      message: null,
+    });
+  });
+  const app = createApp({
+    authMiddleware,
+    accountRouter,
+    logger: silentLogger,
+    config: {
+      isProduction: false,
+      corsAllowNoOrigin: true,
+    },
+  });
+
+  const response = await request(app)
+    .get("/account/me")
+    .set("Authorization", ["Bearer", "valid-token"].join(" "));
+
+  assert.equal(response.status, 200);
+  assert.equal(response.body.data.id, "legacy-user");
+  assert.equal(profileWrites.length, 2);
+  assert.match(profileWrites[0], /avatar_url/);
+  assert.doesNotMatch(profileWrites[1], /avatar_url/);
+});
+
 test("users schema treats email as non-unique profile metadata", async () => {
   const dbPath = path.join(
     os.tmpdir(),
@@ -369,6 +422,57 @@ test("users schema treats email as non-unique profile metadata", async () => {
       fs.rmSync(`${dbPath}-wal`, { force: true });
     } catch {}
   }
+});
+
+test("GET /account/me falls back when a legacy users table omits avatar_url", async () => {
+  const statements = [];
+  const accountRouter = createAccountRouter({
+    database: {
+      async execute(statement) {
+        statements.push(statement.sql);
+        if (
+          statement.sql.includes("avatar_url") &&
+          !statement.sql.includes("NULL AS avatar_url")
+        ) {
+          throw new Error("no such column: avatar_url");
+        }
+
+        return {
+          rows: [
+            {
+              id: "test-user",
+              email: "legacy@example.com",
+              name: "Legacy User",
+              avatar_url: null,
+              created_at: syncTestTimestamp,
+              updated_at: syncTestTimestamp,
+            },
+          ],
+        };
+      },
+    },
+    logger: silentLogger,
+  });
+  const app = createApp({
+    authMiddleware: allowAuthenticatedRequest,
+    accountRouter,
+    logger: silentLogger,
+    config: {
+      isProduction: false,
+      corsAllowNoOrigin: true,
+    },
+  });
+
+  const response = await request(app)
+    .get("/account/me")
+    .set("Authorization", ["Bearer", "valid-token"].join(" "));
+
+  assert.equal(response.status, 200);
+  assert.equal(response.body.data.id, "test-user");
+  assert.equal(response.body.data.avatar_url, null);
+  assert.equal(statements.length, 2);
+  assert.match(statements[0], /avatar_url/);
+  assert.match(statements[1], /NULL AS avatar_url/);
 });
 
 test("POST /notes rejects a request body that exceeds the configured size", async () => {

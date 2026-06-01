@@ -25,15 +25,7 @@ export function createAccountRouter(
   router.get("/me", async (req, res) => {
     try {
       const userId = req.user_id;
-      const result = await database.execute({
-        sql: `
-          SELECT id, email, name, avatar_url, created_at, updated_at
-          FROM users
-          WHERE id = ?
-          LIMIT 1
-        `,
-        args: [userId],
-      });
+      const result = await readAccountRow(database, userId);
       const row = result.rows[0] as Record<string, unknown> | undefined;
 
       if (!row) {
@@ -110,3 +102,39 @@ export function createAccountRouter(
 const router = createAccountRouter();
 
 export default router;
+
+async function readAccountRow(database: AccountDatabaseClient, userId: string) {
+  try {
+    return await database.execute({
+      sql: `
+        SELECT id, email, name, avatar_url, created_at, updated_at
+        FROM users
+        WHERE id = ?
+        LIMIT 1
+      `,
+      args: [userId],
+    });
+  } catch (error) {
+    if (!isUsersAvatarUrlColumnError(error)) {
+      throw error;
+    }
+
+    return database.execute({
+      sql: `
+        SELECT id, email, name, NULL AS avatar_url, created_at, updated_at
+        FROM users
+        WHERE id = ?
+        LIMIT 1
+      `,
+      args: [userId],
+    });
+  }
+}
+
+function isUsersAvatarUrlColumnError(error: unknown) {
+  const message = error instanceof Error ? error.message : String(error);
+  return (
+    message.includes("table users has no column named avatar_url") ||
+    message.includes("no such column: avatar_url")
+  );
+}
