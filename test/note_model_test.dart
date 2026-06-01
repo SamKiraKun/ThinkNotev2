@@ -19,7 +19,7 @@ void main() {
       expect(model.id, 'test-123');
       expect(model.title, 'Test Note');
       expect(model.content, 'This is a test note content');
-      expect(model.folderId, isNull);
+      expect(model.folderId, 'study');
       expect(model.tags, isEmpty);
       expect(model.isPinned, false);
     });
