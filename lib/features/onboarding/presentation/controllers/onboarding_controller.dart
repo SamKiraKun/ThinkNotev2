@@ -131,9 +131,10 @@ final appStartupSnapshotProvider =
     try {
       await ref.read(authenticatedAccountProvider.future);
       startupNotice.state = null;
-    } on ApiException catch (error, stackTrace) {
+    } on ApiException catch (error) {
       if (error.statusCode == 401) {
-        startupNotice.state = 'Your session could not be verified. Sign in again.';
+        startupNotice.state =
+            'Your session could not be verified. Sign in again.';
         await ref.read(authRepositoryProvider).signOut();
         return AppStartupSnapshot(
           onboardingProfile: onboardingProfile,
@@ -141,14 +142,7 @@ final appStartupSnapshotProvider =
         );
       }
 
-      startupNotice.state = null;
-      Error.throwWithStackTrace(
-        ApiException(
-          _describeStartupFailure(error),
-          statusCode: error.statusCode,
-        ),
-        stackTrace,
-      );
+      startupNotice.state = _describeRecoverableStartupNotice(error);
     }
   }
 
@@ -158,19 +152,15 @@ final appStartupSnapshotProvider =
   );
 });
 
-String _describeStartupFailure(ApiException error) {
-  if (error.statusCode == 401) {
-    return 'Your session could not be verified. Sign in again.';
-  }
-
+String _describeRecoverableStartupNotice(ApiException error) {
   final message = error.message.trim();
+  if (message == 'Account persistence is unavailable') {
+    return 'Signed in, but the server could not restore your account profile. ThinkNote will keep working locally and retry secure sync later.';
+  }
+
   if (message.isNotEmpty) {
-    return message;
+    return 'Signed in, but the server could not finish loading your account. ThinkNote will keep working locally while backend features retry.';
   }
 
-  if (error.statusCode != null && error.statusCode! >= 500) {
-    return 'The ThinkNote backend is temporarily unavailable. Please try again in a few minutes.';
-  }
-
-  return 'The request to the ThinkNote backend could not be completed.';
+  return 'Signed in, but startup could not finish loading backend account data. ThinkNote will keep working locally while backend features retry.';
 }

@@ -62,7 +62,7 @@ void main() {
     );
   });
 
-  test('non-auth backend bootstrap failures surface a launch error without signing out',
+  test('non-auth backend bootstrap failures keep the signed-in app usable',
       () async {
     final authRepository = _FakeAuthRepository();
     final container = ProviderContainer(
@@ -84,21 +84,47 @@ void main() {
     );
     addTearDown(container.dispose);
 
-    await expectLater(
-      () => container.read(appStartupSnapshotProvider.future),
-      throwsA(
-        isA<ApiException>()
-            .having((error) => error.statusCode, 'statusCode', 503)
-            .having(
-              (error) => error.message,
-              'message',
-              'Service unavailable',
-            ),
-      ),
-    );
+    final snapshot = await container.read(appStartupSnapshotProvider.future);
 
+    expect(snapshot.requiresAuthentication, isFalse);
     expect(authRepository.signOutCalls, 0);
-    expect(container.read(authStartupNoticeProvider), isNull);
+    expect(
+      container.read(authStartupNoticeProvider),
+      contains('working locally'),
+    );
+  });
+
+  test(
+      'account persistence bootstrap failures keep the signed-in app usable with a precise notice',
+      () async {
+    final authRepository = _FakeAuthRepository();
+    final container = ProviderContainer(
+      overrides: [
+        onboardingControllerProvider.overrideWith(
+          () => _TestOnboardingController(_completedProfile),
+        ),
+        currentAuthSessionProvider.overrideWithValue(
+          const AuthSession(uid: 'user-1', email: 'sam@example.com'),
+        ),
+        authRepositoryProvider.overrideWithValue(authRepository),
+        authenticatedAccountProvider.overrideWith(
+          (ref) async => throw const ApiException(
+            'Account persistence is unavailable',
+            statusCode: 503,
+          ),
+        ),
+      ],
+    );
+    addTearDown(container.dispose);
+
+    final snapshot = await container.read(appStartupSnapshotProvider.future);
+
+    expect(snapshot.requiresAuthentication, isFalse);
+    expect(authRepository.signOutCalls, 0);
+    expect(
+      container.read(authStartupNoticeProvider),
+      contains('restore your account profile'),
+    );
   });
 }
 
