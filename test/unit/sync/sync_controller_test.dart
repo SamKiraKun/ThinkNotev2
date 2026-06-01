@@ -57,7 +57,7 @@ void main() {
       final authRepository = _FakeAuthRepository();
       final apiClient = AuthenticatedApiClient(
         MockClient((request) async {
-          if (request.url.path == '/health') {
+          if (request.url.path == '/sync/readiness') {
             return _healthResponse();
           }
 
@@ -158,7 +158,7 @@ void main() {
       final authRepository = _FakeAuthRepository();
       final apiClient = AuthenticatedApiClient(
         MockClient((request) async {
-          if (request.url.path == '/health') {
+          if (request.url.path == '/sync/readiness') {
             return _healthResponse();
           }
 
@@ -256,7 +256,7 @@ void main() {
       final authRepository = _FakeAuthRepository();
       final apiClient = AuthenticatedApiClient(
         MockClient((request) async {
-          if (request.url.path == '/health') {
+          if (request.url.path == '/sync/readiness') {
             return _healthResponse();
           }
 
@@ -350,7 +350,7 @@ void main() {
       final authRepository = _FakeAuthRepository();
       final apiClient = AuthenticatedApiClient(
         MockClient((request) async {
-          if (request.url.path == '/health') {
+          if (request.url.path == '/sync/readiness') {
             return _healthResponse();
           }
 
@@ -406,6 +406,14 @@ void main() {
         container.read(syncControllerProvider).lastErrorType,
         SyncErrorType.api,
       );
+      expect(
+        container.read(syncControllerProvider).lastDiagnostic,
+        contains('GET /sync/pull'),
+      );
+      expect(
+        container.read(syncControllerProvider).lastDiagnostic,
+        contains('status=503'),
+      );
     });
   });
 }
@@ -414,8 +422,11 @@ http.Response _healthResponse() {
   return http.Response(
     jsonEncode(
       <String, dynamic>{
-        'status': 'ok',
-        'message': 'Backend is running!',
+        'success': true,
+        'data': <String, dynamic>{
+          'status': 'ready',
+          'server_time': '2026-06-01T00:00:00.000Z',
+        },
       },
     ),
     200,

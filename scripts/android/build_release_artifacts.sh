@@ -21,7 +21,6 @@ case "${APP_FLAVOR}" in
 esac
 
 : "${ENABLE_ANALYTICS:=false}"
-: "${ENABLE_EXPERIMENTAL_SYNC:=true}"
 : "${API_URL:=https://api.unicef.edu.eu.org}"
 : "${FIREBASE_ANDROID_APP_ID:=${FIREBASE_APP_ID:-}}"
 
@@ -52,7 +51,6 @@ build_args=(
   "--build-number=${CIRCLE_BUILD_NUM:-1}"
   "--dart-define=APP_FLAVOR=${APP_FLAVOR}"
   "--dart-define=ENABLE_ANALYTICS=${ENABLE_ANALYTICS}"
-  "--dart-define=ENABLE_EXPERIMENTAL_SYNC=${ENABLE_EXPERIMENTAL_SYNC}"
 )
 
 append_optional_define() {
@@ -106,12 +104,12 @@ if command -v sha256sum >/dev/null 2>&1; then
     > build/release-metadata/artifact-sha256.txt
 fi
 
-printf '{\n  "git_sha": "%s",\n  "circle_build_num": "%s",\n  "app_flavor": "%s",\n  "enable_analytics": "%s",\n  "enable_experimental_sync": "%s",\n  "target_sdk": "%s",\n  "play_artifact": "%s",\n  "qa_artifact": "%s",\n  "r8_mapping": "%s",\n  "api_url": "%s"\n}\n' \
+printf '{\n  "git_sha": "%s",\n  "circle_build_num": "%s",\n  "app_flavor": "%s",\n  "enable_analytics": "%s",\n  "sync_mode": "%s",\n  "target_sdk": "%s",\n  "play_artifact": "%s",\n  "qa_artifact": "%s",\n  "r8_mapping": "%s",\n  "api_url": "%s"\n}\n' \
   "${CIRCLE_SHA1:-$(git rev-parse HEAD)}" \
   "${CIRCLE_BUILD_NUM:-1}" \
   "${APP_FLAVOR}" \
   "${ENABLE_ANALYTICS}" \
-  "${ENABLE_EXPERIMENTAL_SYNC}" \
+  "enabled" \
   "${target_sdk:-unknown}" \
   "build/app/outputs/bundle/release/app-release.aab" \
   "build/app/outputs/flutter-apk/app-release.apk" \

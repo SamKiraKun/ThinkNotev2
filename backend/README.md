@@ -22,6 +22,7 @@ npm test
 
 ## API Endpoints
 
+- `GET /health`: Public liveness check
 - `GET /account/me`: Resolve the authenticated account profile
 - `DELETE /account`: Delete the authenticated account and user data
 - `GET /notes`: List all notes
@@ -34,10 +35,14 @@ npm test
 - `PATCH /notes/:id/archive`: Archive a note
 - `PATCH /notes/:id/unarchive`: Unarchive a note
 - `PATCH /notes/:id/restore`: Restore a trashed note
+- `GET /sync/readiness`: Verify authenticated sync schema and write readiness
 - `GET /sync/pull?since=...`: Pull authenticated user changes
 - `POST /sync/push`: Push local note mutations
 
 All `/account`, `/notes`, and `/sync` endpoints require `Authorization: Bearer <Firebase ID token>`.
+The Flutter sync controller uses `GET /sync/readiness` before push/pull, so
+production deployments must have the full schema applied and account
+persistence available before the app will drain the local queue.
 
 Authenticated endpoints return `401` with a structured body when the bearer token is missing or invalid:
 

@@ -43,6 +43,7 @@ class SyncState {
     this.lastSyncedAt,
     this.lastError,
     this.lastErrorType,
+    this.lastDiagnostic,
     this.nextRetryAt,
     this.failureCount = 0,
   });
@@ -51,6 +52,7 @@ class SyncState {
   final DateTime? lastSyncedAt;
   final String? lastError;
   final SyncErrorType? lastErrorType;
+  final String? lastDiagnostic;
   final DateTime? nextRetryAt;
   final int failureCount;
 
@@ -59,6 +61,7 @@ class SyncState {
     Object? lastSyncedAt = _syncSentinel,
     Object? lastError = _syncSentinel,
     Object? lastErrorType = _syncSentinel,
+    Object? lastDiagnostic = _syncSentinel,
     Object? nextRetryAt = _syncSentinel,
     int? failureCount,
   }) {
@@ -73,6 +76,9 @@ class SyncState {
       lastErrorType: identical(lastErrorType, _syncSentinel)
           ? this.lastErrorType
           : lastErrorType as SyncErrorType?,
+      lastDiagnostic: identical(lastDiagnostic, _syncSentinel)
+          ? this.lastDiagnostic
+          : lastDiagnostic as String?,
       nextRetryAt: identical(nextRetryAt, _syncSentinel)
           ? this.nextRetryAt
           : nextRetryAt as DateTime?,
@@ -175,6 +181,7 @@ class SyncController extends StateNotifier<SyncState> {
       isSyncing: true,
       lastError: null,
       lastErrorType: null,
+      lastDiagnostic: null,
       nextRetryAt: null,
     );
 
@@ -190,8 +197,8 @@ class SyncController extends StateNotifier<SyncState> {
           ? null
           : await localDataSource.readSyncState(_lastServerSyncKey);
 
-      debugPrint('[SyncController] Checking backend health before sync.');
-      await apiClient.verifyBackendHealth();
+      debugPrint('[SyncController] Checking sync readiness before sync.');
+      await apiClient.verifySyncReadiness();
 
       debugPrint(
         '[SyncController] Sync push started with ${pushedNoteVersions.length} dirty notes and ${pendingDeletes.length} queued deletes.',
@@ -241,6 +248,7 @@ class SyncController extends StateNotifier<SyncState> {
         lastSyncedAt: payload.serverTime,
         lastError: null,
         lastErrorType: null,
+        lastDiagnostic: null,
         nextRetryAt: null,
         failureCount: 0,
       );
@@ -279,6 +287,7 @@ class SyncController extends StateNotifier<SyncState> {
         isSyncing: false,
         lastError: failure.message,
         lastErrorType: failure.type,
+        lastDiagnostic: failure.diagnostic,
         nextRetryAt: retryAt,
         failureCount: failureCount,
       );
@@ -309,9 +318,7 @@ class SyncController extends StateNotifier<SyncState> {
     ];
     final fallbackFolderId =
         defaultFolders.isEmpty ? null : defaultFolders.first.id;
-    final availableFolderIds = mergedFolders
-        .map((folder) => folder.id)
-        .toSet();
+    final availableFolderIds = mergedFolders.map((folder) => folder.id).toSet();
 
     NoteModel normalizePulledNote(NoteModel note) {
       if (fallbackFolderId == null) {
@@ -343,8 +350,7 @@ class SyncController extends StateNotifier<SyncState> {
           localNote.syncStatus == NoteSyncStatus.synced ||
           !localNote.updatedAt.isAfter(normalizedRemoteNote.updatedAt)) {
         mergedNotes[normalizedRemoteNote.id] = normalizedRemoteNote.copyWith(
-          remoteId:
-              normalizedRemoteNote.remoteId ?? normalizedRemoteNote.id,
+          remoteId: normalizedRemoteNote.remoteId ?? normalizedRemoteNote.id,
           syncStatus: NoteSyncStatus.synced,
           lastSyncedAt: payload.serverTime,
         );
@@ -393,13 +399,29 @@ String describeSyncErrorType(SyncErrorType? type) {
   };
 }
 
+String formatSyncFailureMessage(SyncState state) {
+  final error = state.lastError;
+  if (error == null) {
+    return 'Sync complete.';
+  }
+
+  final summary = '${describeSyncErrorType(state.lastErrorType)}: $error';
+  final diagnostic = state.lastDiagnostic;
+  if (diagnostic == null || diagnostic.isEmpty) {
+    return summary;
+  }
+
+  return '$summary\nDiagnostics: $diagnostic';
+}
+
 _SyncFailure _classifySyncFailure(Object error) {
   if (error is ApiException) {
     if (error.kind == ApiFailureKind.authentication) {
-      return const _SyncFailure(
+      return _SyncFailure(
         type: SyncErrorType.authentication,
         message:
             'Your session expired. Sign in again to resume sync. Local notes remain on this device.',
+        diagnostic: error.diagnosticSummary,
       );
     }
 
@@ -413,6 +435,7 @@ _SyncFailure _classifySyncFailure(Object error) {
       message: error.message.isEmpty
           ? 'The server could not complete sync. Your changes stay queued and will retry automatically.'
           : error.message,
+      diagnostic: error.diagnosticSummary,
     );
   }
 
@@ -433,30 +456,35 @@ _SyncFailure _classifySyncFailure(Object error) {
 
 _SyncFailure? _networkFailureForApiError(ApiException error) {
   return switch (error.kind) {
-    ApiFailureKind.noInternet => const _SyncFailure(
+    ApiFailureKind.noInternet => _SyncFailure(
         type: SyncErrorType.noInternet,
         message:
             'No internet connection is available. Your changes stay queued and will retry automatically.',
+        diagnostic: error.diagnosticSummary,
       ),
-    ApiFailureKind.dns => const _SyncFailure(
+    ApiFailureKind.dns => _SyncFailure(
         type: SyncErrorType.dns,
         message:
             'ThinkNote could not resolve the backend address. Your changes stay queued and will retry automatically.',
+        diagnostic: error.diagnosticSummary,
       ),
-    ApiFailureKind.tls => const _SyncFailure(
+    ApiFailureKind.tls => _SyncFailure(
         type: SyncErrorType.tls,
         message:
             'ThinkNote could not establish a secure HTTPS connection to the backend. Your changes stay queued and will retry automatically.',
+        diagnostic: error.diagnosticSummary,
       ),
-    ApiFailureKind.timeout => const _SyncFailure(
+    ApiFailureKind.timeout => _SyncFailure(
         type: SyncErrorType.timeout,
         message:
             'The backend took too long to respond. Your changes stay queued and will retry automatically.',
+        diagnostic: error.diagnosticSummary,
       ),
-    ApiFailureKind.serverUnreachable => const _SyncFailure(
+    ApiFailureKind.serverUnreachable => _SyncFailure(
         type: SyncErrorType.serverUnreachable,
         message:
             'ThinkNote could not reach the server. Your changes stay queued and will retry automatically.',
+        diagnostic: error.diagnosticSummary,
       ),
     _ => null,
   };
@@ -498,10 +526,12 @@ class _SyncFailure {
   const _SyncFailure({
     required this.type,
     required this.message,
+    this.diagnostic,
   });
 
   final SyncErrorType type;
   final String message;
+  final String? diagnostic;
 }
 
 Map<String, DateTime> _pushedNoteVersions(NotesStoreModel localStore) {
@@ -633,7 +663,7 @@ Map<String, dynamic> _buildPushBody(
   return <String, dynamic>{
     'notes': localStore.notes
         .where((note) => note.syncStatus != NoteSyncStatus.synced)
-      .map((note) => _noteToPushJson(note, localOnlyFolderIds))
+        .map((note) => _noteToPushJson(note, localOnlyFolderIds))
         .toList(growable: false),
     'folders': localStore.folders
         .where((folder) => !folder.isSystem)
@@ -683,9 +713,8 @@ Map<String, dynamic> _noteToPushJson(
     'id': note.remoteId ?? note.id,
     'title': note.title,
     'content': note.content,
-    'folder_id': localOnlyFolderIds.contains(note.folderId)
-        ? null
-        : note.folderId,
+    'folder_id':
+        localOnlyFolderIds.contains(note.folderId) ? null : note.folderId,
     'tags': note.tags,
     'is_pinned': note.isPinned,
     'is_favorite': note.isFavorite,

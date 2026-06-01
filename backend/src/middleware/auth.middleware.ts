@@ -76,6 +76,9 @@ export function buildRequireFirebaseAuth(
       });
     } catch (error) {
       logger.error("Failed to sync authenticated user profile:", error);
+      return res
+        .status(503)
+        .json(errorResponse("Account persistence is unavailable"));
     }
 
     return next();

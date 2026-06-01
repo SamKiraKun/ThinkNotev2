@@ -28,8 +28,55 @@ type SyncDatabaseClient = Pick<typeof db, "execute" | "transaction">;
 type SyncSqlExecutor = Pick<SyncDatabaseClient, "execute">;
 type SyncTransaction = Awaited<ReturnType<SyncDatabaseClient["transaction"]>>;
 
+const requiredSyncTables = [
+  "users",
+  "folders",
+  "tags",
+  "notes",
+  "note_tags",
+  "deleted_entities",
+  "sync_state",
+];
+
 export function createSyncRouter(database: SyncDatabaseClient = db) {
   const router = Router();
+
+  router.get("/readiness", async (req, res) => {
+    try {
+      const now = new Date().toISOString();
+      await assertRequiredSyncTables(database);
+
+      const userResult = await database.execute({
+        sql: `SELECT id FROM users WHERE id = ? LIMIT 1`,
+        args: [req.user_id],
+      });
+      if (userResult.rows.length !== 1) {
+        throw new Error("Authenticated user is missing from users table");
+      }
+
+      await database.execute({
+        sql: `
+          INSERT INTO sync_state (user_id, key, value, updated_at)
+          VALUES (?, ?, ?, ?)
+          ON CONFLICT(user_id, key) DO UPDATE SET
+            value = excluded.value,
+            updated_at = excluded.updated_at
+        `,
+        args: [req.user_id, "__readiness_probe", now, now],
+      });
+
+      res.json(
+        successResponse({
+          status: "ready",
+          server_time: now,
+          tables: requiredSyncTables,
+        }),
+      );
+    } catch (error) {
+      console.error(error);
+      res.status(503).json(errorResponse("Sync backend is not ready"));
+    }
+  });
 
   router.get("/pull", async (req, res) => {
     try {
@@ -312,6 +359,28 @@ async function withWriteTransaction<T>(
     throw error;
   } finally {
     transaction.close();
+  }
+}
+
+async function assertRequiredSyncTables(database: SyncSqlExecutor) {
+  const result = await database.execute({
+    sql: `
+      SELECT name
+      FROM sqlite_master
+      WHERE type = 'table'
+        AND name IN (${requiredSyncTables.map(() => "?").join(", ")})
+    `,
+    args: requiredSyncTables,
+  });
+  const presentTables = new Set(result.rows.map((row) => String(row.name)));
+  const missingTables = requiredSyncTables.filter(
+    (tableName) => !presentTables.has(tableName),
+  );
+
+  if (missingTables.length > 0) {
+    throw new Error(
+      `Sync schema is missing required tables: ${missingTables.join(", ")}`,
+    );
   }
 }
 

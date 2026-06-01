@@ -8,8 +8,8 @@ This checklist covers the remaining release tasks that cannot be completed purel
 
 - Run CircleCI `build_android` with the real production signing secrets.
 - Use the same scripted release command locally when you need a comparable production-candidate artifact:
-  - `APP_FLAVOR=production ENABLE_EXPERIMENTAL_SYNC=true API_URL=https://api.unicef.edu.eu.org FIREBASE_API_KEY=... FIREBASE_APP_ID=... FIREBASE_MESSAGING_SENDER_ID=... FIREBASE_PROJECT_ID=... bash scripts/android/build_release_artifacts.sh`
-- Windows local equivalent: `set "APP_FLAVOR=production" && set "ENABLE_EXPERIMENTAL_SYNC=true" && set "API_URL=https://api.unicef.edu.eu.org" && set "FIREBASE_API_KEY=..." && set "FIREBASE_APP_ID=..." && set "FIREBASE_MESSAGING_SENDER_ID=..." && set "FIREBASE_PROJECT_ID=..." && scripts\android\build_release_artifacts.cmd`
+  - `APP_FLAVOR=production API_URL=https://api.unicef.edu.eu.org FIREBASE_API_KEY=... FIREBASE_APP_ID=... FIREBASE_MESSAGING_SENDER_ID=... FIREBASE_PROJECT_ID=... bash scripts/android/build_release_artifacts.sh`
+- Windows local equivalent: `set "APP_FLAVOR=production" && set "API_URL=https://api.unicef.edu.eu.org" && set "FIREBASE_API_KEY=..." && set "FIREBASE_APP_ID=..." && set "FIREBASE_MESSAGING_SENDER_ID=..." && set "FIREBASE_PROJECT_ID=..." && scripts\android\build_release_artifacts.cmd`
 - Verify locally produced artifacts with `bash scripts/android/verify_release_artifacts.sh` or `scripts\android\verify_release_artifacts.cmd`.
 - Confirm the workflow artifacts include:
   - signed `app-release.aab`

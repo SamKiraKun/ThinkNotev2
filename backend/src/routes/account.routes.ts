@@ -4,15 +4,28 @@ import { firebaseAuth } from "../auth/firebase_admin";
 import { db } from "../db/turso_client";
 import { errorResponse, successResponse } from "../utils/api_response";
 
-const router = Router();
+type AccountDatabaseClient = Pick<typeof db, "execute">;
 
-router.get("/me", async (req, res) => {
-  try {
-    const userId = req.user_id;
-    let row: Record<string, unknown> | undefined;
+type AccountRouterDependencies = {
+  database?: AccountDatabaseClient;
+  deleteFirebaseUser?: (userId: string) => Promise<void>;
+  logger?: Pick<Console, "error">;
+};
 
+export function createAccountRouter(
+  dependencies: AccountRouterDependencies = {},
+) {
+  const router = Router();
+  const database = dependencies.database ?? db;
+  const deleteFirebaseUser =
+    dependencies.deleteFirebaseUser ??
+    ((userId: string) => firebaseAuth().deleteUser(userId));
+  const logger = dependencies.logger ?? console;
+
+  router.get("/me", async (req, res) => {
     try {
-      const result = await db.execute({
+      const userId = req.user_id;
+      const result = await database.execute({
         sql: `
           SELECT id, email, name, avatar_url, created_at, updated_at
           FROM users
@@ -21,85 +34,79 @@ router.get("/me", async (req, res) => {
         `,
         args: [userId],
       });
-      row = result.rows[0] as Record<string, unknown> | undefined;
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      if (!canFallbackToAuthProfile(message)) {
-        throw error;
+      const row = result.rows[0] as Record<string, unknown> | undefined;
+
+      if (!row) {
+        logger.error(
+          `Authenticated account ${userId} was not present in account persistence.`,
+        );
+        res
+          .status(503)
+          .json(errorResponse("Account persistence is unavailable"));
+        return;
       }
-      console.error("Failed to read account profile cache:", error);
+
+      const user = {
+        id: userId,
+        email: (row.email as string | null | undefined) ?? null,
+        name: (row.name as string | null | undefined) ?? null,
+        avatar_url: (row.avatar_url as string | null | undefined) ?? null,
+        created_at: (row.created_at as string | null | undefined) ?? null,
+        updated_at: (row.updated_at as string | null | undefined) ?? null,
+      };
+
+      res.json(successResponse(user));
+    } catch (error) {
+      logger.error(error);
+      res.status(503).json(errorResponse("Account persistence is unavailable"));
     }
+  });
 
-    const user = {
-      id: userId,
-      email: (row?.email as string | null | undefined) ?? req.auth_user?.email ?? null,
-      name: (row?.name as string | null | undefined) ?? req.auth_user?.name ?? null,
-      avatar_url:
-        (row?.avatar_url as string | null | undefined) ??
-        req.auth_user?.avatarUrl ??
-        null,
-      created_at: (row?.created_at as string | null | undefined) ?? null,
-      updated_at: (row?.updated_at as string | null | undefined) ?? null,
-    };
+  router.delete("/", async (req, res) => {
+    try {
+      const userId = req.user_id;
 
-    res.json(successResponse(user));
-  } catch (error) {
-    console.error(error);
-    res.status(500).json(errorResponse("Failed to load account profile"));
-  }
-});
+      await database.execute({
+        sql: `DELETE FROM note_tags WHERE note_id IN (SELECT id FROM notes WHERE user_id = ?)`,
+        args: [userId],
+      });
+      await database.execute({
+        sql: `DELETE FROM notes WHERE user_id = ?`,
+        args: [userId],
+      });
+      await database.execute({
+        sql: `DELETE FROM folders WHERE user_id = ?`,
+        args: [userId],
+      });
+      await database.execute({
+        sql: `DELETE FROM tags WHERE user_id = ?`,
+        args: [userId],
+      });
+      await database.execute({
+        sql: `DELETE FROM sync_state WHERE user_id = ?`,
+        args: [userId],
+      });
+      await database.execute({
+        sql: `DELETE FROM deleted_entities WHERE user_id = ?`,
+        args: [userId],
+      });
+      await database.execute({
+        sql: `DELETE FROM users WHERE id = ?`,
+        args: [userId],
+      });
 
-router.delete("/", async (req, res) => {
-  try {
-    const userId = req.user_id;
+      await deleteFirebaseUser(userId);
 
-    await db.execute({
-      sql: `DELETE FROM note_tags WHERE note_id IN (SELECT id FROM notes WHERE user_id = ?)`,
-      args: [userId],
-    });
-    await db.execute({
-      sql: `DELETE FROM notes WHERE user_id = ?`,
-      args: [userId],
-    });
-    await db.execute({
-      sql: `DELETE FROM folders WHERE user_id = ?`,
-      args: [userId],
-    });
-    await db.execute({
-      sql: `DELETE FROM tags WHERE user_id = ?`,
-      args: [userId],
-    });
-    await db.execute({
-      sql: `DELETE FROM sync_state WHERE user_id = ?`,
-      args: [userId],
-    });
-    await db.execute({
-      sql: `DELETE FROM deleted_entities WHERE user_id = ?`,
-      args: [userId],
-    });
-    await db.execute({
-      sql: `DELETE FROM users WHERE id = ?`,
-      args: [userId],
-    });
+      res.json(successResponse(null, "Account deleted"));
+    } catch (error) {
+      logger.error(error);
+      res.status(500).json(errorResponse("Failed to delete account"));
+    }
+  });
 
-    await firebaseAuth().deleteUser(userId);
+  return router;
+}
 
-    res.json(successResponse(null, "Account deleted"));
-  } catch (error) {
-    console.error(error);
-    res.status(500).json(errorResponse("Failed to delete account"));
-  }
-});
+const router = createAccountRouter();
 
 export default router;
-
-function canFallbackToAuthProfile(message: string) {
-  const normalized = message.toLowerCase();
-  return (
-    normalized.includes("no such table: users") ||
-    normalized.includes("fetch failed") ||
-    normalized.includes("database unavailable") ||
-    normalized.includes("connection") ||
-    normalized.includes("timeout")
-  );
-}

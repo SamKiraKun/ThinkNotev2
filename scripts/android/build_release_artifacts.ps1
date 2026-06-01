@@ -29,7 +29,6 @@ $enableAnalytics = if ([string]::IsNullOrWhiteSpace($env:ENABLE_ANALYTICS)) {
   $env:ENABLE_ANALYTICS
 }
 
-$enableExperimentalSync = 'true'
 $canonicalApiUrl = 'https://api.unicef.edu.eu.org'
 if ([string]::IsNullOrWhiteSpace($env:API_URL)) {
   $env:API_URL = $canonicalApiUrl
@@ -74,7 +73,6 @@ $buildArgs = @(
   "--build-number=$buildNumber",
   "--dart-define=APP_FLAVOR=$appFlavor",
   "--dart-define=ENABLE_ANALYTICS=$enableAnalytics",
-  "--dart-define=ENABLE_EXPERIMENTAL_SYNC=$enableExperimentalSync",
   "--dart-define=FIREBASE_ANDROID_APP_ID=$firebaseAndroidAppId"
 )
 
@@ -162,7 +160,7 @@ $manifest = [ordered]@{
   circle_build_num = $buildNumber
   app_flavor = $appFlavor
   enable_analytics = $enableAnalytics
-  enable_experimental_sync = $enableExperimentalSync
+  sync_mode = 'enabled'
   api_url = $normalizedApiUrl
   target_sdk = $targetSdk
   play_artifact = 'build/app/outputs/bundle/release/app-release.aab'

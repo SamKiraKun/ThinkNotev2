@@ -47,7 +47,9 @@ These are implementation notes for completing Play Console. Final answers must b
 
 - `flutter analyze` passes.
 - `flutter test` passes.
-- Signed AAB is built by CircleCI with `ENABLE_EXPERIMENTAL_SYNC=false`.
+- Historical local-only candidate AAB was built with sync disabled; the current
+  sync-enabled release path does not use an `ENABLE_EXPERIMENTAL_SYNC` release
+  toggle.
 - Release metadata includes git SHA, lockfiles, build number, Flutter/Gradle versions, and R8 mapping.
 - Merged release manifest confirms no unexpected dangerous permissions.
 - Play screenshots and listing do not show cloud sync, account, lock/encryption, reminders, or clipboard backup claims.

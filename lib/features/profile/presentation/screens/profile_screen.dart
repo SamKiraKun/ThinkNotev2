@@ -381,9 +381,7 @@ class ProfileScreen extends ConsumerWidget {
           forceFullPull: true,
         );
     final syncState = ref.read(syncControllerProvider);
-    final message = syncState.lastError == null
-        ? 'Sync complete.'
-        : '${describeSyncErrorType(syncState.lastErrorType)}: ${syncState.lastError}';
+    final message = formatSyncFailureMessage(syncState);
     if (!context.mounted) {
       return;
     }

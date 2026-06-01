@@ -9,6 +9,7 @@ const request = require("supertest");
 
 const { createApp } = require("../dist/app");
 const { createSyncRouter } = require("../dist/routes/sync.routes");
+const { createAccountRouter } = require("../dist/routes/account.routes");
 const {
   buildRequireFirebaseAuth,
 } = require("../dist/middleware/auth.middleware");
@@ -189,8 +190,28 @@ test("POST /notes enforces the per-user rate limit", async () => {
 });
 
 test("GET /account/me returns the authenticated account", async () => {
+  const accountRouter = createAccountRouter({
+    database: {
+      async execute() {
+        return {
+          rows: [
+            {
+              id: "test-user",
+              email: "test@example.com",
+              name: "Test User",
+              avatar_url: null,
+              created_at: syncTestTimestamp,
+              updated_at: syncTestTimestamp,
+            },
+          ],
+        };
+      },
+    },
+    logger: silentLogger,
+  });
   const app = createApp({
     authMiddleware: allowAuthenticatedRequest,
+    accountRouter,
     logger: silentLogger,
     config: {
       isProduction: false,
@@ -206,7 +227,7 @@ test("GET /account/me returns the authenticated account", async () => {
   assert.equal(response.body.data.email, "test@example.com");
 });
 
-test("GET /account/me still succeeds when syncing the authenticated user record fails", async () => {
+test("GET /account/me fails when syncing the authenticated user record fails", async () => {
   const authMiddleware = buildRequireFirebaseAuth({
     verifyIdToken: async () => ({
       uid: "synced-user",
@@ -235,10 +256,9 @@ test("GET /account/me still succeeds when syncing the authenticated user record 
     .get("/account/me")
     .set("Authorization", "Bearer valid-token");
 
-  assert.equal(response.status, 200);
-  assert.equal(response.body.success, true);
-  assert.equal(response.body.data.id, "synced-user");
-  assert.equal(response.body.data.email, "sync@example.com");
+  assert.equal(response.status, 503);
+  assert.equal(response.body.success, false);
+  assert.equal(response.body.message, "Account persistence is unavailable");
 });
 
 test("POST /notes rejects a request body that exceeds the configured size", async () => {
@@ -317,6 +337,35 @@ test("POST /sync/push normalizes local-only default folder ids to null", async (
     assert.equal(notesResult.rows.length, 1);
     assert.equal(notesResult.rows[0].folder_id, null);
     assert.equal(Number(foldersResult.rows[0].count), 0);
+  } finally {
+    await harness.cleanup();
+  }
+});
+
+test("GET /sync/readiness verifies schema and authenticated write readiness", async () => {
+  const harness = await createSyncTestHarness();
+
+  try {
+    const response = await request(harness.app).get("/sync/readiness");
+
+    assert.equal(response.status, 200);
+    assert.equal(response.body.success, true);
+    assert.equal(response.body.data.status, "ready");
+    assert.deepEqual(response.body.data.tables, [
+      "users",
+      "folders",
+      "tags",
+      "notes",
+      "note_tags",
+      "deleted_entities",
+      "sync_state",
+    ]);
+
+    const stateResult = await harness.db.execute({
+      sql: `SELECT value FROM sync_state WHERE user_id = ? AND key = ?`,
+      args: ["test-user", "__readiness_probe"],
+    });
+    assert.equal(stateResult.rows.length, 1);
   } finally {
     await harness.cleanup();
   }

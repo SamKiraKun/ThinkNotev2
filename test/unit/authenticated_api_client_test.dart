@@ -68,7 +68,10 @@ void main() {
         return http.Response(
           '{"success":false,"message":""}',
           404,
-          headers: const {'content-type': 'application/json'},
+          headers: const {
+            'content-type': 'application/json',
+            'x-request-id': 'req-missing-route',
+          },
         );
       }),
       _FakeAuthRepository(),
@@ -80,6 +83,12 @@ void main() {
         isA<ApiException>()
             .having((error) => error.statusCode, 'statusCode', 404)
             .having((error) => error.kind, 'kind', ApiFailureKind.notFound)
+            .having((error) => error.endpoint, 'endpoint', '/account/me')
+            .having(
+              (error) => error.requestId,
+              'requestId',
+              'req-missing-route',
+            )
             .having(
               (error) => error.message,
               'message',
@@ -89,15 +98,16 @@ void main() {
     );
   });
 
-  test('verifies the public backend health endpoint before sync', () async {
+  test('verifies the authenticated sync readiness endpoint before sync',
+      () async {
     final client = AuthenticatedApiClient(
       MockClient((request) async {
-        expect(request.url.path, '/health');
+        expect(request.url.path, '/sync/readiness');
         expect(request.headers['accept'], 'application/json');
-        expect(request.headers.containsKey('authorization'), isFalse);
+        expect(request.headers['authorization'], 'Bearer test-token');
 
         return http.Response(
-          '{"status":"ok","message":"Backend is running!"}',
+          '{"success":true,"data":{"status":"ready","server_time":"2026-06-01T00:00:00.000Z"}}',
           200,
           headers: const {'content-type': 'application/json'},
         );
@@ -105,7 +115,7 @@ void main() {
       _FakeAuthRepository(),
     );
 
-    await client.verifyBackendHealth();
+    await client.verifySyncReadiness();
   });
 }
 
