@@ -17,6 +17,13 @@ type AuthMiddlewareDependencies = {
   logger?: Pick<Console, "error">;
 };
 
+type AuthUserProfile = {
+  id: string;
+  email: string | null;
+  name: string | null;
+  avatarUrl: string | null;
+};
+
 export function buildRequireFirebaseAuth(
   dependencies: AuthMiddlewareDependencies = {},
 ) {
@@ -55,27 +62,13 @@ export function buildRequireFirebaseAuth(
     };
 
     try {
-      await database.execute({
-        sql: `
-          INSERT INTO users (id, email, name, avatar_url, created_at, updated_at)
-          VALUES (?, ?, ?, ?, ?, ?)
-          ON CONFLICT(id) DO UPDATE SET
-            email = excluded.email,
-            name = excluded.name,
-            avatar_url = excluded.avatar_url,
-            updated_at = excluded.updated_at
-        `,
-        args: [
-          req.auth_user.id,
-          req.auth_user.email,
-          req.auth_user.name,
-          req.auth_user.avatarUrl,
-          now,
-          now,
-        ],
-      });
+      await persistAuthenticatedUser(database, req.auth_user, now);
     } catch (error) {
-      logger.error("Failed to sync authenticated user profile:", error);
+      logger.error("Failed to sync authenticated user profile:", {
+        request_id: req.request_id,
+        user_id: decoded.uid,
+        error,
+      });
       return res
         .status(503)
         .json(errorResponse("Account persistence is unavailable"));
@@ -86,6 +79,62 @@ export function buildRequireFirebaseAuth(
 }
 
 export const requireFirebaseAuth = buildRequireFirebaseAuth();
+
+async function persistAuthenticatedUser(
+  database: Pick<typeof db, "execute">,
+  user: AuthUserProfile,
+  now: string,
+) {
+  try {
+    await upsertAuthenticatedUser(database, user, now, user.email);
+  } catch (error) {
+    if (!user.email || !isUsersEmailConstraintError(error)) {
+      throw error;
+    }
+
+    await upsertAuthenticatedUser(database, user, now, null);
+  }
+}
+
+async function upsertAuthenticatedUser(
+  database: Pick<typeof db, "execute">,
+  user: AuthUserProfile,
+  now: string,
+  email: string | null,
+) {
+  await database.execute({
+    sql: `
+      INSERT INTO users (id, email, name, avatar_url, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?)
+      ON CONFLICT(id) DO UPDATE SET
+        email = excluded.email,
+        name = excluded.name,
+        avatar_url = excluded.avatar_url,
+        updated_at = excluded.updated_at
+    `,
+    args: [
+      user.id,
+      email,
+      user.name,
+      user.avatarUrl,
+      now,
+      now,
+    ],
+  });
+}
+
+function isUsersEmailConstraintError(error: unknown) {
+  const message = error instanceof Error ? error.message : String(error);
+  const code =
+    typeof error === "object" && error !== null && "code" in error
+      ? String((error as { code?: unknown }).code)
+      : "";
+
+  return (
+    message.includes("UNIQUE constraint failed: users.email") ||
+    (code === "SQLITE_CONSTRAINT_UNIQUE" && message.includes("users.email"))
+  );
+}
 
 function unauthorizedResponse() {
   return {

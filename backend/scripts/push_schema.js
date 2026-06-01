@@ -28,6 +28,9 @@ async function pushSchema() {
     console.log("Schema pushed successfully!");
   } catch (error) {
     console.error("Failed to push schema:", error);
+    process.exitCode = 1;
+  } finally {
+    db.close();
   }
 }
 

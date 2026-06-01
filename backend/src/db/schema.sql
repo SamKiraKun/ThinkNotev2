@@ -1,6 +1,6 @@
 CREATE TABLE IF NOT EXISTS users (
   id TEXT PRIMARY KEY,
-  email TEXT UNIQUE,
+  email TEXT,
   password_hash TEXT,
   name TEXT,
   avatar_url TEXT,

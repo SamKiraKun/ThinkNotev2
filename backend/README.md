@@ -10,7 +10,7 @@ Node.js Backend using TursoDB (libSQL).
    or `FIREBASE_PROJECT_ID`, `FIREBASE_CLIENT_EMAIL`, and `FIREBASE_PRIVATE_KEY`.
 4. Set `CORS_ALLOWED_ORIGINS` for browser clients in deployed environments.
 5. Run `npm install`
-6. Run `npm run db:push` to initialize the database scheme.
+6. Run `npm run db:push` to initialize the database schema.
 7. Run `npm run dev` to start the development server.
 
 ## Checks
@@ -43,6 +43,11 @@ All `/account`, `/notes`, and `/sync` endpoints require `Authorization: Bearer <
 The Flutter sync controller uses `GET /sync/readiness` before push/pull, so
 production deployments must have the full schema applied and account
 persistence available before the app will drain the local queue.
+
+The authenticated Firebase UID is the canonical account key. Email addresses
+are profile metadata and are intentionally not unique in the backend schema, so
+an externally recreated Firebase account cannot block profile persistence with
+a stale email row.
 
 Authenticated endpoints return `401` with a structured body when the bearer token is missing or invalid:
 

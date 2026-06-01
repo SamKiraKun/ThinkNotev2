@@ -5,6 +5,7 @@ const path = require("node:path");
 const test = require("node:test");
 
 const { createClient } = require("@libsql/client");
+const { Router } = require("express");
 const request = require("supertest");
 
 const { createApp } = require("../dist/app");
@@ -259,6 +260,115 @@ test("GET /account/me fails when syncing the authenticated user record fails", a
   assert.equal(response.status, 503);
   assert.equal(response.body.success, false);
   assert.equal(response.body.message, "Account persistence is unavailable");
+});
+
+test("authenticated profile persistence retries without email when a stale email row conflicts", async () => {
+  const profileWrites = [];
+  const authMiddleware = buildRequireFirebaseAuth({
+    verifyIdToken: async () => ({
+      uid: "recreated-user",
+      email: "reused@example.com",
+      name: "Recreated User",
+      picture: null,
+    }),
+    database: {
+      async execute(statement) {
+        profileWrites.push(statement.args);
+        if (statement.args[1] === "reused@example.com") {
+          const error = new Error("UNIQUE constraint failed: users.email");
+          error.code = "SQLITE_CONSTRAINT_UNIQUE";
+          throw error;
+        }
+
+        return { rows: [] };
+      },
+    },
+    logger: silentLogger,
+  });
+  const accountRouter = Router();
+  accountRouter.get("/me", (req, res) => {
+    res.json({
+      success: true,
+      data: {
+        id: req.user_id,
+        email: req.auth_user.email,
+      },
+      message: null,
+    });
+  });
+  const app = createApp({
+    authMiddleware,
+    accountRouter,
+    logger: silentLogger,
+    config: {
+      isProduction: false,
+      corsAllowNoOrigin: true,
+    },
+  });
+
+  const response = await request(app)
+    .get("/account/me")
+    .set("Authorization", "Bearer valid-token");
+
+  assert.equal(response.status, 200);
+  assert.equal(response.body.data.id, "recreated-user");
+  assert.equal(profileWrites.length, 2);
+  assert.equal(profileWrites[0][1], "reused@example.com");
+  assert.equal(profileWrites[1][1], null);
+});
+
+test("users schema treats email as non-unique profile metadata", async () => {
+  const dbPath = path.join(
+    os.tmpdir(),
+    `thinknote-users-${process.pid}-${Date.now()}-${Math.random().toString(16).slice(2)}.db`,
+  );
+  const db = createClient({
+    url: `file:${dbPath.replace(/\\/g, "/")}`,
+  });
+  const schema = fs.readFileSync(
+    path.join(__dirname, "../src/db/schema.sql"),
+    "utf8",
+  );
+
+  try {
+    await db.executeMultiple(schema);
+    await db.execute({
+      sql: `
+        INSERT INTO users (id, email, name, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?), (?, ?, ?, ?, ?)
+      `,
+      args: [
+        "old-user",
+        "shared@example.com",
+        "Old User",
+        syncTestTimestamp,
+        syncTestTimestamp,
+        "new-user",
+        "shared@example.com",
+        "New User",
+        syncTestTimestamp,
+        syncTestTimestamp,
+      ],
+    });
+
+    const result = await db.execute({
+      sql: `SELECT COUNT(*) AS count FROM users WHERE email = ?`,
+      args: ["shared@example.com"],
+    });
+
+    assert.equal(Number(result.rows[0].count), 2);
+  } finally {
+    db.close();
+    try {
+      fs.rmSync(dbPath, { force: true });
+    } catch {}
+    try {
+      fs.rmSync(`${dbPath}-shm`, { force: true });
+    } catch {}
+    try {
+      fs.rmSync(`${dbPath}-wal`, { force: true });
+    } catch {}
+  }
 });
 
 test("POST /notes rejects a request body that exceeds the configured size", async () => {
