@@ -21,7 +21,6 @@ final class AppEnv {
   static const String canonicalApiUrl = 'https://api.unicef.edu.eu.org';
   static const String canonicalApiHost = 'api.unicef.edu.eu.org';
   static const String _defaultDevelopmentApiUrl = canonicalApiUrl;
-  static const String _retiredApiHost = 'api.unicefindia.edu.eu.org';
 
   static const String apiUrl = String.fromEnvironment(
     'API_URL',
@@ -81,7 +80,7 @@ final class AppEnv {
   static bool get isProduction => appFlavor == AppFlavor.production;
   static bool get showPrototypeTools => !isProduction;
 
-  static Uri get apiUri => normalizeApiUri(Uri.parse(apiUrl));
+  static Uri get apiUri => Uri.parse(apiUrl);
   static String get resolvedFirebaseAndroidAppId =>
       _firstNonEmpty(firebaseAndroidAppId, firebaseAppId);
   static String get resolvedFirebaseIosAppId =>
@@ -96,7 +95,6 @@ final class AppEnv {
       _nonEmptyOrNull(firebaseMeasurementId);
 
   static void validateBase() {
-    final flavor = appFlavor;
     final parsedApiUri = Uri.tryParse(apiUrl);
 
     if (parsedApiUri == null ||
@@ -106,8 +104,6 @@ final class AppEnv {
         'API_URL must be a valid absolute URL.',
       );
     }
-
-    final normalizedApiUri = normalizeApiUri(parsedApiUri);
 
     _requireNonEmpty('FIREBASE_API_KEY', firebaseApiKey);
     _requireNonEmpty(
@@ -125,19 +121,14 @@ final class AppEnv {
       ),
     );
 
-    if (flavor != AppFlavor.development) {
-      _requireNonEmpty('API_URL', apiUrl);
-    }
-
     if (parsedApiUri.path.isNotEmpty && parsedApiUri.path != '/') {
       throw StateError('API_URL must be the backend origin, not a route path.');
     }
 
-    if (flavor == AppFlavor.production &&
-        !isCanonicalProductionApiUri(normalizedApiUri)) {
+    if (!isCanonicalApiUri(parsedApiUri)) {
       throw StateError(
-        'Production API_URL must be $canonicalApiUrl. '
-        'Do not ship production builds pointed at localhost, Render, staging, or placeholder endpoints.',
+        'API_URL must be $canonicalApiUrl. '
+        'ThinkNote does not support localhost, Render, staging, retired, or placeholder API endpoints.',
       );
     }
   }
@@ -185,31 +176,9 @@ final class AppEnv {
     return '';
   }
 
-  static Uri normalizeApiUri(Uri apiUri) {
-    if (!_isRetiredApiHost(apiUri)) {
-      return apiUri;
-    }
-
-    return apiUri.replace(host: canonicalApiHost);
-  }
-
-  static bool isCanonicalProductionApiUri(Uri apiUri) {
-    final normalizedApiUri = normalizeApiUri(apiUri);
-    return normalizedApiUri.scheme == 'https' &&
-        normalizedApiUri.host.toLowerCase() == canonicalApiHost &&
-        (normalizedApiUri.path.isEmpty || normalizedApiUri.path == '/');
-  }
-
-  static bool get usesRetiredApiHost {
-    final parsedApiUri = Uri.tryParse(apiUrl);
-    if (parsedApiUri == null) {
-      return false;
-    }
-
-    return _isRetiredApiHost(parsedApiUri);
-  }
-
-  static bool _isRetiredApiHost(Uri apiUri) {
-    return apiUri.host.toLowerCase() == _retiredApiHost;
+  static bool isCanonicalApiUri(Uri apiUri) {
+    return apiUri.scheme == 'https' &&
+        apiUri.host.toLowerCase() == canonicalApiHost &&
+        (apiUri.path.isEmpty || apiUri.path == '/');
   }
 }

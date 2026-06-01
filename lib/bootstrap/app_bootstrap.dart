@@ -52,12 +52,6 @@ Future<void> _runThinkNoteApp() async {
     const initializer = AppInitializer();
     initializer.validateEnvironment();
 
-    if (AppEnv.usesRetiredApiHost) {
-      debugPrint(
-        '[ThinkNote bootstrap] API_URL uses retired host ${AppEnv.apiUrl}; routing requests to ${AppEnv.apiUri}.',
-      );
-    }
-
     await initializer.initializeFirebase();
     final prefs = await initializer.initializePreferences();
 
@@ -221,7 +215,9 @@ class _BootstrapFailureScreenState extends State<_BootstrapFailureScreen> {
                                 )
                               : const Icon(Icons.refresh_rounded),
                           label: Text(
-                            _isRetrying ? 'Retrying startup...' : 'Retry launch',
+                            _isRetrying
+                                ? 'Retrying startup...'
+                                : 'Retry launch',
                           ),
                         ),
                       ),

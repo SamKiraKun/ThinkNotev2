@@ -7,50 +7,33 @@ void main() {
     expect(AppEnv.canonicalApiHost, 'api.unicef.edu.eu.org');
   });
 
-  test('normalizeApiUri remaps the retired backend host', () {
-    final normalized = AppEnv.normalizeApiUri(
-      Uri.parse('https://api.unicefindia.edu.eu.org/account/me?source=legacy'),
-    );
-
+  test('API validation only accepts the canonical backend origin', () {
     expect(
-      normalized.toString(),
-      'https://api.unicef.edu.eu.org/account/me?source=legacy',
-    );
-  });
-
-  test('normalizeApiUri leaves active backend hosts unchanged', () {
-    final normalized = AppEnv.normalizeApiUri(
-      Uri.parse('https://api.unicef.edu.eu.org/account/me?source=current'),
-    );
-
-    expect(
-      normalized.toString(),
-      'https://api.unicef.edu.eu.org/account/me?source=current',
-    );
-  });
-
-  test('production API validation only accepts the canonical backend origin',
-      () {
-    expect(
-      AppEnv.isCanonicalProductionApiUri(
+      AppEnv.isCanonicalApiUri(
         Uri.parse('https://api.unicef.edu.eu.org/'),
       ),
       isTrue,
     );
     expect(
-      AppEnv.isCanonicalProductionApiUri(
+      AppEnv.isCanonicalApiUri(
+        Uri.parse('https://legacy-api.example.com'),
+      ),
+      isFalse,
+    );
+    expect(
+      AppEnv.isCanonicalApiUri(
         Uri.parse('https://thinknotev2.onrender.com'),
       ),
       isFalse,
     );
     expect(
-      AppEnv.isCanonicalProductionApiUri(
+      AppEnv.isCanonicalApiUri(
         Uri.parse('http://api.unicef.edu.eu.org'),
       ),
       isFalse,
     );
     expect(
-      AppEnv.isCanonicalProductionApiUri(
+      AppEnv.isCanonicalApiUri(
         Uri.parse('https://api.unicef.edu.eu.org/health'),
       ),
       isFalse,

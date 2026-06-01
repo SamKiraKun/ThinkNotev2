@@ -40,10 +40,11 @@ void main() {
   test('throws a precise ApiException when the backend times out', () async {
     final client = AuthenticatedApiClient(
       MockClient((request) async {
-        await Future<void>.delayed(const Duration(seconds: 16));
+        await Future<void>.delayed(const Duration(milliseconds: 40));
         return http.Response('{}', 200);
       }),
       _FakeAuthRepository(),
+      requestTimeout: const Duration(milliseconds: 10),
     );
 
     await expectLater(

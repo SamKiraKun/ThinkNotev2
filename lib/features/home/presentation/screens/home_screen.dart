@@ -114,8 +114,9 @@ class HomeScreen extends ConsumerWidget {
                           backgroundColor: palette.surfacePrimary,
                           textColor: context.colors.onSurface,
                           onTap: () {
-                            ref.read(homeSelectedFolderProvider.notifier).state =
-                                null;
+                            ref
+                                .read(homeSelectedFolderProvider.notifier)
+                                .state = null;
                           },
                         );
                       }
@@ -175,9 +176,10 @@ class HomeScreen extends ConsumerWidget {
                   return _PinnedNoteCard(
                     noteTitle: featuredNote.displayTitle,
                     noteExcerpt: featuredNote.excerpt,
-                    folderLabel:
-                        notesState.folderById(featuredNote.folderId)?.displayName ??
-                            'Unsorted',
+                    folderLabel: notesState
+                            .folderById(featuredNote.folderId)
+                            ?.displayName ??
+                        'Unsorted',
                     dateLabel:
                         DateFormatter.formatFullDate(featuredNote.updatedAt),
                     onTap: () {
@@ -315,7 +317,9 @@ class HomeScreen extends ConsumerWidget {
   }
 
   Future<void> _runSync(BuildContext context, WidgetRef ref) async {
-    await ref.read(syncControllerProvider.notifier).syncNow();
+    await ref.read(syncControllerProvider.notifier).syncNow(
+          forceFullPull: true,
+        );
     final syncState = ref.read(syncControllerProvider);
     final message = syncState.lastError == null
         ? 'Sync complete.'

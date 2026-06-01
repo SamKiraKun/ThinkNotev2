@@ -59,17 +59,20 @@ final authenticatedApiClientProvider = Provider<AuthenticatedApiClient>((ref) {
 });
 
 class AuthenticatedApiClient {
-  static const Duration _requestTimeout = Duration(seconds: 15);
+  static const Duration defaultRequestTimeout = Duration(seconds: 45);
 
   AuthenticatedApiClient(
     this._httpClient,
     this._authRepository, {
     Future<void> Function()? onUnauthorized,
-  }) : _onUnauthorized = onUnauthorized;
+    Duration requestTimeout = defaultRequestTimeout,
+  })  : _onUnauthorized = onUnauthorized,
+        _requestTimeout = requestTimeout;
 
   final http.Client _httpClient;
   final AuthRepository _authRepository;
   final Future<void> Function()? _onUnauthorized;
+  final Duration _requestTimeout;
 
   Future<Map<String, dynamic>> getJson(
     String path, {

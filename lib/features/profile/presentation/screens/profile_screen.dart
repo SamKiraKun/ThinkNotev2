@@ -377,7 +377,9 @@ class ProfileScreen extends ConsumerWidget {
   }
 
   Future<void> _syncNow(BuildContext context, WidgetRef ref) async {
-    await ref.read(syncControllerProvider.notifier).syncNow();
+    await ref.read(syncControllerProvider.notifier).syncNow(
+          forceFullPull: true,
+        );
     final syncState = ref.read(syncControllerProvider);
     final message = syncState.lastError == null
         ? 'Sync complete.'
