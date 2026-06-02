@@ -253,10 +253,14 @@ class NoteEditorController extends StateNotifier<NoteEditorState> {
     if (noteId == null) {
       return;
     }
-    await _repository.archiveNote(noteId);
-    _scheduleSync();
-    state = state.copyWith(isArchived: true, isPinned: false);
-    _ref.invalidate(notesControllerProvider);
+    final updated = await _ref.read(notesControllerProvider.notifier).archive(
+          noteId,
+        );
+    state = state.copyWith(
+      isArchived: true,
+      isPinned: false,
+      lastSavedAt: updated.updatedAt,
+    );
   }
 
   Future<void> unarchiveCurrentNote() async {
@@ -264,10 +268,13 @@ class NoteEditorController extends StateNotifier<NoteEditorState> {
     if (noteId == null) {
       return;
     }
-    await _repository.unarchiveNote(noteId);
-    _scheduleSync();
-    state = state.copyWith(isArchived: false);
-    _ref.invalidate(notesControllerProvider);
+    final updated = await _ref.read(notesControllerProvider.notifier).unarchive(
+          noteId,
+        );
+    state = state.copyWith(
+      isArchived: false,
+      lastSavedAt: updated.updatedAt,
+    );
   }
 
   void replaceTags(List<String> tags) {
@@ -299,9 +306,7 @@ class NoteEditorController extends StateNotifier<NoteEditorState> {
     if (noteId == null) {
       return;
     }
-    await _repository.moveToTrash(noteId);
-    _scheduleSync();
-    _ref.invalidate(notesControllerProvider);
+    await _ref.read(notesControllerProvider.notifier).moveToTrash(noteId);
   }
 
   void _scheduleSave() {
@@ -397,7 +402,7 @@ class NoteEditorController extends StateNotifier<NoteEditorState> {
         lastSavedAt: saved.updatedAt,
       );
       _scheduleSync();
-      _ref.invalidate(notesControllerProvider);
+      _ref.read(notesControllerProvider.notifier).applyLocalNoteUpsert(saved);
 
       if (hasNewerEditorChanges) {
         _scheduleSave();

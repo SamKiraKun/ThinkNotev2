@@ -28,20 +28,22 @@ class NotesRepositoryImpl implements NotesRepository {
 
   @override
   Future<NoteModel?> saveNote(NoteDraft draft) async {
-    final store = await loadStore();
-    final existingIndex = store.notes.indexWhere((note) => note.id == draft.id);
+    final noteId = draft.id ?? _uuid.v4();
+    final saveContext = await _localDataSource.readNoteSaveContext(noteId);
+    final existing = saveContext.note;
     final normalizedTags = _normalizeTags(draft.tags);
     final now = DateTime.now();
 
-    if (existingIndex == -1 &&
+    if (existing == null &&
         !_hasMeaningfulContent(draft.title, draft.content)) {
       return null;
     }
 
-    if (existingIndex == -1) {
-      final nextFolderId = draft.folderId ?? _fallbackFolderId(store.folders);
+    if (existing == null) {
+      final nextFolderId =
+          draft.folderId ?? _fallbackFolderId(saveContext.folders);
       final createdNote = NoteModel(
-        id: draft.id ?? _uuid.v4(),
+        id: noteId,
         title: draft.title.trim(),
         content: draft.content.trimRight(),
         folderId: nextFolderId,
@@ -55,15 +57,15 @@ class NotesRepositoryImpl implements NotesRepository {
 
       await _localDataSource.upsertNoteWithTags(
         note: createdNote,
-        tags: _mergeTags(store.tags, normalizedTags),
+        tags: _mergeTags(saveContext.tags, normalizedTags),
       );
       return createdNote;
     }
 
-    final current = store.notes[existingIndex];
-    final nextFolderId =
-        draft.folderId ?? current.folderId ?? _fallbackFolderId(store.folders);
-    final updatedNote = current.copyWith(
+    final nextFolderId = draft.folderId ??
+        existing.folderId ??
+        _fallbackFolderId(saveContext.folders);
+    final updatedNote = existing.copyWith(
       title: draft.title.trim(),
       content: draft.content.trimRight(),
       folderId: nextFolderId,
@@ -73,53 +75,40 @@ class NotesRepositoryImpl implements NotesRepository {
       updatedAt: now,
       isDeleted: false,
       deletedAt: null,
-      syncStatus: _pendingMutationStatus(current),
+      syncStatus: _pendingMutationStatus(existing),
     );
 
     await _localDataSource.upsertNoteWithTags(
       note: updatedNote,
-      tags: _mergeTags(store.tags, normalizedTags),
+      tags: _mergeTags(saveContext.tags, normalizedTags),
     );
     return updatedNote;
   }
 
   @override
   Future<void> moveToTrash(String id) async {
-    await _mutateStore((store) {
+    await _updateSingleNote(id, (note) {
       final now = DateTime.now();
-      final updatedNotes = store.notes.map((note) {
-        if (note.id != id) {
-          return note;
-        }
-        return note.copyWith(
-          isDeleted: true,
-          deletedAt: now,
-          updatedAt: now,
-          isPinned: false,
-          isArchived: false,
-          syncStatus: _pendingMutationStatus(note),
-        );
-      }).toList(growable: false);
-      return store.copyWith(notes: updatedNotes);
+      return note.copyWith(
+        isDeleted: true,
+        deletedAt: now,
+        updatedAt: now,
+        isPinned: false,
+        isArchived: false,
+        syncStatus: _pendingMutationStatus(note),
+      );
     });
   }
 
   @override
   Future<void> restoreNote(String id) async {
-    await _mutateStore((store) {
-      final now = DateTime.now();
-      final updatedNotes = store.notes.map((note) {
-        if (note.id != id) {
-          return note;
-        }
-        return note.copyWith(
-          isDeleted: false,
-          deletedAt: null,
-          updatedAt: now,
-          syncStatus: _pendingMutationStatus(note),
-        );
-      }).toList(growable: false);
-      return store.copyWith(notes: updatedNotes);
+    await _updateSingleNote(id, (note) {
+      return note.copyWith(
+        isDeleted: false,
+        deletedAt: null,
+        updatedAt: DateTime.now(),
+        syncStatus: _pendingMutationStatus(note),
+      );
     });
   }
 
@@ -150,47 +139,41 @@ class NotesRepositoryImpl implements NotesRepository {
 
   @override
   Future<void> deleteNote(String id) async {
-    final store = await loadStore();
-    final note = store.notes.where((item) => item.id == id).firstOrNull;
+    final note = await _localDataSource.readNoteById(id);
     if (note == null) {
       return;
     }
 
-    await _queueDeleteOperation(
-      SyncDeleteOperation.forEntity(
-        entityType: SyncEntityType.note,
-        entityId: note.id,
-        deletedAt: DateTime.now().toUtc(),
-      ),
+    await _localDataSource.deleteNotesPermanently(
+      noteIds: <String>[note.id],
+      operations: <SyncDeleteOperation>[
+        SyncDeleteOperation.forEntity(
+          entityType: SyncEntityType.note,
+          entityId: note.id,
+          deletedAt: DateTime.now().toUtc(),
+        ),
+      ],
     );
-
-    final updatedNotes =
-        store.notes.where((item) => item.id != id).toList(growable: false);
-    await _localDataSource.writeStore(store.copyWith(notes: updatedNotes));
   }
 
   @override
   Future<void> emptyTrash() async {
-    final store = await loadStore();
-    final deletedNotes =
-        store.notes.where((note) => note.isDeleted).toList(growable: false);
-    if (deletedNotes.isEmpty) {
+    final deletedNoteIds =
+        await _localDataSource.readNoteIds(deletedOnly: true);
+    if (deletedNoteIds.isEmpty) {
       return;
     }
 
-    await _queueDeleteOperations(
-      deletedNotes.map((note) {
+    await _localDataSource.deleteNotesPermanently(
+      noteIds: deletedNoteIds,
+      operations: deletedNoteIds.map((noteId) {
         return SyncDeleteOperation.forEntity(
           entityType: SyncEntityType.note,
-          entityId: note.id,
+          entityId: noteId,
           deletedAt: DateTime.now().toUtc(),
         );
       }).toList(growable: false),
     );
-
-    final updatedNotes =
-        store.notes.where((note) => !note.isDeleted).toList(growable: false);
-    await _localDataSource.writeStore(store.copyWith(notes: updatedNotes));
   }
 
   @override
@@ -222,8 +205,8 @@ class NotesRepositoryImpl implements NotesRepository {
       throw ArgumentError('Folder name cannot be empty.');
     }
 
-    final store = await loadStore();
-    final existing = _findFolderByName(store.folders, trimmedName);
+    final folders = await _localDataSource.readFolders();
+    final existing = _findFolderByName(folders, trimmedName);
     if (existing != null) {
       return existing;
     }
@@ -231,16 +214,13 @@ class NotesRepositoryImpl implements NotesRepository {
     final folder = FolderModel(
       id: _uuid.v4(),
       name: trimmedName,
-      colorKey: _nextFolderColor(store.folders.length),
+      colorKey: _nextFolderColor(folders.length),
       emoji: emoji,
       createdAt: DateTime.now(),
       updatedAt: DateTime.now(),
     );
 
-    final updatedStore = store.copyWith(
-      folders: <FolderModel>[...store.folders, folder],
-    );
-    await _localDataSource.writeStore(updatedStore);
+    await _localDataSource.upsertFolder(folder);
     return folder;
   }
 
@@ -251,58 +231,50 @@ class NotesRepositoryImpl implements NotesRepository {
       throw ArgumentError('Folder name cannot be empty.');
     }
 
-    late FolderModel renamedFolder;
-    await _mutateStore((store) {
-      final updatedFolders = store.folders.map((folder) {
-        if (folder.id != id) {
-          return folder;
-        }
-        renamedFolder = folder.copyWith(
-          name: trimmedName,
-          updatedAt: DateTime.now(),
-        );
-        return renamedFolder;
-      }).toList(growable: false);
-      return store.copyWith(folders: updatedFolders);
-    });
+    final existing = await _localDataSource.readFolderById(id);
+    if (existing == null) {
+      throw StateError('Unable to find folder $id.');
+    }
+
+    final renamedFolder = existing.copyWith(
+      name: trimmedName,
+      updatedAt: DateTime.now(),
+    );
+    await _localDataSource.upsertFolder(renamedFolder);
     return renamedFolder;
   }
 
   @override
   Future<void> deleteFolder(String id) async {
-    final store = await loadStore();
-    final folder = store.folders.where((item) => item.id == id).firstOrNull;
+    final folder = await _localDataSource.readFolderById(id);
     if (folder == null || folder.isSystem) {
       return;
     }
 
-    await _queueDeleteOperation(
-      SyncDeleteOperation.forEntity(
-        entityType: SyncEntityType.folder,
-        entityId: folder.id,
-        deletedAt: DateTime.now().toUtc(),
-      ),
-    );
-
+    final folders = await _localDataSource.readFolders();
     final fallbackFolderId = _fallbackFolderId(
-        store.folders.where((item) => item.id != id).toList());
-    final updatedFolders =
-        store.folders.where((item) => item.id != id).toList(growable: false);
-    final updatedNotes = store.notes.map((note) {
+      folders.where((item) => item.id != id).toList(growable: false),
+    );
+    final updatedAt = DateTime.now();
+    final affectedNotes = await _localDataSource.readNotesByFolderId(id);
+    final updatedNotes = affectedNotes.map((note) {
       if (note.folderId == id) {
         return note.copyWith(
           folderId: fallbackFolderId,
-          updatedAt: DateTime.now(),
+          updatedAt: updatedAt,
           syncStatus: _pendingMutationStatus(note),
         );
       }
       return note;
     }).toList(growable: false);
-    await _localDataSource.writeStore(
-      store.copyWith(
-        folders: updatedFolders,
-        notes: updatedNotes,
+    await _localDataSource.deleteFolderAndReassignNotes(
+      folderId: id,
+      operation: SyncDeleteOperation.forEntity(
+        entityType: SyncEntityType.folder,
+        entityId: folder.id,
+        deletedAt: DateTime.now().toUtc(),
       ),
+      reassignedNotes: updatedNotes,
     );
   }
 
@@ -313,8 +285,8 @@ class NotesRepositoryImpl implements NotesRepository {
       throw ArgumentError('Tag label cannot be empty.');
     }
 
-    final store = await loadStore();
-    final existing = _findTagByLabel(store.tags, trimmedLabel);
+    final tags = await _localDataSource.readTags();
+    final existing = _findTagByLabel(tags, trimmedLabel);
     if (existing != null) {
       return existing;
     }
@@ -327,42 +299,40 @@ class NotesRepositoryImpl implements NotesRepository {
       emoji: emoji,
     );
 
-    final updatedStore = store.copyWith(
-      tags: <TagModel>[...store.tags, tag],
-    );
-    await _localDataSource.writeStore(updatedStore);
+    await _localDataSource.upsertTag(tag);
     return tag;
   }
 
   @override
   Future<void> deleteTag(String id) async {
-    final store = await loadStore();
-    final tag = store.tags.where((item) => item.id == id).firstOrNull;
+    final tag = await _localDataSource.readTagById(id);
     if (tag == null) {
       return;
     }
 
-    await _queueDeleteOperation(
-      SyncDeleteOperation.forEntity(
-        entityType: SyncEntityType.tag,
-        entityId: tag.id,
-        deletedAt: DateTime.now().toUtc(),
-      ),
-    );
-
-    final updatedTags =
-        store.tags.where((item) => item.id != id).toList(growable: false);
-    final updatedNotes = store.notes.map((note) {
+    final updatedAt = DateTime.now();
+    final remainingTags = (await _localDataSource.readTags())
+        .where((item) => item.id != id)
+        .toList(growable: false);
+    final taggedNotes = await _localDataSource.readNotesByTagId(id);
+    final updatedNotes = taggedNotes.map((note) {
       return note.copyWith(
         tags: note.tags
             .where((item) => item.toLowerCase() != tag.label.toLowerCase())
             .toList(growable: false),
-        updatedAt: DateTime.now(),
+        updatedAt: updatedAt,
         syncStatus: _pendingMutationStatus(note),
       );
     }).toList(growable: false);
-    await _localDataSource.writeStore(
-      store.copyWith(tags: updatedTags, notes: updatedNotes),
+    await _localDataSource.deleteTagAndUpdateNotes(
+      tagId: id,
+      operation: SyncDeleteOperation.forEntity(
+        entityType: SyncEntityType.tag,
+        entityId: tag.id,
+        deletedAt: DateTime.now().toUtc(),
+      ),
+      updatedNotes: updatedNotes,
+      remainingTags: remainingTags,
     );
   }
 
@@ -373,32 +343,27 @@ class NotesRepositoryImpl implements NotesRepository {
       return;
     }
 
-    await _mutateStore((store) {
-      final entries = <String>[
-        trimmedQuery,
-        ...store.recentSearches.where(
-          (entry) => entry.toLowerCase() != trimmedQuery.toLowerCase(),
-        ),
-      ];
-      return store.copyWith(
-        recentSearches: entries.take(8).toList(growable: false),
-      );
-    });
+    final currentEntries = await _localDataSource.readRecentSearches();
+    final entries = <String>[
+      trimmedQuery,
+      ...currentEntries.where(
+        (entry) => entry.toLowerCase() != trimmedQuery.toLowerCase(),
+      ),
+    ];
+    await _localDataSource.writeRecentSearches(
+      entries.take(8).toList(growable: false),
+    );
   }
 
   @override
   Future<void> clearRecentSearches() async {
-    await _mutateStore((store) {
-      return store.copyWith(recentSearches: const <String>[]);
-    });
+    await _localDataSource.writeRecentSearches(const <String>[]);
   }
 
   @override
   Future<AppPreferencesModel> updatePreferences(
       AppPreferencesModel preferences) async {
-    await _mutateStore((store) {
-      return store.copyWith(preferences: preferences);
-    });
+    await _localDataSource.writePreferencesModel(preferences);
     return preferences;
   }
 
@@ -409,59 +374,34 @@ class NotesRepositoryImpl implements NotesRepository {
 
   @override
   Future<void> clearAllNotes() async {
-    final store = await loadStore();
-    if (store.notes.isEmpty) {
+    final noteIds = await _localDataSource.readNoteIds();
+    if (noteIds.isEmpty) {
       return;
     }
 
-    await _queueDeleteOperations(
-      store.notes.map((note) {
+    await _localDataSource.deleteNotesPermanently(
+      noteIds: noteIds,
+      operations: noteIds.map((noteId) {
         return SyncDeleteOperation.forEntity(
           entityType: SyncEntityType.note,
-          entityId: note.id,
+          entityId: noteId,
           deletedAt: DateTime.now().toUtc(),
         );
       }).toList(growable: false),
     );
-
-    await _localDataSource.writeStore(
-      store.copyWith(notes: const <NoteModel>[]),
-    );
-  }
-
-  Future<void> _queueDeleteOperation(SyncDeleteOperation operation) async {
-    await _localDataSource.upsertDeleteOperation(operation);
-  }
-
-  Future<void> _queueDeleteOperations(
-    List<SyncDeleteOperation> operations,
-  ) async {
-    for (final operation in operations) {
-      await _queueDeleteOperation(operation);
-    }
-  }
-
-  Future<void> _mutateStore(
-      NotesStoreModel Function(NotesStoreModel store) transform) async {
-    final currentStore = await loadStore();
-    final nextStore = transform(currentStore).withDefaults();
-    await _localDataSource.writeStore(nextStore);
   }
 
   Future<NoteModel> _updateSingleNote(
     String id,
     NoteModel Function(NoteModel note) transform,
   ) async {
-    final store = await loadStore();
-    final index = store.notes.indexWhere((note) => note.id == id);
-    if (index == -1) {
+    final existing = await _localDataSource.readNoteById(id);
+    if (existing == null) {
       throw StateError('Unable to find note $id.');
     }
 
-    final updatedNote = transform(store.notes[index]);
-    final updatedNotes = List<NoteModel>.from(store.notes)
-      ..[index] = updatedNote;
-    await _localDataSource.writeStore(store.copyWith(notes: updatedNotes));
+    final updatedNote = transform(existing);
+    await _localDataSource.upsertNote(updatedNote);
     return updatedNote;
   }
 
@@ -540,14 +480,5 @@ class NotesRepositoryImpl implements NotesRepository {
   String _nextFolderColor(int index) {
     const keys = <String>['personal', 'study', 'ideas', 'work', 'journal'];
     return keys[index % keys.length];
-  }
-}
-
-extension _FirstOrNullExtension<T> on Iterable<T> {
-  T? get firstOrNull {
-    if (isEmpty) {
-      return null;
-    }
-    return first;
   }
 }

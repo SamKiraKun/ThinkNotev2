@@ -57,6 +57,7 @@ class NotesLocalDataSource {
   final AppDatabase _database;
   final String _databaseName;
   final LocalNotesCipher _cipher;
+  bool _metadataDefaultsEnsured = false;
 
   Future<NotesStoreModel> readStore() async {
     await _migrateLegacyPreferencesIfNeeded();
@@ -118,16 +119,53 @@ class NotesLocalDataSource {
       (database) => _writeStoreToDatabase(database, store.withDefaults()),
       debugLabel: 'write notes store',
     );
+    _metadataDefaultsEnsured = true;
   }
 
   Future<void> upsertNoteWithTags({
     required NoteModel note,
     required List<TagModel> tags,
   }) async {
-    await _migrateLegacyPreferencesIfNeeded();
+    await _prepareTargetedAccess();
     await _runWriteTransaction(
       (database) => _upsertNoteWithTagsToDatabase(database, note, tags),
       debugLabel: 'upsert note',
+    );
+  }
+
+  Future<void> upsertNote(NoteModel note) async {
+    await _prepareTargetedAccess();
+    await _runWriteTransaction(
+      (database) => _upsertNotesToDatabase(database, <NoteModel>[note]),
+      debugLabel: 'update note',
+    );
+  }
+
+  Future<void> upsertNotes(List<NoteModel> notes) async {
+    if (notes.isEmpty) {
+      return;
+    }
+
+    await _prepareTargetedAccess();
+    await _runWriteTransaction(
+      (database) => _upsertNotesToDatabase(database, notes),
+      debugLabel: 'update notes',
+    );
+  }
+
+  Future<void> upsertFolder(FolderModel folder) async {
+    await _prepareTargetedAccess();
+    await _runWriteTransaction(
+      (database) => _upsertFoldersToDatabase(database, <FolderModel>[folder]),
+      debugLabel: 'upsert folder',
+    );
+  }
+
+  Future<void> upsertTag(TagModel tag) async {
+    await _prepareTargetedAccess();
+    await _runWriteTransaction(
+      (database) => _upsertTagsToDatabase(database, <TagModel>[tag]),
+      debugLabel: 'upsert tag',
     );
   }
 
@@ -150,6 +188,220 @@ class NotesLocalDataSource {
       '[NotesLocalDataSource] Loaded note $id in ${stopwatch.elapsedMilliseconds} ms.',
     );
     return note;
+  }
+
+  Future<LocalNoteSaveContext> readNoteSaveContext(String noteId) async {
+    await _prepareTargetedAccess();
+    return _runSerialized((database) async {
+      final noteRows = database.select(
+        'SELECT * FROM notes WHERE id = ? LIMIT 1',
+        [noteId],
+      );
+      final folderRows = database.select(
+        'SELECT * FROM folders ORDER BY created_at ASC',
+      );
+      final tagRows = database.select(
+        'SELECT * FROM tags ORDER BY created_at ASC',
+      );
+
+      return LocalNoteSaveContext(
+        note: noteRows.isEmpty ? null : await _noteFromRow(noteRows.first),
+        folders: await _readFolders(folderRows),
+        tags: await _readTags(tagRows),
+      );
+    });
+  }
+
+  Future<List<FolderModel>> readFolders() async {
+    await _prepareTargetedAccess();
+    return _runSerialized((database) async {
+      final rows = database.select(
+        'SELECT * FROM folders ORDER BY created_at ASC',
+      );
+      return _readFolders(rows);
+    });
+  }
+
+  Future<FolderModel?> readFolderById(String id) async {
+    await _prepareTargetedAccess();
+    return _runSerialized((database) async {
+      final rows = database.select(
+        'SELECT * FROM folders WHERE id = ? LIMIT 1',
+        [id],
+      );
+      if (rows.isEmpty) {
+        return null;
+      }
+
+      return _folderFromRow(rows.first);
+    });
+  }
+
+  Future<List<TagModel>> readTags() async {
+    await _prepareTargetedAccess();
+    return _runSerialized((database) async {
+      final rows = database.select(
+        'SELECT * FROM tags ORDER BY created_at ASC',
+      );
+      return _readTags(rows);
+    });
+  }
+
+  Future<TagModel?> readTagById(String id) async {
+    await _prepareTargetedAccess();
+    return _runSerialized((database) async {
+      final rows = database.select(
+        'SELECT * FROM tags WHERE id = ? LIMIT 1',
+        [id],
+      );
+      if (rows.isEmpty) {
+        return null;
+      }
+
+      return _tagFromRow(rows.first);
+    });
+  }
+
+  Future<List<String>> readRecentSearches() async {
+    await _prepareTargetedAccess();
+    return _runSerialized((database) async {
+      final rows = database.select(
+        'SELECT * FROM recent_searches ORDER BY position ASC',
+      );
+      return _readRecentSearches(rows);
+    });
+  }
+
+  Future<AppPreferencesModel> readPreferencesModel() async {
+    await _prepareTargetedAccess();
+    return _runSerialized((database) async {
+      return _readPreferences(database);
+    });
+  }
+
+  Future<List<String>> readNoteIds({bool deletedOnly = false}) async {
+    await _prepareTargetedAccess();
+    return _runSerialized((database) async {
+      final rows = database.select(
+        deletedOnly
+            ? 'SELECT id FROM notes WHERE is_deleted = 1 ORDER BY updated_at DESC'
+            : 'SELECT id FROM notes ORDER BY updated_at DESC',
+      );
+      return rows.map((row) => row['id'] as String).toList(growable: false);
+    });
+  }
+
+  Future<List<NoteModel>> readNotesByFolderId(String folderId) async {
+    await _prepareTargetedAccess();
+    return _runSerialized((database) async {
+      final rows = database.select(
+        'SELECT * FROM notes WHERE folder_id = ? ORDER BY updated_at DESC',
+        [folderId],
+      );
+      return _readNotes(rows);
+    });
+  }
+
+  Future<List<NoteModel>> readNotesByTagId(String tagId) async {
+    await _prepareTargetedAccess();
+    return _runSerialized((database) async {
+      final rows = database.select(
+        '''
+          SELECT notes.*
+          FROM notes
+          INNER JOIN note_tags ON note_tags.note_id = notes.id
+          WHERE note_tags.tag_id = ?
+          ORDER BY notes.updated_at DESC
+        ''',
+        [tagId],
+      );
+      return _readNotes(rows);
+    });
+  }
+
+  Future<void> writeRecentSearches(List<String> searches) async {
+    await _prepareTargetedAccess();
+    await _runWriteTransaction(
+      (database) => _writeRecentSearchesToDatabase(database, searches),
+      debugLabel: 'write recent searches',
+    );
+  }
+
+  Future<void> writePreferencesModel(AppPreferencesModel preferences) async {
+    await _prepareTargetedAccess();
+    await _runWriteTransaction(
+      (database) async {
+        _writePreferencesToDatabase(database, preferences);
+      },
+      debugLabel: 'write note preferences',
+    );
+  }
+
+  Future<void> deleteNotesPermanently({
+    required List<String> noteIds,
+    required List<SyncDeleteOperation> operations,
+  }) async {
+    if (noteIds.isEmpty) {
+      return;
+    }
+
+    await _prepareTargetedAccess();
+    await _runWriteTransaction(
+      (database) async {
+        _upsertDeleteOperationsToDatabase(database, operations);
+        _removeNotesFromDatabase(database, noteIds);
+      },
+      debugLabel: 'delete notes permanently',
+    );
+  }
+
+  Future<void> deleteFolderAndReassignNotes({
+    required String folderId,
+    required SyncDeleteOperation operation,
+    required List<NoteModel> reassignedNotes,
+  }) async {
+    await _prepareTargetedAccess();
+    await _runWriteTransaction(
+      (database) async {
+        _upsertDeleteOperationsToDatabase(
+          database,
+          <SyncDeleteOperation>[operation],
+        );
+        if (reassignedNotes.isNotEmpty) {
+          await _upsertNotesToDatabase(database, reassignedNotes);
+        }
+        _removeFoldersFromDatabase(database, <String>[folderId]);
+      },
+      debugLabel: 'delete folder',
+    );
+  }
+
+  Future<void> deleteTagAndUpdateNotes({
+    required String tagId,
+    required SyncDeleteOperation operation,
+    required List<NoteModel> updatedNotes,
+    required List<TagModel> remainingTags,
+  }) async {
+    await _prepareTargetedAccess();
+    await _runWriteTransaction(
+      (database) async {
+        _upsertDeleteOperationsToDatabase(
+          database,
+          <SyncDeleteOperation>[operation],
+        );
+        _removeTagsFromDatabase(database, <String>[tagId]);
+        _removeNoteTagLinksByTagId(database, tagId);
+        if (updatedNotes.isNotEmpty) {
+          await _upsertNotesToDatabase(database, updatedNotes);
+          _replaceNoteTagLinksForNotes(
+            database,
+            updatedNotes,
+            remainingTags,
+          );
+        }
+      },
+      debugLabel: 'delete tag',
+    );
   }
 
   Future<String?> readSyncState(String key) async {
@@ -240,6 +492,7 @@ class NotesLocalDataSource {
       },
       debugLabel: 'commit sync result',
     );
+    _metadataDefaultsEnsured = true;
   }
 
   Future<void> recordSyncFailure({
@@ -314,38 +567,87 @@ class NotesLocalDataSource {
     database.execute('DELETE FROM tags');
     database.execute('DELETE FROM recent_searches');
     database.execute('DELETE FROM app_preferences');
+    await _upsertFoldersToDatabase(database, normalizedStore.folders);
+    await _upsertTagsToDatabase(database, normalizedStore.tags);
+    await _upsertNotesToDatabase(database, normalizedStore.notes);
+    await _writeRecentSearchesToDatabase(
+      database,
+      normalizedStore.recentSearches,
+    );
+    _writePreferencesToDatabase(database, normalizedStore.preferences);
+    _replaceNoteTagLinksForNotes(
+      database,
+      normalizedStore.notes,
+      normalizedStore.tags,
+      clearExistingLinks: false,
+    );
+  }
 
+  Future<void> _upsertNoteWithTagsToDatabase(
+    Database database,
+    NoteModel note,
+    List<TagModel> tags,
+  ) async {
+    await _upsertTagsToDatabase(database, tags);
+    await _upsertNotesToDatabase(database, <NoteModel>[note]);
+    _replaceNoteTagLinksForNotes(
+      database,
+      <NoteModel>[note],
+      tags,
+    );
+  }
+
+  Future<void> _prepareTargetedAccess() async {
+    await _migrateLegacyPreferencesIfNeeded();
+    await _ensureDefaultMetadataRowsIfNeeded();
+  }
+
+  Future<void> _ensureDefaultMetadataRowsIfNeeded() async {
+    if (_metadataDefaultsEnsured) {
+      return;
+    }
+
+    final defaultsMissing = await _runSerialized((database) async {
+      final hasFolders =
+          database.select('SELECT id FROM folders LIMIT 1').isNotEmpty;
+      final hasTags = database.select('SELECT id FROM tags LIMIT 1').isNotEmpty;
+      return !hasFolders || !hasTags;
+    });
+
+    if (defaultsMissing) {
+      await _runWriteTransaction(
+        (database) async {
+          final hasFolders =
+              database.select('SELECT id FROM folders LIMIT 1').isNotEmpty;
+          final hasTags =
+              database.select('SELECT id FROM tags LIMIT 1').isNotEmpty;
+          if (!hasFolders) {
+            await _upsertFoldersToDatabase(database, FolderModel.defaults());
+          }
+          if (!hasTags) {
+            await _upsertTagsToDatabase(database, TagModel.defaults());
+          }
+        },
+        debugLabel: 'ensure note metadata defaults',
+      );
+    }
+
+    _metadataDefaultsEnsured = true;
+  }
+
+  Future<void> _upsertFoldersToDatabase(
+    Database database,
+    Iterable<FolderModel> folders,
+  ) async {
     final insertFolder = database.prepare('''
         INSERT OR REPLACE INTO folders (
           id, remote_id, name, color_key, emoji, is_system, created_at,
           updated_at, sync_status, last_synced_at
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       ''');
-    final insertTag = database.prepare('''
-        INSERT OR REPLACE INTO tags (
-          id, remote_id, label, emoji, created_at, updated_at, sync_status,
-          last_synced_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-      ''');
-    final insertNote = database.prepare('''
-        INSERT OR REPLACE INTO notes (
-          id, remote_id, title, content, folder_id, tags_json, is_pinned,
-          is_favorite, is_archived, is_deleted, created_at, updated_at,
-          deleted_at, sync_status, last_synced_at, server_version
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-      ''');
-    final insertSearch = database.prepare('''
-        INSERT OR REPLACE INTO recent_searches (position, query) VALUES (?, ?)
-      ''');
-    final insertPreference = database.prepare('''
-        INSERT OR REPLACE INTO app_preferences (key, value) VALUES (?, ?)
-      ''');
-    final insertNoteTag = database.prepare('''
-        INSERT OR REPLACE INTO note_tags (note_id, tag_id) VALUES (?, ?)
-      ''');
 
     try {
-      for (final folder in normalizedStore.folders) {
+      for (final folder in folders) {
         insertFolder.execute([
           folder.id,
           null,
@@ -359,8 +661,24 @@ class NotesLocalDataSource {
           null,
         ]);
       }
+    } finally {
+      insertFolder.close();
+    }
+  }
 
-      for (final tag in normalizedStore.tags) {
+  Future<void> _upsertTagsToDatabase(
+    Database database,
+    Iterable<TagModel> tags,
+  ) async {
+    final insertTag = database.prepare('''
+        INSERT OR REPLACE INTO tags (
+          id, remote_id, label, emoji, created_at, updated_at, sync_status,
+          last_synced_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      ''');
+
+    try {
+      for (final tag in tags) {
         insertTag.execute([
           tag.id,
           null,
@@ -372,8 +690,25 @@ class NotesLocalDataSource {
           null,
         ]);
       }
+    } finally {
+      insertTag.close();
+    }
+  }
 
-      for (final note in normalizedStore.notes) {
+  Future<void> _upsertNotesToDatabase(
+    Database database,
+    Iterable<NoteModel> notes,
+  ) async {
+    final insertNote = database.prepare('''
+        INSERT OR REPLACE INTO notes (
+          id, remote_id, title, content, folder_id, tags_json, is_pinned,
+          is_favorite, is_archived, is_deleted, created_at, updated_at,
+          deleted_at, sync_status, last_synced_at, server_version
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ''');
+
+    try {
+      for (final note in notes) {
         insertNote.execute([
           note.id,
           note.remoteId,
@@ -393,25 +728,69 @@ class NotesLocalDataSource {
           note.serverVersion,
         ]);
       }
+    } finally {
+      insertNote.close();
+    }
+  }
 
-      for (var index = 0;
-          index < normalizedStore.recentSearches.length;
-          index += 1) {
+  Future<void> _writeRecentSearchesToDatabase(
+    Database database,
+    List<String> recentSearches,
+  ) async {
+    database.execute('DELETE FROM recent_searches');
+    final insertSearch = database.prepare('''
+        INSERT OR REPLACE INTO recent_searches (position, query) VALUES (?, ?)
+      ''');
+
+    try {
+      for (var index = 0; index < recentSearches.length; index += 1) {
         insertSearch.execute([
           index,
-          await _cipher.encrypt(normalizedStore.recentSearches[index]),
+          await _cipher.encrypt(recentSearches[index]),
         ]);
       }
+    } finally {
+      insertSearch.close();
+    }
+  }
 
-      for (final entry
-          in _preferencesToMap(normalizedStore.preferences).entries) {
+  void _writePreferencesToDatabase(
+    Database database,
+    AppPreferencesModel preferences,
+  ) {
+    database.execute('DELETE FROM app_preferences');
+    final insertPreference = database.prepare('''
+        INSERT OR REPLACE INTO app_preferences (key, value) VALUES (?, ?)
+      ''');
+
+    try {
+      for (final entry in _preferencesToMap(preferences).entries) {
         insertPreference.execute([entry.key, entry.value]);
       }
+    } finally {
+      insertPreference.close();
+    }
+  }
 
-      final tagsByLabel = <String, TagModel>{
-        for (final tag in normalizedStore.tags) tag.label.toLowerCase(): tag,
-      };
-      for (final note in normalizedStore.notes) {
+  void _replaceNoteTagLinksForNotes(
+    Database database,
+    Iterable<NoteModel> notes,
+    Iterable<TagModel> tags, {
+    bool clearExistingLinks = true,
+  }) {
+    final tagsByLabel = <String, TagModel>{
+      for (final tag in tags) tag.label.toLowerCase(): tag,
+    };
+    final insertNoteTag = database.prepare('''
+        INSERT OR REPLACE INTO note_tags (note_id, tag_id) VALUES (?, ?)
+      ''');
+
+    try {
+      for (final note in notes) {
+        if (clearExistingLinks) {
+          database
+              .execute('DELETE FROM note_tags WHERE note_id = ?', [note.id]);
+        }
         for (final label in note.tags) {
           final tag = tagsByLabel[label.toLowerCase()];
           if (tag != null) {
@@ -420,83 +799,6 @@ class NotesLocalDataSource {
         }
       }
     } finally {
-      insertFolder.close();
-      insertTag.close();
-      insertNote.close();
-      insertSearch.close();
-      insertPreference.close();
-      insertNoteTag.close();
-    }
-  }
-
-  Future<void> _upsertNoteWithTagsToDatabase(
-    Database database,
-    NoteModel note,
-    List<TagModel> tags,
-  ) async {
-    final normalizedTags = <String, TagModel>{
-      for (final tag in tags) tag.label.toLowerCase(): tag,
-    };
-    final insertTag = database.prepare('''
-        INSERT OR REPLACE INTO tags (
-          id, remote_id, label, emoji, created_at, updated_at, sync_status,
-          last_synced_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-      ''');
-    final insertNote = database.prepare('''
-        INSERT OR REPLACE INTO notes (
-          id, remote_id, title, content, folder_id, tags_json, is_pinned,
-          is_favorite, is_archived, is_deleted, created_at, updated_at,
-          deleted_at, sync_status, last_synced_at, server_version
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-      ''');
-    final insertNoteTag = database.prepare('''
-        INSERT OR REPLACE INTO note_tags (note_id, tag_id) VALUES (?, ?)
-      ''');
-
-    try {
-      for (final tag in tags) {
-        insertTag.execute([
-          tag.id,
-          null,
-          await _cipher.encrypt(tag.label),
-          tag.emoji,
-          tag.createdAt.toIso8601String(),
-          tag.updatedAt.toIso8601String(),
-          'synced',
-          null,
-        ]);
-      }
-
-      insertNote.execute([
-        note.id,
-        note.remoteId,
-        await _cipher.encrypt(note.title),
-        await _cipher.encrypt(note.content),
-        note.folderId,
-        await _cipher.encrypt(jsonEncode(note.tags)),
-        _boolToInt(note.isPinned),
-        _boolToInt(note.isFavorite),
-        _boolToInt(note.isArchived),
-        _boolToInt(note.isDeleted),
-        note.createdAt.toIso8601String(),
-        note.updatedAt.toIso8601String(),
-        note.deletedAt?.toIso8601String(),
-        note.syncStatus.storageValue,
-        note.lastSyncedAt?.toIso8601String(),
-        note.serverVersion,
-      ]);
-
-      database.execute('DELETE FROM note_tags WHERE note_id = ?', [note.id]);
-      for (final label in note.tags) {
-        final tag = normalizedTags[label.toLowerCase()];
-        if (tag != null) {
-          insertNoteTag.execute([note.id, tag.id]);
-        }
-      }
-    } finally {
-      insertTag.close();
-      insertNote.close();
       insertNoteTag.close();
     }
   }
@@ -557,6 +859,71 @@ class NotesLocalDataSource {
         operation.retryCount,
         operation.lastError,
       ],
+    );
+  }
+
+  void _upsertDeleteOperationsToDatabase(
+    Database database,
+    Iterable<SyncDeleteOperation> operations,
+  ) {
+    for (final operation in operations) {
+      _upsertDeleteOperationToDatabase(database, operation);
+    }
+  }
+
+  void _removeNotesFromDatabase(
+    Database database,
+    List<String> noteIds,
+  ) {
+    if (noteIds.isEmpty) {
+      return;
+    }
+
+    final placeholders = List.filled(noteIds.length, '?').join(', ');
+    database.execute(
+      'DELETE FROM note_tags WHERE note_id IN ($placeholders)',
+      noteIds,
+    );
+    database.execute(
+      'DELETE FROM notes WHERE id IN ($placeholders)',
+      noteIds,
+    );
+  }
+
+  void _removeFoldersFromDatabase(
+    Database database,
+    List<String> folderIds,
+  ) {
+    if (folderIds.isEmpty) {
+      return;
+    }
+
+    final placeholders = List.filled(folderIds.length, '?').join(', ');
+    database.execute(
+      'DELETE FROM folders WHERE id IN ($placeholders)',
+      folderIds,
+    );
+  }
+
+  void _removeTagsFromDatabase(
+    Database database,
+    List<String> tagIds,
+  ) {
+    if (tagIds.isEmpty) {
+      return;
+    }
+
+    final placeholders = List.filled(tagIds.length, '?').join(', ');
+    database.execute(
+      'DELETE FROM tags WHERE id IN ($placeholders)',
+      tagIds,
+    );
+  }
+
+  void _removeNoteTagLinksByTagId(Database database, String tagId) {
+    database.execute(
+      'DELETE FROM note_tags WHERE tag_id = ?',
+      [tagId],
     );
   }
 
@@ -759,6 +1126,18 @@ class _ReadStoreSnapshot {
 
   final NotesStoreModel store;
   final bool shouldRewriteStore;
+}
+
+class LocalNoteSaveContext {
+  const LocalNoteSaveContext({
+    required this.note,
+    required this.folders,
+    required this.tags,
+  });
+
+  final NoteModel? note;
+  final List<FolderModel> folders;
+  final List<TagModel> tags;
 }
 
 String _databaseNameForCurrentSession(String? uid) {

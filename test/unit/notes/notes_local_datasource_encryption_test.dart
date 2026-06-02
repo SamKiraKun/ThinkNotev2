@@ -9,7 +9,8 @@ import 'package:thinknote/features/notes/data/models/notes_store_model.dart';
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  test('notes local data source encrypts stored note content and decrypts it on read',
+  test(
+      'notes local data source encrypts stored note content and decrypts it on read',
       () async {
     SharedPreferences.setMockInitialValues(<String, Object>{});
     final preferences = await SharedPreferences.getInstance();
@@ -57,4 +58,41 @@ void main() {
 
     await database.close();
   });
+
+  test('secure local notes cipher reuses the same secret key in memory',
+      () async {
+    final secretStore = _CountingSecretStore();
+    final cipher = SecureLocalNotesCipher(
+      secretStore,
+      keyNamespace: 'unit-test-cache',
+    );
+
+    final firstEncrypted = await cipher.encrypt('first payload');
+    final secondEncrypted = await cipher.encrypt('second payload');
+    final restored = await cipher.decrypt(firstEncrypted);
+
+    expect(firstEncrypted, startsWith('enc:v1:'));
+    expect(secondEncrypted, startsWith('enc:v1:'));
+    expect(restored, 'first payload');
+    expect(secretStore.readCount, 1);
+    expect(secretStore.writeCount, 1);
+  });
+}
+
+class _CountingSecretStore implements SecretStore {
+  String? _value;
+  int readCount = 0;
+  int writeCount = 0;
+
+  @override
+  Future<String?> read(String key) async {
+    readCount += 1;
+    return _value;
+  }
+
+  @override
+  Future<void> write(String key, String value) async {
+    writeCount += 1;
+    _value = value;
+  }
 }

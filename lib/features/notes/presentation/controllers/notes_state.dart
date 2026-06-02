@@ -49,6 +49,22 @@ class NotesState {
     );
   }
 
+  NotesState copyWith({
+    List<NoteModel>? notes,
+    List<FolderModel>? folders,
+    List<TagModel>? tags,
+    List<String>? recentSearches,
+    AppPreferencesModel? preferences,
+  }) {
+    return NotesState(
+      notes: notes ?? this.notes,
+      folders: folders ?? this.folders,
+      tags: tags ?? this.tags,
+      recentSearches: recentSearches ?? this.recentSearches,
+      preferences: preferences ?? this.preferences,
+    );
+  }
+
   Map<String, FolderModel> get folderMap {
     return <String, FolderModel>{
       for (final folder in folders) folder.id: folder,
@@ -102,7 +118,9 @@ class NotesState {
   List<FolderSummary> get folderSummaries {
     return folders.map((folder) {
       final noteCount = notes.where((note) {
-        return !note.isDeleted && !note.isArchived && note.folderId == folder.id;
+        return !note.isDeleted &&
+            !note.isArchived &&
+            note.folderId == folder.id;
       }).length;
       return FolderSummary(folder: folder, noteCount: noteCount);
     }).toList(growable: false);
@@ -123,19 +141,18 @@ class NotesState {
   }
 
   List<NoteModel> topPicks({int limit = 3}) {
-    final candidates =
-        notes
-            .where((note) => !note.isDeleted && !note.isArchived)
-            .toList(growable: false)
-          ..sort((a, b) {
-            final scoreA = (a.isPinned ? 2 : 0) + (a.isFavorite ? 1 : 0);
-            final scoreB = (b.isPinned ? 2 : 0) + (b.isFavorite ? 1 : 0);
-            final scoreCompare = scoreB.compareTo(scoreA);
-            if (scoreCompare != 0) {
-              return scoreCompare;
-            }
-            return b.updatedAt.compareTo(a.updatedAt);
-          });
+    final candidates = notes
+        .where((note) => !note.isDeleted && !note.isArchived)
+        .toList(growable: false)
+      ..sort((a, b) {
+        final scoreA = (a.isPinned ? 2 : 0) + (a.isFavorite ? 1 : 0);
+        final scoreB = (b.isPinned ? 2 : 0) + (b.isFavorite ? 1 : 0);
+        final scoreCompare = scoreB.compareTo(scoreA);
+        if (scoreCompare != 0) {
+          return scoreCompare;
+        }
+        return b.updatedAt.compareTo(a.updatedAt);
+      });
     return candidates.take(limit).toList(growable: false);
   }
 

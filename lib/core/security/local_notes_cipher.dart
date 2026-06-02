@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:math';
 
@@ -44,6 +45,7 @@ class SecureLocalNotesCipher implements LocalNotesCipher {
   final SecretStore _secretStore;
   final String _keyName;
   final AesGcm _cipher = AesGcm.with256bits();
+  Future<SecretKey>? _secretKeyFuture;
 
   @override
   Future<String> encrypt(String value) async {
@@ -98,15 +100,31 @@ class SecureLocalNotesCipher implements LocalNotesCipher {
   }
 
   Future<SecretKey> _readOrCreateSecretKey() async {
-    final existing = await _secretStore.read(_keyName);
-    if (existing != null && existing.isNotEmpty) {
-      return SecretKey(base64Url.decode(existing));
+    final cached = _secretKeyFuture;
+    if (cached != null) {
+      return cached;
     }
 
-    final bytes = _randomBytes(32);
-    final encoded = base64UrlEncode(bytes);
-    await _secretStore.write(_keyName, encoded);
-    return SecretKey(bytes);
+    final completer = Completer<SecretKey>();
+    _secretKeyFuture = completer.future;
+
+    try {
+      final existing = await _secretStore.read(_keyName);
+      if (existing != null && existing.isNotEmpty) {
+        completer.complete(SecretKey(base64Url.decode(existing)));
+        return completer.future;
+      }
+
+      final bytes = _randomBytes(32);
+      final encoded = base64UrlEncode(bytes);
+      await _secretStore.write(_keyName, encoded);
+      completer.complete(SecretKey(bytes));
+    } catch (error, stackTrace) {
+      _secretKeyFuture = null;
+      completer.completeError(error, stackTrace);
+    }
+
+    return completer.future;
   }
 
   List<int> _randomBytes(int length) {
@@ -151,8 +169,9 @@ final flutterSecureStorageProvider = Provider<FlutterSecureStorage>((ref) {
 
 final localNotesCipherProvider = Provider<LocalNotesCipher>((ref) {
   final keyNamespace = AppEnv.enableExperimentalSync
-    ? ref.watch(currentAuthSessionProvider.select((session) => session?.uid)) ??
-      'default'
+      ? ref.watch(
+              currentAuthSessionProvider.select((session) => session?.uid)) ??
+          'default'
       : 'default';
 
   return SecureLocalNotesCipher(
