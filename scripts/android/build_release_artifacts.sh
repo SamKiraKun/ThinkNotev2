@@ -76,6 +76,25 @@ append_optional_define "ANALYTICS_KEY"
 "$flutter_bin" build apk "${build_args[@]}"
 "$flutter_bin" build appbundle "${build_args[@]}"
 
+bundle_output_path="build/app/outputs/bundle/release/app-release.aab"
+apk_output_path="build/app/outputs/flutter-apk/app-release.apk"
+release_artifacts_dir="build/release-artifacts"
+final_aab_path="${release_artifacts_dir}/ThinkNote-release.aab"
+final_apk_path="${release_artifacts_dir}/ThinkNote-qa-release.apk"
+
+for artifact_path in "$bundle_output_path" "$apk_output_path"; do
+  if [[ ! -s "$artifact_path" ]]; then
+    echo "Expected release artifact was not generated: $artifact_path"
+    echo "Available build outputs:"
+    find build/app/outputs -type f | sort || true
+    exit 1
+  fi
+done
+
+mkdir -p "$release_artifacts_dir"
+cp "$bundle_output_path" "$final_aab_path"
+cp "$apk_output_path" "$final_apk_path"
+
 mkdir -p build/release-metadata
 "$flutter_bin" --version > build/release-metadata/flutter-version.txt
 (cd android && ./gradlew --version) > build/release-metadata/gradle-version.txt
@@ -99,20 +118,22 @@ target_sdk="$(grep -E 'targetSdk = [0-9]+' android/app/build.gradle.kts | head -
 
 if command -v sha256sum >/dev/null 2>&1; then
   sha256sum \
-    build/app/outputs/bundle/release/app-release.aab \
-    build/app/outputs/flutter-apk/app-release.apk \
+    "$final_aab_path" \
+    "$final_apk_path" \
     > build/release-metadata/artifact-sha256.txt
 fi
 
-printf '{\n  "git_sha": "%s",\n  "circle_build_num": "%s",\n  "app_flavor": "%s",\n  "enable_analytics": "%s",\n  "sync_mode": "%s",\n  "target_sdk": "%s",\n  "play_artifact": "%s",\n  "qa_artifact": "%s",\n  "r8_mapping": "%s",\n  "api_url": "%s"\n}\n' \
+printf '{\n  "git_sha": "%s",\n  "circle_build_num": "%s",\n  "app_flavor": "%s",\n  "enable_analytics": "%s",\n  "sync_mode": "%s",\n  "target_sdk": "%s",\n  "play_artifact": "%s",\n  "play_build_output": "%s",\n  "qa_artifact": "%s",\n  "qa_build_output": "%s",\n  "r8_mapping": "%s",\n  "api_url": "%s"\n}\n' \
   "${CIRCLE_SHA1:-$(git rev-parse HEAD)}" \
   "${CIRCLE_BUILD_NUM:-1}" \
   "${APP_FLAVOR}" \
   "${ENABLE_ANALYTICS}" \
   "enabled" \
   "${target_sdk:-unknown}" \
-  "build/app/outputs/bundle/release/app-release.aab" \
-  "build/app/outputs/flutter-apk/app-release.apk" \
+  "${final_aab_path}" \
+  "${bundle_output_path}" \
+  "${final_apk_path}" \
+  "${apk_output_path}" \
   "build/release-metadata/r8-mapping.txt" \
   "${normalized_api_url}" \
   > build/release-metadata/release-manifest.json

@@ -3,10 +3,17 @@ default_platform(:android)
 platform :android do
   desc "Upload ThinkNote to the Play internal track"
   lane :internal do
+    aab_path = ENV.fetch("PLAY_AAB_PATH", "build/release-artifacts/ThinkNote-release.aab")
+    mapping_path = ENV.fetch("PLAY_MAPPING_PATH", "build/release-metadata/r8-mapping.txt")
+
+    UI.user_error!("Play bundle not found at #{aab_path}") unless File.exist?(aab_path)
+    UI.user_error!("Play bundle is empty at #{aab_path}") if File.zero?(aab_path)
+    UI.user_error!("Play bundle must end with .aab: #{aab_path}") unless File.extname(aab_path) == ".aab"
+
     upload_to_play_store(
       track: "internal",
-      aab: "build/app/outputs/bundle/release/app-release.aab",
-      mapping: "build/release-metadata/r8-mapping.txt",
+      aab: aab_path,
+      mapping: mapping_path,
       skip_upload_apk: true,
       skip_upload_images: true,
       skip_upload_screenshots: true,

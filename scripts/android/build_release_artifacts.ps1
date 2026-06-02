@@ -102,6 +102,25 @@ foreach ($optionalVar in @(
 & $flutterBin build apk @buildArgs
 & $flutterBin build appbundle @buildArgs
 
+$bundleOutputPath = Join-Path $repoRoot 'build\app\outputs\bundle\release\app-release.aab'
+$apkOutputPath = Join-Path $repoRoot 'build\app\outputs\flutter-apk\app-release.apk'
+$releaseArtifactsDir = Join-Path $repoRoot 'build\release-artifacts'
+$finalAabPath = Join-Path $releaseArtifactsDir 'ThinkNote-release.aab'
+$finalApkPath = Join-Path $releaseArtifactsDir 'ThinkNote-qa-release.apk'
+
+foreach ($artifactPath in @($bundleOutputPath, $apkOutputPath)) {
+  if (-not (Test-Path $artifactPath) -or (Get-Item $artifactPath).Length -le 0) {
+    Write-Host "Expected release artifact was not generated: $artifactPath"
+    Write-Host 'Available build outputs:'
+    Get-ChildItem -Recurse -File (Join-Path $repoRoot 'build\app\outputs') | Select-Object -ExpandProperty FullName
+    exit 1
+  }
+}
+
+New-Item -ItemType Directory -Force -Path $releaseArtifactsDir | Out-Null
+Copy-Item -Path $bundleOutputPath -Destination $finalAabPath -Force
+Copy-Item -Path $apkOutputPath -Destination $finalApkPath -Force
+
 $metadataDir = Join-Path $repoRoot 'build\release-metadata'
 New-Item -ItemType Directory -Force -Path $metadataDir | Out-Null
 
@@ -140,8 +159,8 @@ $targetSdk = if ($targetSdkMatch -and $targetSdkMatch.Matches.Count -gt 0) {
 }
 
 $artifactHashes = foreach ($artifactPath in @(
-  (Join-Path $repoRoot 'build\app\outputs\bundle\release\app-release.aab'),
-  (Join-Path $repoRoot 'build\app\outputs\flutter-apk\app-release.apk')
+  $finalAabPath,
+  $finalApkPath
 )) {
   $hash = (Get-FileHash -Algorithm SHA256 -Path $artifactPath).Hash.ToLowerInvariant()
   $relativePath = [System.IO.Path]::GetRelativePath($repoRoot, $artifactPath).Replace('\', '/')
@@ -163,8 +182,10 @@ $manifest = [ordered]@{
   sync_mode = 'enabled'
   api_url = $normalizedApiUrl
   target_sdk = $targetSdk
-  play_artifact = 'build/app/outputs/bundle/release/app-release.aab'
-  qa_artifact = 'build/app/outputs/flutter-apk/app-release.apk'
+  play_artifact = 'build/release-artifacts/ThinkNote-release.aab'
+  play_build_output = 'build/app/outputs/bundle/release/app-release.aab'
+  qa_artifact = 'build/release-artifacts/ThinkNote-qa-release.apk'
+  qa_build_output = 'build/app/outputs/flutter-apk/app-release.apk'
   r8_mapping = 'build/release-metadata/r8-mapping.txt'
 }
 $manifest | ConvertTo-Json | Set-Content -Path (Join-Path $metadataDir 'release-manifest.json')
