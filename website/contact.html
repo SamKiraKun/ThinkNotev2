@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Contact Us — ThinkNote</title>
+  
+  <meta name="description" content="Reach out to ThinkNote support or management. Submit account help inquiries, database sync questions, or compliance requests through our secure contact portal.">
+  
+  <!-- CSS Stylesheet -->
+  <link rel="stylesheet" href="css/styles.css">
+  
+  <!-- Favicon Reference -->
+  <link rel="icon" type="image/png" href="favicon.png">
+</head>
+<body>
+
+  <!-- Sticky Accessibility Navigation -->
+  <header class="header">
+    <div class="container header-container">
+      <a href="index.html" class="logo-link">
+        <img src="icons/Icon-192.png" alt="ThinkNote Logo" class="logo-img">
+        <span>ThinkNote</span>
+      </a>
+      
+      <button class="menu-toggle" aria-label="Open main menu" aria-expanded="false" aria-controls="primary-navigation">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="menu-toggle-icon"><line x1="4" x2="20" y1="12" y2="12"/><line x1="4" x2="20" y1="6" y2="6"/><line x1="4" x2="20" y1="18" y2="18"/></svg>
+      </button>
+      
+      <nav id="primary-navigation">
+        <ul class="nav-menu">
+          <li><a href="index.html" class="nav-link">Home</a></li>
+          <li><a href="privacy-policy.html" class="nav-link">Privacy Policy</a></li>
+          <li><a href="delete-account.html" class="nav-link">Delete Account</a></li>
+          <li><a href="terms.html" class="nav-link">Terms of Service</a></li>
+          <li><a href="contact.html" class="nav-link active">Contact</a></li>
+          <li><a href="#" class="nav-cta">Get App</a></li>
+        </ul>
+      </nav>
+    </div>
+  </header>
+
+  <main class="legal-layout">
+    <div class="container">
+      <header class="legal-header">
+        <span class="section-label">Connect with Us</span>
+        <h1>Get in Touch</h1>
+        <p class="legal-meta">We are here to help with your account, data requests, or technical support.</p>
+      </header>
+      
+      <div class="contact-layout">
+        <!-- Left Pane: Contact Information Panel -->
+        <aside class="contact-info-panel">
+          <div class="contact-info-card">
+            <h3 style="margin-bottom: 0.75rem;">Support Desk</h3>
+            <p style="font-size: 0.95rem; margin-bottom: 1.5rem; line-height: 1.6;">
+              Our support team assists with active Firebase account sync issues, data deletion requests, or client database restores.
+            </p>
+            
+            <div class="contact-action" style="margin-bottom: 0; width: 100%; display: flex; justify-content: space-between;">
+              <span class="contact-email">support@unicef.edu.eu.org</span>
+              <button class="btn-clipboard" aria-label="Copy support email address">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="copy-icon"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+                <span class="btn-clipboard-text">Copy</span>
+              </button>
+            </div>
+          </div>
+          
+          <div class="contact-info-card">
+            <h3 style="margin-bottom: 0.75rem;">Important Details</h3>
+            <ul style="padding-left: 1.25rem; font-size: 0.9rem; color: var(--color-text-secondary); line-height: 1.6;">
+              <li style="margin-bottom: 0.5rem;">Use the registration email connected to your current app profile.</li>
+              <li style="margin-bottom: 0.5rem;">Provide details of your device platform (Android or iOS).</li>
+              <li style="margin-bottom: 0.5rem;">Include error logs or screenshots if sync fails.</li>
+              <li>Responses are typically sent within 24–48 hours.</li>
+            </ul>
+          </div>
+        </aside>
+        
+        <!-- Right Pane: Contact Form Card -->
+        <section class="contact-form-card" id="contact-form-section">
+          <form class="contact-form" id="thinknote-contact-form" novalidate>
+            <div class="form-row">
+              <div class="form-group">
+                <label for="contact-name" class="form-label">Full Name</label>
+                <input type="text" id="contact-name" class="form-input" placeholder="Alex Carter" required>
+                <span class="form-input-error sr-only" id="error-name">Please enter your name</span>
+              </div>
+              
+              <div class="form-group">
+                <label for="contact-email" class="form-label">Email Address</label>
+                <input type="email" id="contact-email" class="form-input" placeholder="you@example.com" required>
+                <span class="form-input-error sr-only" id="error-email">Please enter a valid email</span>
+              </div>
+            </div>
+            
+            <div class="form-group">
+              <label for="contact-subject" class="form-label">Subject</label>
+              <input type="text" id="contact-subject" class="form-input" placeholder="Sync setup assistance" required>
+              <span class="form-input-error sr-only" id="error-subject">Please enter a subject</span>
+            </div>
+            
+            <div class="form-group">
+              <label for="contact-message" class="form-label">Message</label>
+              <textarea id="contact-message" class="form-input" rows="6" placeholder="Describe your issue or feedback in detail..." required></textarea>
+              <span class="form-input-error sr-only" id="error-message">Please enter your message</span>
+            </div>
+            
+            <button type="submit" class="btn btn-primary submit-btn" style="margin-top: 0.5rem; justify-content: center;">
+              <span>Send Message</span>
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="send-icon"><line x1="22" x2="11" y1="2" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+            </button>
+          </form>
+        </section>
+      </div>
+    </div>
+  </main>
+
+  <!-- Complete Standard Sticky Footer -->
+  <footer class="footer">
+    <div class="container">
+      <div class="footer-nav">
+        <div class="footer-logo">
+          <img src="icons/Icon-192.png" alt="ThinkNote Logo" class="footer-logo-img">
+          <span>ThinkNote</span>
+        </div>
+        <ul class="footer-links">
+          <li><a href="privacy-policy.html" class="footer-link">Privacy Policy</a></li>
+          <li><a href="delete-account.html" class="footer-link">Delete Account</a></li>
+          <li><a href="terms.html" class="footer-link">Terms of Service</a></li>
+          <li><a href="contact.html" class="footer-link">Support</a></li>
+        </ul>
+      </div>
+      
+      <hr class="footer-divider">
+      
+      <div class="footer-bottom">
+        <p class="footer-copyright">
+          &copy; <span id="current-year"></span> ThinkNote. All rights reserved.
+        </p>
+        <p class="footer-compliance-disclaimer">
+          <strong>Play Store Compliance Notice:</strong> This app incorporates functional Firebase secure sign-in and remote note cloud sync. Detailed data handling complies with policies. No affiliation, partnership, or official representation of UNICEF is implied; support routing handles app-specific database synchronization.
+        </p>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Script Actions -->
+  <script src="js/main.js"></script>
+</body>
+</html>
