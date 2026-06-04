@@ -125,7 +125,7 @@ class HomeScreen extends ConsumerWidget {
                       final visuals = folderVisualsFor(folder.colorKey);
                       return CategoryChip(
                         label: folder.name,
-                        emoji: folder.emoji,
+                        icon: visuals.icon,
                         selected: selectedFolderId == folder.id,
                         backgroundColor: visuals.backgroundColor,
                         textColor: visuals.accentColor,

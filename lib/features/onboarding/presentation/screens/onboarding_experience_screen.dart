@@ -122,18 +122,13 @@ class _OnboardingExperienceScreenState
                           children: [
                             Row(
                               children: [
-                                Container(
-                                  width: 30,
-                                  height: 30,
-                                  decoration: BoxDecoration(
-                                    gradient: AppGradients.authPrimaryButton,
-                                    borderRadius: BorderRadius.circular(10),
-                                  ),
-                                  alignment: Alignment.center,
-                                  child: const Icon(
-                                    Icons.auto_awesome_rounded,
-                                    color: Colors.white,
-                                    size: 16,
+                                ClipRRect(
+                                  borderRadius: BorderRadius.circular(8),
+                                  child: Image.asset(
+                                    'assets/icons/logo.png',
+                                    width: 30,
+                                    height: 30,
+                                    fit: BoxFit.contain,
                                   ),
                                 ),
                                 const SizedBox(width: AppSpacing.sm),

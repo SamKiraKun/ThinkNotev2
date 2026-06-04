@@ -91,22 +91,13 @@ class _AuthGateScreenState extends ConsumerState<AuthGateScreen>
                   // App branding header
                   Column(
                     children: [
-                      Container(
-                        width: 76,
-                        height: 76,
-                        decoration: BoxDecoration(
-                          gradient: AppGradients.authAppIcon,
-                          borderRadius: BorderRadius.circular(24),
-                          boxShadow: AppShadows.floatingCard,
-                          border: Border.all(
-                            color: Colors.white.withValues(alpha: 0.2),
-                          ),
-                        ),
-                        alignment: Alignment.center,
-                        child: const Icon(
-                          Icons.auto_awesome_rounded,
-                          color: Colors.white,
-                          size: 38,
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(24),
+                        child: Image.asset(
+                          'assets/icons/logo.png',
+                          width: 76,
+                          height: 76,
+                          fit: BoxFit.contain,
                         ),
                       ),
                       const SizedBox(height: AppSpacing.lg),

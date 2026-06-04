@@ -37,9 +37,9 @@ class AppThemePalette extends ThemeExtension<AppThemePalette> {
     borderPrimary: Color(0xFFE8E7F0),
     borderSoft: Color(0xFFF0EFF6),
     textPrimary: Color(0xFF101126),
-    textSecondary: Color(0xFF5D6077),
+    textSecondary: Color(0xFF4E5168),
     textTertiary: Color(0xFF7C7F96),
-    textPlaceholder: Color(0xFFA2A5B8),
+    textPlaceholder: Color(0xFF9DA0B5),
   );
 
   static const AppThemePalette dark = AppThemePalette(

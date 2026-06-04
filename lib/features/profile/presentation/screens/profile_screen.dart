@@ -52,17 +52,31 @@ class ProfileScreen extends ConsumerWidget {
     return account?.email ?? authSession?.email ?? 'Signed in with Firebase';
   }
 
-  String _focusBioText(WorkspaceFocus? focus) {
-    if (focus == null) return '💜 Dreamer • Planner • Creator';
+  IconData _focusIcon(WorkspaceFocus? focus) {
+    if (focus == null) return Icons.favorite_rounded;
     switch (focus) {
       case WorkspaceFocus.capture:
-        return '⚡ Capture • Speed • Ideas';
+        return Icons.bolt_rounded;
       case WorkspaceFocus.planning:
-        return '💜 Dreamer • Planner • Creator';
+        return Icons.favorite_rounded;
       case WorkspaceFocus.research:
-        return '📚 Research • Learn • Analyze';
+        return Icons.menu_book_rounded;
       case WorkspaceFocus.journal:
-        return '✍️ Reflection • Mindful • Daily';
+        return Icons.edit_note_rounded;
+    }
+  }
+
+  String _focusBioText(WorkspaceFocus? focus) {
+    if (focus == null) return 'Dreamer • Planner • Creator';
+    switch (focus) {
+      case WorkspaceFocus.capture:
+        return 'Capture • Speed • Ideas';
+      case WorkspaceFocus.planning:
+        return 'Dreamer • Planner • Creator';
+      case WorkspaceFocus.research:
+        return 'Research • Learn • Analyze';
+      case WorkspaceFocus.journal:
+        return 'Reflection • Mindful • Daily';
     }
   }
 
@@ -203,12 +217,23 @@ class ProfileScreen extends ConsumerWidget {
                               borderRadius:
                                   BorderRadius.circular(AppRadius.pill),
                             ),
-                            child: Text(
-                              _focusBioText(onboardingProfile?.workspaceFocus),
-                              style: AppTypography.bodySmall.copyWith(
-                                color: AppColors.brandPrimary,
-                                fontWeight: FontWeight.bold,
-                              ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  _focusIcon(onboardingProfile?.workspaceFocus),
+                                  size: 14,
+                                  color: AppColors.brandPrimary,
+                                ),
+                                const SizedBox(width: 6),
+                                Text(
+                                  _focusBioText(onboardingProfile?.workspaceFocus),
+                                  style: AppTypography.bodySmall.copyWith(
+                                    color: AppColors.brandPrimary,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                         ],

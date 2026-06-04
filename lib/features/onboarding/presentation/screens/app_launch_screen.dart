@@ -152,19 +152,13 @@ class _SplashVisual extends StatelessWidget {
           builder: (context, value, child) {
             return Transform.scale(scale: value, child: child);
           },
-          child: Container(
-            width: 92,
-            height: 92,
-            decoration: BoxDecoration(
-              gradient: AppGradients.authPrimaryButton,
-              borderRadius: BorderRadius.circular(30),
-              boxShadow: AppShadows.floatingCard,
-            ),
-            alignment: Alignment.center,
-            child: const Icon(
-              Icons.auto_awesome_rounded,
-              color: Colors.white,
-              size: 40,
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(30),
+            child: Image.asset(
+              'assets/icons/logo.png',
+              width: 92,
+              height: 92,
+              fit: BoxFit.contain,
             ),
           ),
         ),

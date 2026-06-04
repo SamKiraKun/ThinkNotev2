@@ -64,6 +64,8 @@ class AppSearchBar extends StatelessWidget {
               onChanged: onChanged,
               decoration: InputDecoration(
                 border: InputBorder.none,
+                filled: false,
+                contentPadding: EdgeInsets.zero,
                 hintText: hintText,
                 hintStyle: AppTypography.bodyLarge.copyWith(
                   color: palette.textPlaceholder,

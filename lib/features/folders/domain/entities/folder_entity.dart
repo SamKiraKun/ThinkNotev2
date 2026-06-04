@@ -18,10 +18,6 @@ class FolderEntity {
   final bool isSystem;
 
   String get displayName {
-    if (emoji.trim().isEmpty) {
-      return name;
-    }
-
-    return '$name $emoji';
+    return name;
   }
 }

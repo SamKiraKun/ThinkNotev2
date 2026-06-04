@@ -40,8 +40,20 @@ class AppHeader extends ConsumerWidget {
     }
 
     return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        if (leading != null) ...[
+        if (brandStyle) ...[
+          ClipRRect(
+            borderRadius: BorderRadius.circular(10),
+            child: Image.asset(
+              'assets/icons/logo.png',
+              width: 38,
+              height: 38,
+              fit: BoxFit.contain,
+            ),
+          ),
+          const SizedBox(width: AppSpacing.lg),
+        ] else if (leading != null) ...[
           leading!,
           const SizedBox(width: AppSpacing.lg),
         ],

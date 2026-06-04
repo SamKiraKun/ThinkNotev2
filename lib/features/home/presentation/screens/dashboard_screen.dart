@@ -469,6 +469,7 @@ class _MetricTile extends StatelessWidget {
       decoration: BoxDecoration(
         color: palette.surfacePrimary,
         borderRadius: BorderRadius.circular(AppRadius.formCard),
+        border: Border.all(color: palette.borderSoft),
         boxShadow: AppShadows.softCard,
       ),
       child: Material(
@@ -481,7 +482,16 @@ class _MetricTile extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Icon(icon, color: AppColors.brandPrimary),
+                Container(
+                  width: 42,
+                  height: 42,
+                  decoration: BoxDecoration(
+                    color: AppColors.brandPrimary.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  alignment: Alignment.center,
+                  child: Icon(icon, color: AppColors.brandPrimary, size: 20),
+                ),
                 const SizedBox(height: AppSpacing.lg),
                 Text(value, style: AppTypography.titleLarge),
                 const SizedBox(height: AppSpacing.xs),
@@ -522,6 +532,7 @@ class _CollectionCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: palette.surfacePrimary,
         borderRadius: BorderRadius.circular(AppRadius.formCard),
+        border: Border.all(color: palette.borderSoft),
         boxShadow: AppShadows.softCard,
       ),
       child: Column(

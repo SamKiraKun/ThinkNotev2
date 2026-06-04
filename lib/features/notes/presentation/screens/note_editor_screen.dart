@@ -281,6 +281,8 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
                                     onChanged: editorController.updateTitle,
                                     decoration: const InputDecoration(
                                       border: InputBorder.none,
+                                      filled: false,
+                                      contentPadding: EdgeInsets.zero,
                                       hintText: 'Untitled note',
                                       counterText: '',
                                     ),
@@ -431,6 +433,7 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
                                             AppSpacing.xl,
                                           ),
                                           border: InputBorder.none,
+                                          filled: false,
                                           hintText: 'Start writing...',
                                           hintStyle:
                                               AppTypography.bodyLarge.copyWith(

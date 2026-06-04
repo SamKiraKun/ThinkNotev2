@@ -6,7 +6,7 @@ import '../../core/theme/app_typography.dart';
 
 class CategoryChip extends StatelessWidget {
   final String label;
-  final String? emoji;
+  final IconData? icon;
   final bool selected;
   final Color backgroundColor;
   final Color textColor;
@@ -15,7 +15,7 @@ class CategoryChip extends StatelessWidget {
   const CategoryChip({
     super.key,
     required this.label,
-    this.emoji,
+    this.icon,
     this.selected = false,
     required this.backgroundColor,
     required this.textColor,
@@ -44,9 +44,13 @@ class CategoryChip extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            if (emoji != null) ...[
-              Text(emoji!, style: const TextStyle(fontSize: 14)),
-              const SizedBox(width: 4),
+            if (icon != null) ...[
+              Icon(
+                icon,
+                size: 16,
+                color: selected ? AppColors.textInverse : textColor,
+              ),
+              const SizedBox(width: 6),
             ],
             Text(
               label,
