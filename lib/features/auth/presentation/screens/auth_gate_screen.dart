@@ -37,6 +37,9 @@ class _AuthGateScreenState extends ConsumerState<AuthGateScreen>
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
+    _tabController.addListener(() {
+      setState(() {});
+    });
     _signInEmailController = TextEditingController();
     _signInPasswordController = TextEditingController();
     _signUpNameController = TextEditingController();
@@ -491,6 +494,7 @@ class _AuthFormState extends State<_AuthForm> {
                 labelText: 'Display Name',
                 hintText: 'e.g., Alex Carter',
                 floatingLabelBehavior: FloatingLabelBehavior.always,
+                prefixIcon: Icon(Icons.person_outline_rounded, size: 20),
               ),
               validator: (value) {
                 if (value == null || value.trim().isEmpty) {
@@ -511,6 +515,7 @@ class _AuthFormState extends State<_AuthForm> {
               labelText: 'Email Address',
               hintText: 'name@example.com',
               floatingLabelBehavior: FloatingLabelBehavior.always,
+              prefixIcon: Icon(Icons.mail_outline_rounded, size: 20),
             ),
             validator: (value) {
               if (value == null || value.trim().isEmpty) {
@@ -534,6 +539,7 @@ class _AuthFormState extends State<_AuthForm> {
               labelText: 'Password',
               hintText: 'At least 6 characters',
               floatingLabelBehavior: FloatingLabelBehavior.always,
+              prefixIcon: const Icon(Icons.lock_outline_rounded, size: 20),
               suffixIcon: IconButton(
                 icon: Icon(
                   _obscurePassword

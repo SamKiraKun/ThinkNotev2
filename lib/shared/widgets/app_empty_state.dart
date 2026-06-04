@@ -183,85 +183,125 @@ class AppEmptyState extends StatelessWidget {
   }
 }
 
-class _EmptyStateIllustration extends StatelessWidget {
+class _EmptyStateIllustration extends StatefulWidget {
   const _EmptyStateIllustration({required this.icon});
 
   final IconData icon;
 
   @override
+  State<_EmptyStateIllustration> createState() => _EmptyStateIllustrationState();
+}
+
+class _EmptyStateIllustrationState extends State<_EmptyStateIllustration>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+  late final Animation<double> _animation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 3),
+    )..repeat(reverse: true);
+    _animation = Tween<double>(begin: 0, end: 6).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final palette = context.palette;
 
-    return SizedBox(
-      height: 120,
-      width: 180,
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          Container(
-            width: 112,
-            height: 112,
-            decoration: BoxDecoration(
-              color: AppColors.brandPrimary.withValues(alpha: 0.05),
-              shape: BoxShape.circle,
-            ),
-          ),
-          Transform.translate(
-            offset: const Offset(-22, 12),
-            child: Transform.rotate(
-              angle: -0.18,
-              child: _PaperCard(
-                color: palette.surfaceSecondary,
-                borderColor: palette.borderSoft,
-              ),
-            ),
-          ),
-          Transform.translate(
-            offset: const Offset(22, 10),
-            child: Transform.rotate(
-              angle: 0.16,
-              child: _PaperCard(
-                color: palette.surfaceSecondary,
-                borderColor: palette.borderSoft,
-              ),
-            ),
-          ),
-          Container(
-            width: 72,
-            height: 92,
-            decoration: BoxDecoration(
-              color: palette.surfacePrimary,
-              borderRadius: BorderRadius.circular(18),
-              border: Border.all(color: palette.borderPrimary),
-              boxShadow: AppShadows.floatingCard,
-            ),
+    return AnimatedBuilder(
+      animation: _animation,
+      builder: (context, child) {
+        return SizedBox(
+          height: 120,
+          width: 180,
+          child: Stack(
             alignment: Alignment.center,
-            child: Icon(
-              icon,
-              size: 30,
-              color: AppColors.brandPrimary,
-            ),
+            children: [
+              Container(
+                width: 104,
+                height: 104,
+                decoration: BoxDecoration(
+                  color: AppColors.brandPrimary.withValues(alpha: 0.04),
+                  shape: BoxShape.circle,
+                ),
+              ),
+              Transform.translate(
+                offset: Offset(0, -_animation.value),
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    Transform.translate(
+                      offset: const Offset(-20, 10),
+                      child: Transform.rotate(
+                        angle: -0.14,
+                        child: _PaperCard(
+                          color: palette.surfaceSecondary,
+                          borderColor: palette.borderSoft,
+                        ),
+                      ),
+                    ),
+                    Transform.translate(
+                      offset: const Offset(20, 8),
+                      child: Transform.rotate(
+                        angle: 0.12,
+                        child: _PaperCard(
+                          color: palette.surfaceSecondary,
+                          borderColor: palette.borderSoft,
+                        ),
+                      ),
+                    ),
+                    Container(
+                      width: 72,
+                      height: 92,
+                      decoration: BoxDecoration(
+                        color: palette.surfacePrimary,
+                        borderRadius: BorderRadius.circular(18),
+                        border: Border.all(color: palette.borderPrimary),
+                        boxShadow: AppShadows.softCard,
+                      ),
+                      alignment: Alignment.center,
+                      child: Icon(
+                        widget.icon,
+                        size: 30,
+                        color: AppColors.brandPrimary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Positioned(
+                top: 12,
+                right: 32,
+                child: Icon(
+                  Icons.auto_awesome_rounded,
+                  size: 14,
+                  color: AppColors.brandPrimary.withValues(alpha: 0.28),
+                ),
+              ),
+              Positioned(
+                bottom: 24,
+                left: 32,
+                child: Icon(
+                  Icons.circle,
+                  size: 6,
+                  color: AppColors.brandLavender.withValues(alpha: 0.24),
+                ),
+              ),
+            ],
           ),
-          Positioned(
-            top: 16,
-            right: 28,
-            child: Icon(
-              Icons.auto_awesome_rounded,
-              size: 16,
-              color: AppColors.brandLavender.withValues(alpha: 0.8),
-            ),
-          ),
-          const Positioned(
-            bottom: 20,
-            left: 26,
-            child: Icon(
-              Icons.circle,
-              size: 8,
-              color: AppColors.brandPrimaryLight,
-            ),
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 }

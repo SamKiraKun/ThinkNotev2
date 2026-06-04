@@ -13,12 +13,12 @@ import '../../../../core/utils/date_formatter.dart';
 import '../../../../shared/widgets/app_empty_state.dart';
 import '../../../../shared/widgets/app_header.dart';
 import '../../../../shared/widgets/app_search_bar.dart';
-import '../../../../shared/widgets/tag_chip.dart';
 import '../../../notes/data/models/app_preferences_model.dart';
 import '../../../notes/presentation/controllers/notes_controller.dart';
 import '../../../notes/presentation/widgets/note_card.dart';
 import '../../../shell/presentation/controllers/shell_controller.dart';
 import '../controllers/search_controller.dart';
+import '../../../folders/presentation/widgets/folder_visuals.dart';
 
 class SearchScreen extends ConsumerStatefulWidget {
   const SearchScreen({super.key});
@@ -142,12 +142,17 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                     runSpacing: AppSpacing.sm,
                     children: [
                       for (final recent in notesState.recentSearches)
-                        TagChip(
+                        _RecentSearchChip(
                           label: recent,
                           onTap: () {
                             ref
                                 .read(searchControllerProvider.notifier)
                                 .setQuery(recent);
+                          },
+                          onDelete: () {
+                            ref
+                                .read(notesControllerProvider.notifier)
+                                .deleteRecentSearch(recent);
                           },
                         ),
                     ],
@@ -176,6 +181,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                     children: [
                       _ModeChip(
                         label: 'All',
+                        icon: Icons.grid_view_rounded,
                         selected: searchState.mode == SearchMode.all,
                         onTap: () => ref
                             .read(searchControllerProvider.notifier)
@@ -183,6 +189,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                       ),
                       _ModeChip(
                         label: 'Notes',
+                        icon: Icons.description_outlined,
                         selected: searchState.mode == SearchMode.notes,
                         onTap: () => ref
                             .read(searchControllerProvider.notifier)
@@ -190,6 +197,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                       ),
                       _ModeChip(
                         label: 'Pinned',
+                        icon: Icons.push_pin_outlined,
                         selected: searchState.mode == SearchMode.pinned,
                         onTap: () => ref
                             .read(searchControllerProvider.notifier)
@@ -197,6 +205,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                       ),
                       _ModeChip(
                         label: 'Favorites',
+                        icon: Icons.star_border_rounded,
                         selected: searchState.mode == SearchMode.favorites,
                         onTap: () => ref
                             .read(searchControllerProvider.notifier)
@@ -221,6 +230,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                           ? 'All Folders'
                           : notesState.folderById(searchState.folderId)?.name ??
                               'Folder',
+                      icon: Icons.folder_outlined,
                       onTap: () =>
                           _showFolderFilterSheet(context, ref, notesState),
                     ),
@@ -228,12 +238,14 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                       label: searchState.tagLabel == null
                           ? 'All Tags'
                           : '#${searchState.tagLabel}',
+                      icon: Icons.sell_outlined,
                       onTap: () =>
                           _showTagFilterSheet(context, ref, notesState),
                     ),
                     _FilterChip(
                       label: searchState.sortOrder?.label ??
                           notesState.preferences.defaultSortOrder.label,
+                      icon: Icons.sort_rounded,
                       onTap: () => _showSortSheet(context, ref, notesState),
                     ),
                   ],
@@ -274,7 +286,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
 
                 if (index == offset + 2) {
                   return SizedBox(
-                    height: 196,
+                    height: 220,
                     child: ListView.separated(
                       scrollDirection: Axis.horizontal,
                       itemBuilder: (context, topPickIndex) {
@@ -284,6 +296,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                           noteTitle: note.displayTitle,
                           noteExcerpt: note.excerpt,
                           folderLabel: folder?.displayName ?? 'Unsorted',
+                          folderColorKey: folder?.colorKey ?? 'personal',
                           isFavorite: note.isFavorite,
                           onTap: () {
                             if (searchState.query.trim().isNotEmpty) {
@@ -399,9 +412,11 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
   }
 
   void _showSortSheet(BuildContext context, WidgetRef ref, dynamic notesState) {
+    final palette = context.palette;
     showModalBottomSheet<void>(
       context: context,
       showDragHandle: true,
+      backgroundColor: palette.surfacePrimary,
       builder: (context) {
         final searchState = ref.read(searchControllerProvider);
         final currentOrder =
@@ -440,9 +455,11 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
 
   void _showFolderFilterSheet(
       BuildContext context, WidgetRef ref, dynamic notesState) {
+    final palette = context.palette;
     showModalBottomSheet<void>(
       context: context,
       showDragHandle: true,
+      backgroundColor: palette.surfacePrimary,
       builder: (context) {
         final selected = ref.read(searchControllerProvider).folderId;
         return SafeArea(
@@ -491,9 +508,11 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
 
   void _showTagFilterSheet(
       BuildContext context, WidgetRef ref, dynamic notesState) {
+    final palette = context.palette;
     showModalBottomSheet<void>(
       context: context,
       showDragHandle: true,
+      backgroundColor: palette.surfacePrimary,
       builder: (context) {
         final selected = ref.read(searchControllerProvider).tagLabel;
         return SafeArea(
@@ -544,11 +563,13 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
 class _ModeChip extends StatelessWidget {
   const _ModeChip({
     required this.label,
+    required this.icon,
     required this.selected,
     required this.onTap,
   });
 
   final String label;
+  final IconData icon;
   final bool selected;
   final VoidCallback onTap;
 
@@ -563,22 +584,34 @@ class _ModeChip extends StatelessWidget {
         borderRadius: BorderRadius.circular(AppRadius.pill),
         child: Container(
           padding: const EdgeInsets.symmetric(
-            horizontal: AppSpacing.xl,
-            vertical: AppSpacing.md,
+            horizontal: 14,
+            vertical: 8,
           ),
           decoration: BoxDecoration(
             color: selected ? AppColors.brandPrimary : palette.surfacePrimary,
             borderRadius: BorderRadius.circular(AppRadius.pill),
             border: Border.all(
-              color: selected ? AppColors.brandPrimary : palette.borderPrimary,
+              color: selected ? AppColors.brandPrimary : palette.borderSoft,
             ),
+            boxShadow: selected ? AppShadows.softCard : null,
           ),
-          child: Text(
-            label,
-            style: AppTypography.bodyMedium.copyWith(
-              color:
-                  selected ? context.colors.onPrimary : palette.textSecondary,
-            ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                icon,
+                size: 14,
+                color: selected ? context.colors.onPrimary : palette.textSecondary,
+              ),
+              const SizedBox(width: 6),
+              Text(
+                label,
+                style: AppTypography.bodyMedium.copyWith(
+                  color: selected ? context.colors.onPrimary : palette.textSecondary,
+                  fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+                ),
+              ),
+            ],
           ),
         ),
       ),
@@ -589,10 +622,12 @@ class _ModeChip extends StatelessWidget {
 class _FilterChip extends StatelessWidget {
   const _FilterChip({
     required this.label,
+    required this.icon,
     required this.onTap,
   });
 
   final String label;
+  final IconData icon;
   final VoidCallback onTap;
 
   @override
@@ -604,27 +639,34 @@ class _FilterChip extends StatelessWidget {
       borderRadius: BorderRadius.circular(AppRadius.pill),
       child: Container(
         padding: const EdgeInsets.symmetric(
-          horizontal: AppSpacing.lg,
-          vertical: AppSpacing.md,
+          horizontal: 12,
+          vertical: 6,
         ),
         decoration: BoxDecoration(
           color: palette.surfacePrimary,
           borderRadius: BorderRadius.circular(AppRadius.pill),
-          border: Border.all(color: palette.borderPrimary),
+          border: Border.all(color: palette.borderSoft),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
+            Icon(
+              icon,
+              size: 14,
+              color: palette.textSecondary,
+            ),
+            const SizedBox(width: 6),
             Text(
               label,
               style: AppTypography.bodyMedium.copyWith(
                 color: palette.textSecondary,
+                fontWeight: FontWeight.w600,
               ),
             ),
-            const SizedBox(width: AppSpacing.sm),
+            const SizedBox(width: AppSpacing.xs),
             Icon(
               Icons.expand_more_rounded,
-              size: 18,
+              size: 16,
               color: palette.textTertiary,
             ),
           ],
@@ -639,6 +681,7 @@ class _TopPickCard extends StatelessWidget {
     required this.noteTitle,
     required this.noteExcerpt,
     required this.folderLabel,
+    required this.folderColorKey,
     required this.isFavorite,
     required this.onTap,
   });
@@ -646,12 +689,14 @@ class _TopPickCard extends StatelessWidget {
   final String noteTitle;
   final String noteExcerpt;
   final String folderLabel;
+  final String folderColorKey;
   final bool isFavorite;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     final palette = context.palette;
+    final visuals = folderVisualsFor(folderColorKey);
 
     return InkWell(
       onTap: onTap,
@@ -662,9 +707,13 @@ class _TopPickCard extends StatelessWidget {
         decoration: BoxDecoration(
           color: palette.surfacePrimary,
           borderRadius: BorderRadius.circular(AppRadius.formCard),
+          border: Border.all(color: palette.borderSoft),
           boxShadow: AppShadows.softCard,
-          gradient: const LinearGradient(
-            colors: [Color(0xFFF5F0FF), Color(0xFFFFF5FA)],
+          gradient: LinearGradient(
+            colors: [
+              visuals.backgroundColor,
+              visuals.backgroundColor.withValues(alpha: 0.45),
+            ],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
@@ -673,15 +722,15 @@ class _TopPickCard extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Icon(
-              isFavorite ? Icons.favorite_rounded : Icons.auto_awesome_rounded,
-              color: AppColors.brandPrimary,
+              isFavorite ? Icons.star_rounded : visuals.icon,
+              color: visuals.accentColor,
             ),
             const SizedBox(height: AppSpacing.md),
             Text(
               noteTitle,
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
-              style: AppTypography.titleMedium,
+              style: AppTypography.titleMedium.copyWith(fontWeight: FontWeight.w700),
             ),
             const SizedBox(height: AppSpacing.sm),
             Text(
@@ -705,6 +754,73 @@ class _TopPickCard extends StatelessWidget {
               child: Text(
                 folderLabel,
                 style: AppTypography.bodySmall.copyWith(
+                  color: palette.textSecondary,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _RecentSearchChip extends StatelessWidget {
+  const _RecentSearchChip({
+    required this.label,
+    required this.onTap,
+    required this.onDelete,
+  });
+
+  final String label;
+  final VoidCallback onTap;
+  final VoidCallback onDelete;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = context.palette;
+
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(AppRadius.pill),
+      child: Container(
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.md,
+          vertical: 6,
+        ),
+        decoration: BoxDecoration(
+          color: palette.surfacePrimary,
+          borderRadius: BorderRadius.circular(AppRadius.pill),
+          border: Border.all(color: palette.borderSoft),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.history_rounded,
+              size: 14,
+              color: palette.textTertiary,
+            ),
+            const SizedBox(width: 6),
+            Text(
+              label,
+              style: AppTypography.bodyMedium.copyWith(
+                color: palette.textSecondary,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(width: AppSpacing.sm),
+            GestureDetector(
+              onTap: onDelete,
+              child: Container(
+                padding: const EdgeInsets.all(2),
+                decoration: BoxDecoration(
+                  color: palette.surfaceSecondary,
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  Icons.close_rounded,
+                  size: 12,
                   color: palette.textSecondary,
                 ),
               ),

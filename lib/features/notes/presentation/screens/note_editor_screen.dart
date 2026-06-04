@@ -12,6 +12,7 @@ import '../../../../core/theme/app_typography.dart';
 import '../../../../core/utils/date_formatter.dart';
 import '../../../../shared/widgets/app_confirmation_dialog.dart';
 import '../../../folders/data/models/folder_model.dart';
+import '../../../folders/presentation/widgets/folder_visuals.dart';
 import '../../data/models/note_model.dart';
 import '../../../sync/presentation/controllers/sync_controller.dart';
 import '../../../notes/presentation/controllers/notes_controller.dart';
@@ -73,7 +74,6 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
     final notesState = ref.watch(notesControllerProvider).valueOrNull;
     final syncState = ref.watch(syncControllerProvider);
     final folder = notesState?.folderById(editorState.folderId);
-    final isNewNote = editorState.noteId == null;
     final wordCount = _countWords(editorState.content);
     final readTime = DateFormatter.estimateReadTime(editorState.content);
     final saveLabel = _saveLabel(editorState, syncState);
@@ -136,36 +136,72 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
                             },
                             style: IconButton.styleFrom(
                               backgroundColor: palette.surfacePrimary,
-                              minimumSize: const Size(48, 48),
+                              minimumSize: const Size(42, 42),
+                              shape: const CircleBorder(),
+                              side: BorderSide(color: palette.borderSoft),
                             ),
-                            icon: const Icon(Icons.arrow_back_rounded),
+                            icon: Icon(Icons.arrow_back_rounded, color: palette.textPrimary, size: 20),
                           ),
                           Expanded(
-                            child: Padding(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: AppSpacing.md,
-                              ),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    isNewNote ? 'New note' : 'Edit note',
-                                    style: AppTypography.titleMedium,
+                            child: Center(
+                              child: InkWell(
+                                onTap: () => _showFolderSelector(
+                                  context,
+                                  ref,
+                                  notesState?.folders ?? const <FolderModel>[],
+                                  editorState.folderId,
+                                ),
+                                borderRadius: BorderRadius.circular(AppRadius.pill),
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: AppSpacing.md,
+                                    vertical: 6,
                                   ),
-                                  const SizedBox(height: AppSpacing.xs),
-                                  Text(
-                                    saveLabel,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: AppTypography.bodyMedium.copyWith(
-                                      color: palette.textSecondary,
-                                    ),
+                                  decoration: BoxDecoration(
+                                    color: palette.surfacePrimary,
+                                    borderRadius: BorderRadius.circular(AppRadius.pill),
+                                    border: Border.all(color: palette.borderSoft),
                                   ),
-                                ],
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(
+                                        folderVisualsFor(folder?.colorKey ?? 'personal').icon,
+                                        size: 16,
+                                        color: folderVisualsFor(folder?.colorKey ?? 'personal').accentColor,
+                                      ),
+                                      const SizedBox(width: AppSpacing.sm),
+                                      Text(
+                                        folder?.displayName ?? 'Choose folder',
+                                        style: AppTypography.bodySmall.copyWith(
+                                          fontWeight: FontWeight.w700,
+                                          color: palette.textPrimary,
+                                        ),
+                                      ),
+                                      const SizedBox(width: AppSpacing.xs),
+                                      Icon(
+                                        Icons.keyboard_arrow_down_rounded,
+                                        size: 16,
+                                        color: palette.textSecondary,
+                                      ),
+                                    ],
+                                  ),
+                                ),
                               ),
                             ),
                           ),
                           PopupMenuButton<String>(
+                            icon: Container(
+                              width: 42,
+                              height: 42,
+                              decoration: BoxDecoration(
+                                color: palette.surfacePrimary,
+                                shape: BoxShape.circle,
+                                border: Border.all(color: palette.borderSoft),
+                              ),
+                              alignment: Alignment.center,
+                              child: Icon(Icons.more_horiz_rounded, color: palette.textPrimary, size: 20),
+                            ),
                             onSelected: (value) async {
                               if (value == 'favorite') {
                                 editorController.toggleFavorite();
@@ -240,11 +276,18 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
                             },
                             style: FilledButton.styleFrom(
                               backgroundColor: AppColors.brandPrimary,
-                              minimumSize: const Size(88, 48),
+                              minimumSize: const Size(64, 42),
+                              padding: const EdgeInsets.symmetric(horizontal: 16),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(AppRadius.pill),
+                              ),
                             ),
                             child: Text(
-                              'Done',
-                              style: AppTypography.buttonLabel,
+                              'Save',
+                              style: AppTypography.buttonLabel.copyWith(
+                                color: Colors.white,
+                                fontSize: 13,
+                              ),
                             ),
                           ),
                         ],
@@ -281,13 +324,18 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
                                     onChanged: editorController.updateTitle,
                                     decoration: const InputDecoration(
                                       border: InputBorder.none,
+                                      enabledBorder: InputBorder.none,
+                                      focusedBorder: InputBorder.none,
                                       filled: false,
                                       contentPadding: EdgeInsets.zero,
                                       hintText: 'Untitled note',
                                       counterText: '',
                                     ),
                                     maxLength: 120,
-                                    style: AppTypography.titleLarge,
+                                    style: AppTypography.titleLarge.copyWith(
+                                      fontSize: 26,
+                                      fontWeight: FontWeight.w800,
+                                    ),
                                   ),
                                   const SizedBox(height: AppSpacing.sm),
                                   Wrap(
@@ -426,22 +474,20 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
                                             TextAlignVertical.top,
                                         decoration: InputDecoration(
                                           contentPadding:
-                                              const EdgeInsets.fromLTRB(
-                                            AppSpacing.xl,
-                                            AppSpacing.xl,
-                                            AppSpacing.xl,
-                                            AppSpacing.xl,
-                                          ),
+                                              const EdgeInsets.all(20),
                                           border: InputBorder.none,
+                                          enabledBorder: InputBorder.none,
+                                          focusedBorder: InputBorder.none,
                                           filled: false,
                                           hintText: 'Start writing...',
                                           hintStyle:
                                               AppTypography.bodyLarge.copyWith(
                                             color: palette.textPlaceholder,
+                                            height: 1.7,
                                           ),
                                         ),
                                         style: AppTypography.bodyLarge.copyWith(
-                                          height: 1.6,
+                                          height: 1.7,
                                         ),
                                       ),
                                     ),
@@ -454,28 +500,41 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
                                       ),
                                       child: Row(
                                         children: [
-                                          Text(
-                                            '$wordCount words',
-                                            style: AppTypography.bodySmall
-                                                .copyWith(
-                                              color: palette.textSecondary,
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                            decoration: BoxDecoration(
+                                              color: palette.surfaceSecondary,
+                                              borderRadius: BorderRadius.circular(AppRadius.sm),
+                                            ),
+                                            child: Text(
+                                              '$wordCount words',
+                                              style: AppTypography.bodySmall.copyWith(
+                                                color: palette.textSecondary,
+                                                fontWeight: FontWeight.w600,
+                                              ),
                                             ),
                                           ),
-                                          const SizedBox(width: AppSpacing.md),
-                                          Text(
-                                            readTime,
-                                            style: AppTypography.bodySmall
-                                                .copyWith(
-                                              color: palette.textSecondary,
+                                          const SizedBox(width: AppSpacing.sm),
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                            decoration: BoxDecoration(
+                                              color: palette.surfaceSecondary,
+                                              borderRadius: BorderRadius.circular(AppRadius.sm),
+                                            ),
+                                            child: Text(
+                                              readTime,
+                                              style: AppTypography.bodySmall.copyWith(
+                                                color: palette.textSecondary,
+                                                fontWeight: FontWeight.w600,
+                                              ),
                                             ),
                                           ),
                                           const Spacer(),
                                           Text(
                                             saveLabel,
-                                            style: AppTypography.bodySmall
-                                                .copyWith(
+                                            style: AppTypography.bodySmall.copyWith(
                                               color: palette.textSecondary,
-                                              fontWeight: FontWeight.w600,
+                                              fontWeight: FontWeight.w700,
                                             ),
                                           ),
                                         ],
@@ -636,9 +695,11 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
   ) async {
     final editorController =
         ref.read(noteEditorControllerProvider(_args).notifier);
+    final palette = context.palette;
     final selected = await showModalBottomSheet<String>(
       context: context,
       showDragHandle: true,
+      backgroundColor: palette.surfacePrimary,
       builder: (context) {
         return SafeArea(
           child: Padding(
@@ -648,17 +709,36 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text('Select folder', style: AppTypography.titleMedium),
-                const SizedBox(height: AppSpacing.lg),
-                for (final folder in folders)
-                  ListTile(
-                    contentPadding: EdgeInsets.zero,
-                    title: Text(folder.displayName),
-                    trailing: selectedFolderId == folder.id
-                        ? const Icon(Icons.check_rounded,
-                            color: AppColors.brandPrimary)
-                        : null,
-                    onTap: () => Navigator.of(context).pop(folder.id),
-                  ),
+                                const SizedBox(height: AppSpacing.lg),
+                                for (final folder in folders)
+                                  ListTile(
+                                    contentPadding: EdgeInsets.zero,
+                                    leading: Container(
+                                      width: 36,
+                                      height: 36,
+                                      decoration: BoxDecoration(
+                                        color: folderVisualsFor(folder.colorKey).backgroundColor,
+                                        shape: BoxShape.circle,
+                                      ),
+                                      alignment: Alignment.center,
+                                      child: Icon(
+                                        folderVisualsFor(folder.colorKey).icon,
+                                        color: folderVisualsFor(folder.colorKey).accentColor,
+                                        size: 18,
+                                      ),
+                                    ),
+                                    title: Text(
+                                      folder.displayName,
+                                      style: AppTypography.bodyLarge.copyWith(
+                                        fontWeight: selectedFolderId == folder.id ? FontWeight.w700 : FontWeight.w500,
+                                      ),
+                                    ),
+                                    trailing: selectedFolderId == folder.id
+                                        ? const Icon(Icons.check_rounded,
+                                            color: AppColors.brandPrimary)
+                                        : null,
+                                    onTap: () => Navigator.of(context).pop(folder.id),
+                                  ),
               ],
             ),
           ),
@@ -687,6 +767,7 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
       builder: (context) {
         return StatefulBuilder(
           builder: (context, setState) {
+            final palette = context.palette;
             return AlertDialog(
               title: const Text('Tags'),
               content: SizedBox(
@@ -699,6 +780,23 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
                       FilterChip(
                         label: Text(tag.displayLabel),
                         selected: selectedTags.contains(tag.label),
+                        selectedColor: AppColors.brandPrimary.withValues(alpha: 0.14),
+                        checkmarkColor: AppColors.brandPrimary,
+                        labelStyle: TextStyle(
+                          color: selectedTags.contains(tag.label)
+                              ? AppColors.brandPrimary
+                              : palette.textPrimary,
+                          fontWeight: selectedTags.contains(tag.label)
+                              ? FontWeight.w700
+                              : FontWeight.w500,
+                        ),
+                        shape: StadiumBorder(
+                          side: BorderSide(
+                            color: selectedTags.contains(tag.label)
+                                ? AppColors.brandPrimary
+                                : palette.borderSoft,
+                          ),
+                        ),
                         onSelected: (isSelected) {
                           setState(() {
                             if (isSelected) {
@@ -957,22 +1055,21 @@ class _TagBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final palette = context.palette;
-
     return Container(
       padding: const EdgeInsets.symmetric(
         horizontal: AppSpacing.md,
         vertical: AppSpacing.xs,
       ),
       decoration: BoxDecoration(
-        color: palette.surfacePrimary,
+        color: AppColors.brandPrimary.withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(AppRadius.pill),
-        border: Border.all(color: palette.borderPrimary),
+        border: Border.all(color: AppColors.brandPrimary.withValues(alpha: 0.16)),
       ),
       child: Text(
         label,
         style: AppTypography.bodySmall.copyWith(
-          color: palette.textSecondary,
+          color: AppColors.brandPrimary,
+          fontWeight: FontWeight.w700,
         ),
       ),
     );

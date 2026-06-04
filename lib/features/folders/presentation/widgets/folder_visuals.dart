@@ -41,11 +41,16 @@ FolderVisuals folderVisualsFor(String colorKey) {
         icon: Icons.edit_note_rounded,
       );
     case 'personal':
-    default:
       return const FolderVisuals(
         backgroundColor: AppColors.personalBackground,
         accentColor: AppColors.personalText,
         icon: Icons.favorite_border_rounded,
+      );
+    default:
+      return const FolderVisuals(
+        backgroundColor: AppColors.personalBackground,
+        accentColor: AppColors.personalText,
+        icon: Icons.folder_open_rounded,
       );
   }
 }

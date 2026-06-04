@@ -18,9 +18,11 @@ class ThemeSettingsScreen extends ConsumerWidget {
     WidgetRef ref,
     AppPreferencesModel preferences,
   ) {
+    final palette = context.palette;
     showModalBottomSheet<void>(
       context: context,
       showDragHandle: true,
+      backgroundColor: palette.surfacePrimary,
       builder: (context) {
         return SafeArea(
           child: Padding(
@@ -58,9 +60,11 @@ class ThemeSettingsScreen extends ConsumerWidget {
     WidgetRef ref,
     AppPreferencesModel preferences,
   ) {
+    final palette = context.palette;
     showModalBottomSheet<void>(
       context: context,
       showDragHandle: true,
+      backgroundColor: palette.surfacePrimary,
       builder: (context) {
         return SafeArea(
           child: Padding(
@@ -98,9 +102,11 @@ class ThemeSettingsScreen extends ConsumerWidget {
     WidgetRef ref,
     AppPreferencesModel preferences,
   ) {
+    final palette = context.palette;
     showModalBottomSheet<void>(
       context: context,
       showDragHandle: true,
+      backgroundColor: palette.surfacePrimary,
       builder: (context) {
         return SafeArea(
           child: Padding(
@@ -159,6 +165,7 @@ class ThemeSettingsScreen extends ConsumerWidget {
                   decoration: BoxDecoration(
                     color: palette.surfacePrimary,
                     borderRadius: BorderRadius.circular(AppRadius.formCard),
+                    border: Border.all(color: palette.borderSoft, width: 1.5),
                     boxShadow: AppShadows.softCard,
                   ),
                   child: Column(
@@ -170,7 +177,7 @@ class ThemeSettingsScreen extends ConsumerWidget {
                         trailingText: preferences.themePreference.label,
                         onTap: () => _showThemeModeSheet(context, ref, preferences),
                       ),
-                      const Divider(height: 1, indent: 68, endIndent: 16),
+                      Divider(height: 1, indent: 68, endIndent: 16, color: palette.borderSoft),
                       _SettingsActionTile(
                         icon: Icons.sort_rounded,
                         title: 'Default sort',
@@ -178,7 +185,7 @@ class ThemeSettingsScreen extends ConsumerWidget {
                         trailingText: preferences.defaultSortOrder.label,
                         onTap: () => _showSortOrderSheet(context, ref, preferences),
                       ),
-                      const Divider(height: 1, indent: 68, endIndent: 16),
+                      Divider(height: 1, indent: 68, endIndent: 16, color: palette.borderSoft),
                       _SettingsActionTile(
                         icon: Icons.short_text_rounded,
                         title: 'Preview lines',

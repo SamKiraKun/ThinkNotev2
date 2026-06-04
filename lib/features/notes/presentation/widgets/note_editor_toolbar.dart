@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
-
-import '../../../../core/extensions/context_extensions.dart';
+import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
+import '../../../../core/extensions/context_extensions.dart';
+import '../../../../shared/widgets/animated_tap_scale.dart';
 
 class NoteEditorToolbar extends StatelessWidget {
   const NoteEditorToolbar({
@@ -103,10 +104,33 @@ class _ToolbarButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final palette = context.palette;
 
-    return IconButton(
-      tooltip: tooltip,
-      onPressed: onTap,
-      icon: Icon(icon, color: palette.textSecondary),
+    return Tooltip(
+      message: tooltip,
+      child: AnimatedTapScale(
+        onTap: onTap,
+        tapScale: 0.9,
+        builder: (context, state) {
+          return Container(
+            width: 42,
+            height: 42,
+            margin: const EdgeInsets.symmetric(horizontal: 3, vertical: 6),
+            decoration: BoxDecoration(
+              color: state.isPressed
+                  ? palette.surfaceAccent
+                  : state.isHovered
+                      ? palette.surfaceSecondary
+                      : Colors.transparent,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            alignment: Alignment.center,
+            child: Icon(
+              icon,
+              color: state.isPressed ? AppColors.brandPrimary : palette.textSecondary,
+              size: 20,
+            ),
+          );
+        },
+      ),
     );
   }
 }

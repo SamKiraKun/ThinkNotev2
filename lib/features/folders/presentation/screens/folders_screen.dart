@@ -1,3 +1,4 @@
+import 'dart:ui' show PathMetric;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -9,6 +10,7 @@ import '../../../../core/theme/app_radius.dart';
 import '../../../../core/theme/app_shadows.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
+import '../../../../shared/widgets/animated_tap_scale.dart';
 import '../../../../shared/widgets/app_confirmation_dialog.dart';
 import '../../../../shared/widgets/app_empty_state.dart';
 import '../../../../shared/widgets/app_header.dart';
@@ -194,17 +196,35 @@ class _SegmentedToggle extends StatelessWidget {
                     borderRadius: BorderRadius.circular(AppRadius.pill),
                   ),
                   alignment: Alignment.center,
-                  child: Text(
-                    switch (segment) {
-                      FolderViewSegment.folders => 'Folders',
-                      FolderViewSegment.tags => 'Tags',
-                      FolderViewSegment.collections => 'Collections',
-                    },
-                    style: AppTypography.bodyMedium.copyWith(
-                      color: value == segment
-                          ? context.colors.onPrimary
-                          : palette.textSecondary,
-                    ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        switch (segment) {
+                          FolderViewSegment.folders => Icons.folder_copy_rounded,
+                          FolderViewSegment.tags => Icons.sell_rounded,
+                          FolderViewSegment.collections => Icons.layers_rounded,
+                        },
+                        size: 16,
+                        color: value == segment
+                            ? context.colors.onPrimary
+                            : palette.textSecondary,
+                      ),
+                      const SizedBox(width: AppSpacing.sm),
+                      Text(
+                        switch (segment) {
+                          FolderViewSegment.folders => 'Folders',
+                          FolderViewSegment.tags => 'Tags',
+                          FolderViewSegment.collections => 'Collections',
+                        },
+                        style: AppTypography.bodyMedium.copyWith(
+                          fontWeight: FontWeight.bold,
+                          color: value == segment
+                              ? context.colors.onPrimary
+                              : palette.textSecondary,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),
@@ -257,7 +277,7 @@ class _FoldersGrid extends ConsumerWidget {
             crossAxisCount: 2,
             mainAxisSpacing: AppSpacing.lg,
             crossAxisSpacing: AppSpacing.lg,
-            childAspectRatio: 1.18,
+            childAspectRatio: 1.1,
           ),
           itemBuilder: (context, index) {
             if (index == notesState.folderSummaries.length) {
@@ -470,7 +490,7 @@ class _CollectionsSection extends ConsumerWidget {
         crossAxisCount: 2,
         mainAxisSpacing: AppSpacing.lg,
         crossAxisSpacing: AppSpacing.lg,
-        childAspectRatio: 1.18,
+        childAspectRatio: 1.1,
       ),
       itemBuilder: (context, index) {
         final item = items[index];
@@ -506,75 +526,90 @@ class _FolderCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final palette = context.palette;
     final visuals = folderVisualsFor(colorKey);
-    return InkWell(
+    return AnimatedTapScale(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(AppRadius.formCard),
-      child: Container(
-        padding: const EdgeInsets.all(AppSpacing.lg),
-        decoration: BoxDecoration(
-          color: palette.surfacePrimary,
-          borderRadius: BorderRadius.circular(AppRadius.formCard),
-          boxShadow: AppShadows.softCard,
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Container(
-                  width: 56,
-                  height: 56,
-                  decoration: BoxDecoration(
-                    color: visuals.backgroundColor,
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  alignment: Alignment.center,
-                  child: Icon(
-                    Icons.folder_outlined,
-                    color: visuals.accentColor,
-                    size: 30,
-                  ),
-                ),
-                PopupMenuButton<String>(
-                  onSelected: (value) {
-                    if (value == 'rename') {
-                      onRename();
-                    } else if (value == 'delete') {
-                      onDelete?.call();
-                    }
-                  },
-                  itemBuilder: (context) => [
-                    const PopupMenuItem(
-                      value: 'rename',
-                      child: Text('Rename'),
-                    ),
-                    if (onDelete != null)
-                      const PopupMenuItem(
-                        value: 'delete',
-                        child: Text('Delete'),
+      builder: (context, tapState) {
+        return Container(
+          padding: const EdgeInsets.all(AppSpacing.lg),
+          decoration: BoxDecoration(
+            color: palette.surfacePrimary,
+            borderRadius: BorderRadius.circular(AppRadius.formCard),
+            border: Border.all(color: palette.borderSoft, width: 1.5),
+            boxShadow: AppShadows.softCard,
+          ),
+          child: Stack(
+            children: [
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Container(
+                        width: 48,
+                        height: 48,
+                        decoration: BoxDecoration(
+                          color: visuals.backgroundColor,
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        alignment: Alignment.center,
+                        child: Icon(
+                          visuals.icon,
+                          color: visuals.accentColor,
+                          size: 24,
+                        ),
                       ),
-                  ],
-                ),
-              ],
-            ),
-            const Spacer(),
-            Text(
-              title,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: AppTypography.titleMedium,
-            ),
-            const SizedBox(height: AppSpacing.xs),
-            Text(
-              '$noteCount ${noteCount == 1 ? 'note' : 'notes'}',
-              style: AppTypography.bodyMedium.copyWith(
-                color: palette.textSecondary,
+                      PopupMenuButton<String>(
+                        onSelected: (value) {
+                          if (value == 'rename') {
+                            onRename();
+                          } else if (value == 'delete') {
+                            onDelete?.call();
+                          }
+                        },
+                        itemBuilder: (context) => [
+                          const PopupMenuItem(
+                            value: 'rename',
+                            child: Text('Rename'),
+                          ),
+                          if (onDelete != null)
+                            const PopupMenuItem(
+                              value: 'delete',
+                              child: Text('Delete'),
+                            ),
+                        ],
+                      ),
+                    ],
+                  ),
+                  const Spacer(),
+                  Text(
+                    title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppTypography.titleMedium.copyWith(fontWeight: FontWeight.w700),
+                  ),
+                  const SizedBox(height: AppSpacing.xs),
+                  Text(
+                    '$noteCount ${noteCount == 1 ? 'note' : 'notes'}',
+                    style: AppTypography.bodyMedium.copyWith(
+                      color: palette.textSecondary,
+                    ),
+                  ),
+                ],
               ),
-            ),
-          ],
-        ),
-      ),
+              Positioned(
+                right: 0,
+                bottom: 0,
+                child: Icon(
+                  Icons.star_rounded,
+                  size: 20,
+                  color: visuals.accentColor.withValues(alpha: 0.28),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }
@@ -590,47 +625,108 @@ class _CreateFolderCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final palette = context.palette;
 
-    return InkWell(
+    return AnimatedTapScale(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(AppRadius.formCard),
-      child: Container(
-        decoration: BoxDecoration(
-          color: palette.surfacePrimary,
-          borderRadius: BorderRadius.circular(AppRadius.formCard),
-          border: Border.all(
-            color: AppColors.brandPrimary.withValues(alpha: 0.24),
-            style: BorderStyle.solid,
+      builder: (context, tapState) {
+        return CustomPaint(
+          painter: DashedBorderPainter(
+            color: AppColors.brandPrimary.withValues(alpha: 0.36),
+            strokeWidth: 1.5,
+            borderRadius: AppRadius.formCard,
           ),
-        ),
-        child: Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 52,
-                height: 52,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: palette.surfaceAccent,
-                ),
-                alignment: Alignment.center,
-                child: const Icon(
-                  Icons.add_rounded,
-                  color: AppColors.brandPrimary,
-                ),
+          child: Container(
+            decoration: BoxDecoration(
+              color: palette.surfacePrimary.withValues(alpha: 0.5),
+              borderRadius: BorderRadius.circular(AppRadius.formCard),
+            ),
+            child: Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 48,
+                    height: 48,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: palette.surfaceAccent,
+                    ),
+                    alignment: Alignment.center,
+                    child: const Icon(
+                      Icons.add_rounded,
+                      color: AppColors.brandPrimary,
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.md),
+                  Text(
+                    'Create New Folder',
+                    style: AppTypography.titleSmall.copyWith(
+                      color: AppColors.brandPrimary,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(height: AppSpacing.md),
-              Text(
-                'Create New Folder',
-                style: AppTypography.titleSmall.copyWith(
-                  color: AppColors.brandPrimary,
-                ),
-              ),
-            ],
+            ),
           ),
-        ),
-      ),
+        );
+      },
     );
+  }
+}
+
+class DashedBorderPainter extends CustomPainter {
+  DashedBorderPainter({
+    required this.color,
+    required this.strokeWidth,
+    required this.borderRadius,
+    this.dashWidth = 6,
+    this.dashGap = 4,
+  });
+
+  final Color color;
+  final double strokeWidth;
+  final double borderRadius;
+  final double dashWidth;
+  final double dashGap;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..strokeWidth = strokeWidth
+      ..style = PaintingStyle.stroke;
+
+    final RRect rrect = RRect.fromRectAndRadius(
+      Rect.fromLTWH(0, 0, size.width, size.height),
+      Radius.circular(borderRadius),
+    );
+
+    final Path path = Path()..addRRect(rrect);
+    final Path dashPath = Path();
+
+    double distance = 0.0;
+    for (final PathMetric measurePath in path.computeMetrics()) {
+      while (distance < measurePath.length) {
+        final double nextDistance = distance + dashWidth;
+        dashPath.addPath(
+          measurePath.extractPath(distance, nextDistance.clamp(0.0, measurePath.length)),
+          Offset.zero,
+        );
+        distance = nextDistance + dashGap;
+      }
+      distance = 0.0;
+    }
+
+    canvas.drawPath(dashPath, paint);
+  }
+
+  @override
+  bool shouldRepaint(covariant DashedBorderPainter oldDelegate) {
+    return oldDelegate.color != color ||
+        oldDelegate.strokeWidth != strokeWidth ||
+        oldDelegate.borderRadius != borderRadius ||
+        oldDelegate.dashWidth != dashWidth ||
+        oldDelegate.dashGap != dashGap;
   }
 }
 
@@ -651,32 +747,37 @@ class _CollectionCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final palette = context.palette;
 
-    return InkWell(
+    return AnimatedTapScale(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(AppRadius.formCard),
-      child: Container(
-        padding: const EdgeInsets.all(AppSpacing.lg),
-        decoration: BoxDecoration(
-          color: palette.surfacePrimary,
-          borderRadius: BorderRadius.circular(AppRadius.formCard),
-          boxShadow: AppShadows.softCard,
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Icon(icon, color: AppColors.brandPrimary),
-            const Spacer(),
-            Text(title, style: AppTypography.titleMedium),
-            const SizedBox(height: AppSpacing.xs),
-            Text(
-              subtitle,
-              style: AppTypography.bodyMedium.copyWith(
-                color: palette.textSecondary,
+      builder: (context, tapState) {
+        return Container(
+          padding: const EdgeInsets.all(AppSpacing.lg),
+          decoration: BoxDecoration(
+            color: palette.surfacePrimary,
+            borderRadius: BorderRadius.circular(AppRadius.formCard),
+            border: Border.all(color: palette.borderSoft, width: 1.5),
+            boxShadow: AppShadows.softCard,
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(icon, color: AppColors.brandPrimary),
+              const Spacer(),
+              Text(
+                title,
+                style: AppTypography.titleMedium.copyWith(fontWeight: FontWeight.bold),
               ),
-            ),
-          ],
-        ),
-      ),
+              const SizedBox(height: AppSpacing.xs),
+              Text(
+                subtitle,
+                style: AppTypography.bodyMedium.copyWith(
+                  color: palette.textSecondary,
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }

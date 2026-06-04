@@ -6,7 +6,6 @@ import '../../../../core/constants/app_constants.dart';
 import '../../../../core/constants/route_names.dart';
 import '../../../../core/extensions/context_extensions.dart';
 import '../../../../core/theme/app_colors.dart';
-import '../../../../core/theme/app_gradients.dart';
 import '../../../../core/theme/app_radius.dart';
 import '../../../../core/theme/app_shadows.dart';
 import '../../../../core/theme/app_spacing.dart';
@@ -60,7 +59,7 @@ class DashboardScreen extends ConsumerWidget {
                 title: isEmptyWorkspace ? AppConstants.appName : 'Dashboard',
                 subtitle: isEmptyWorkspace
                     ? 'Start with a note. Everything syncs to your signed-in account.'
-                    : onboardingProfile.workspaceFocus.dashboardMessage,
+                    : '${AppHeader.timeOfDayGreeting()}. ${onboardingProfile.workspaceFocus.dashboardMessage}',
                 leading: HeaderAvatar(
                   label: authSession?.initials ?? onboardingProfile.initials,
                 ),
@@ -167,7 +166,7 @@ class DashboardScreen extends ConsumerWidget {
                   ),
                   const SizedBox(height: AppSpacing.md),
                   SizedBox(
-                    height: 160,
+                    height: 175,
                     child: ListView.separated(
                       scrollDirection: Axis.horizontal,
                       itemBuilder: (context, index) {
@@ -483,14 +482,14 @@ class _MetricTile extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Container(
-                  width: 42,
-                  height: 42,
+                  width: 44,
+                  height: 44,
                   decoration: BoxDecoration(
-                    color: AppColors.brandPrimary.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(12),
+                    color: AppColors.brandPrimary.withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(14),
                   ),
                   alignment: Alignment.center,
-                  child: Icon(icon, color: AppColors.brandPrimary, size: 20),
+                  child: Icon(icon, color: AppColors.brandPrimary, size: 22),
                 ),
                 const SizedBox(height: AppSpacing.lg),
                 Text(value, style: AppTypography.titleLarge),
@@ -527,7 +526,7 @@ class _CollectionCard extends StatelessWidget {
     final palette = context.palette;
 
     return Container(
-      width: 180,
+      width: 160,
       padding: const EdgeInsets.all(AppSpacing.lg),
       decoration: BoxDecoration(
         color: palette.surfacePrimary,
@@ -546,10 +545,15 @@ class _CollectionCard extends StatelessWidget {
               borderRadius: BorderRadius.circular(16),
             ),
             alignment: Alignment.center,
-            child: Icon(visuals.icon, color: visuals.accentColor),
+            child: Icon(visuals.icon, color: visuals.accentColor, size: 24),
           ),
           const SizedBox(height: AppSpacing.md),
-          Text(label, style: AppTypography.titleSmall),
+          Text(
+            label,
+            style: AppTypography.titleSmall,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
           const Spacer(),
           Text(
             '$noteCount notes',
@@ -568,6 +572,8 @@ class _DashboardLoadingState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = context.palette;
+
     return ListView(
       padding: const EdgeInsets.fromLTRB(
         AppSpacing.xxl,
@@ -576,16 +582,73 @@ class _DashboardLoadingState extends StatelessWidget {
         AppSpacing.bottomNavReserved,
       ),
       children: [
-        const LinearProgressIndicator(),
+        // Shimmer header skeleton
+        Row(
+          children: [
+            _ShimmerBlock(width: 52, height: 52, circular: true, palette: palette),
+            const SizedBox(width: AppSpacing.lg),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _ShimmerBlock(width: 120, height: 20, palette: palette),
+                const SizedBox(height: 8),
+                _ShimmerBlock(width: 180, height: 14, palette: palette),
+              ],
+            ),
+          ],
+        ),
         const SizedBox(height: AppSpacing.xxl),
-        Container(
-          height: 200,
-          decoration: BoxDecoration(
-            gradient: AppGradients.pinnedCard,
-            borderRadius: BorderRadius.circular(28),
-          ),
+        // Shimmer search bar
+        _ShimmerBlock(width: double.infinity, height: 52, palette: palette, radius: AppRadius.pill),
+        const SizedBox(height: AppSpacing.xxl),
+        // Shimmer note cards
+        for (int i = 0; i < 3; i++) ...[
+          _ShimmerBlock(width: double.infinity, height: 88, palette: palette, radius: 18),
+          const SizedBox(height: AppSpacing.md),
+        ],
+        const SizedBox(height: AppSpacing.lg),
+        // Shimmer stats
+        Row(
+          children: [
+            Expanded(
+              child: _ShimmerBlock(width: double.infinity, height: 110, palette: palette, radius: AppRadius.formCard),
+            ),
+            const SizedBox(width: AppSpacing.md),
+            Expanded(
+              child: _ShimmerBlock(width: double.infinity, height: 110, palette: palette, radius: AppRadius.formCard),
+            ),
+          ],
         ),
       ],
+    );
+  }
+}
+
+class _ShimmerBlock extends StatelessWidget {
+  const _ShimmerBlock({
+    required this.width,
+    required this.height,
+    required this.palette,
+    this.circular = false,
+    this.radius = 12,
+  });
+
+  final double width;
+  final double height;
+  final dynamic palette;
+  final bool circular;
+  final double radius;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: width,
+      height: height,
+      decoration: BoxDecoration(
+        color: context.palette.surfaceSecondary,
+        borderRadius: circular ? null : BorderRadius.circular(radius),
+        shape: circular ? BoxShape.circle : BoxShape.rectangle,
+      ),
     );
   }
 }

@@ -123,7 +123,7 @@ class AppTheme {
       ),
       dividerColor: palette.borderSoft,
       focusColor: AppColors.borderFocus,
-      splashColor: Colors.transparent,
+      splashFactory: InkSparkle.splashFactory,
       highlightColor: Colors.transparent,
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
@@ -170,6 +170,25 @@ class AppTheme {
         contentTextStyle: TextStyle(
           color:
               brightness == Brightness.dark ? colorScheme.onSurface : AppColors.textInverse,
+        ),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppRadius.sm),
+        ),
+      ),
+      navigationBarTheme: NavigationBarThemeData(
+        backgroundColor: Colors.transparent,
+        indicatorColor: AppColors.brandPrimary.withValues(alpha: 0.12),
+        labelTextStyle: WidgetStatePropertyAll(
+          AppTypography.navLabel.copyWith(
+            color: palette.textSecondary,
+          ),
+        ),
+        iconTheme: WidgetStatePropertyAll(
+          IconThemeData(
+            size: 24,
+            color: palette.textSecondary,
+          ),
         ),
       ),
       useMaterial3: true,

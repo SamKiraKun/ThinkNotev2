@@ -262,6 +262,26 @@ class NotesController extends AsyncNotifier<NotesState> {
     );
   }
 
+  Future<void> deleteRecentSearch(String query) async {
+    final stateValue = state.valueOrNull;
+    if (stateValue == null) return;
+
+    final trimmedQuery = query.trim();
+    final remaining = stateValue.recentSearches
+        .where((entry) => entry.toLowerCase() != trimmedQuery.toLowerCase())
+        .toList(growable: false);
+
+    await ref.read(notesRepositoryProvider).clearRecentSearches();
+    for (final item in remaining.reversed) {
+      await ref.read(notesRepositoryProvider).saveRecentSearch(item);
+    }
+
+    _updateState(
+      (notesState) => notesState.copyWith(recentSearches: remaining),
+      fallbackToReload: true,
+    );
+  }
+
   Future<void> updatePreferences(AppPreferencesModel preferences) async {
     await ref.read(notesRepositoryProvider).updatePreferences(preferences);
     _updateState(

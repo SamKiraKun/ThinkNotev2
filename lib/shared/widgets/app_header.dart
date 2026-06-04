@@ -28,6 +28,14 @@ class AppHeader extends ConsumerWidget {
   final Widget? trailing;
   final bool brandStyle;
 
+  /// Returns a time-of-day greeting string.
+  static String timeOfDayGreeting() {
+    final hour = DateTime.now().hour;
+    if (hour < 12) return 'Good morning';
+    if (hour < 17) return 'Good afternoon';
+    return 'Good evening';
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final palette = context.palette;
@@ -68,6 +76,15 @@ class AppHeader extends ConsumerWidget {
                         .copyWith(fontSize: 30, height: 1.1)
                     : AppTypography.headline.copyWith(fontSize: 22),
               ),
+              if (brandStyle)
+                Padding(
+                  padding: const EdgeInsets.only(left: 2),
+                  child: Icon(
+                    Icons.auto_awesome,
+                    size: 14,
+                    color: AppColors.brandPrimaryLight,
+                  ),
+                ),
               const SizedBox(height: 2),
               Text(
                 subtitle,
@@ -356,16 +373,24 @@ class HeaderAvatar extends StatelessWidget {
     return Container(
       width: 52,
       height: 52,
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         shape: BoxShape.circle,
-        color: AppColors.brandLavender,
+        gradient: AppGradients.primaryButton,
         boxShadow: AppShadows.softCard,
       ),
-      alignment: Alignment.center,
-      child: Text(
-        label,
-        style: AppTypography.titleMedium.copyWith(
-          color: context.colors.onPrimary,
+      padding: const EdgeInsets.all(2.5),
+      child: Container(
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: AppColors.brandLavender,
+        ),
+        alignment: Alignment.center,
+        child: Text(
+          label,
+          style: AppTypography.titleMedium.copyWith(
+            color: context.colors.onPrimary,
+            fontWeight: FontWeight.w800,
+          ),
         ),
       ),
     );

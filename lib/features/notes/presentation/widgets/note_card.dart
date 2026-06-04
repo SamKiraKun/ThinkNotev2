@@ -9,6 +9,7 @@ import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../folders/data/models/folder_model.dart';
 import '../../../folders/presentation/widgets/folder_visuals.dart';
+import '../../../../shared/widgets/animated_tap_scale.dart';
 import '../../data/models/note_model.dart';
 import '../../domain/entities/note_entity.dart';
 
@@ -40,102 +41,90 @@ class NoteCard extends StatelessWidget {
     final visuals = folderVisualsFor(folder?.colorKey ?? 'personal');
     final metadataLabel = folder?.displayName ?? 'Unsorted';
 
-    return InkWell(
+    return AnimatedTapScale(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(18),
-      child: Container(
-        padding: const EdgeInsets.all(AppSpacing.sm),
-        decoration: BoxDecoration(
-          color: palette.surfacePrimary,
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: palette.borderSoft),
-          boxShadow: AppShadows.softCard,
-        ),
-        child: Row(
-          children: [
-            Container(
-              width: 56,
-              height: 56,
-              decoration: BoxDecoration(
-                color: visuals.backgroundColor,
-                borderRadius: BorderRadius.circular(14),
+      builder: (context, tapState) {
+        return Container(
+          padding: const EdgeInsets.all(AppSpacing.md),
+          decoration: BoxDecoration(
+            color: palette.surfacePrimary,
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(color: palette.borderSoft),
+            boxShadow: AppShadows.softCard,
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 52,
+                height: 52,
+                decoration: BoxDecoration(
+                  color: visuals.backgroundColor,
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                alignment: Alignment.center,
+                child: Icon(
+                  visuals.icon,
+                  color: visuals.accentColor,
+                  size: 24,
+                ),
               ),
-              alignment: Alignment.center,
-              child: Icon(
-                visuals.icon,
-                color: visuals.accentColor,
-                size: 28,
-              ),
-            ),
-            const SizedBox(width: AppSpacing.lg),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    note.displayTitle,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: AppTypography.titleSmall,
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    note.excerpt,
-                    maxLines: previewLines,
-                    overflow: TextOverflow.ellipsis,
-                    style: AppTypography.bodySmall.copyWith(
-                      color: palette.textSecondary,
+              const SizedBox(width: AppSpacing.lg),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      note.displayTitle,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppTypography.titleSmall.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: AppSpacing.sm),
-                  Wrap(
-                    spacing: AppSpacing.sm,
-                    runSpacing: AppSpacing.xs,
-                    crossAxisAlignment: WrapCrossAlignment.center,
-                    children: [
-                      _MetaPill(
-                        label: metadataLabel,
-                        backgroundColor: visuals.backgroundColor,
-                        textColor: visuals.accentColor,
+                    const SizedBox(height: 4),
+                    Text(
+                      note.excerpt,
+                      maxLines: previewLines,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppTypography.bodySmall.copyWith(
+                        color: palette.textSecondary,
                       ),
-                      Text(
-                        subtitle,
-                        style: AppTypography.bodySmall.copyWith(
-                          color: palette.textTertiary,
+                    ),
+                    const SizedBox(height: AppSpacing.sm),
+                    Wrap(
+                      spacing: AppSpacing.sm,
+                      runSpacing: AppSpacing.xs,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      children: [
+                        _MetaPill(
+                          label: metadataLabel,
+                          backgroundColor: visuals.backgroundColor,
+                          textColor: visuals.accentColor,
                         ),
-                      ),
-                      if (note.tags.isNotEmpty)
                         Text(
-                          '#${note.tags.first}',
+                          subtitle,
                           style: AppTypography.bodySmall.copyWith(
                             color: palette.textTertiary,
                           ),
                         ),
-                      if (AppEnv.enableExperimentalSync) ...[
-                        Icon(
-                          switch (note.syncStatus) {
-                            NoteSyncStatus.synced => Icons.cloud_done_outlined,
-                            NoteSyncStatus.pendingCreate ||
-                            NoteSyncStatus.pendingUpdate ||
-                            NoteSyncStatus.pendingDelete =>
-                              Icons.cloud_upload_outlined,
-                            NoteSyncStatus.failed => Icons.cloud_off_outlined,
-                          },
-                          size: 13,
-                          color: switch (note.syncStatus) {
-                            NoteSyncStatus.synced => const Color(0xFF10B981),
-                            NoteSyncStatus.pendingCreate ||
-                            NoteSyncStatus.pendingUpdate ||
-                            NoteSyncStatus.pendingDelete =>
-                              AppColors.brandPrimary,
-                            NoteSyncStatus.failed => AppColors.textDanger,
-                          },
-                        ),
-                        Text(
-                          note.syncStatus.label,
-                          style: AppTypography.bodySmall.copyWith(
-                            fontSize: 10,
-                            fontWeight: FontWeight.bold,
+                        if (note.tags.isNotEmpty)
+                          Text(
+                            '#${note.tags.first}',
+                            style: AppTypography.bodySmall.copyWith(
+                              color: palette.textTertiary,
+                            ),
+                          ),
+                        if (AppEnv.enableExperimentalSync) ...[
+                          Icon(
+                            switch (note.syncStatus) {
+                              NoteSyncStatus.synced => Icons.cloud_done_outlined,
+                              NoteSyncStatus.pendingCreate ||
+                              NoteSyncStatus.pendingUpdate ||
+                              NoteSyncStatus.pendingDelete =>
+                                Icons.cloud_upload_outlined,
+                              NoteSyncStatus.failed => Icons.cloud_off_outlined,
+                            },
+                            size: 13,
                             color: switch (note.syncStatus) {
                               NoteSyncStatus.synced => const Color(0xFF10B981),
                               NoteSyncStatus.pendingCreate ||
@@ -145,48 +134,61 @@ class NoteCard extends StatelessWidget {
                               NoteSyncStatus.failed => AppColors.textDanger,
                             },
                           ),
-                        ),
+                          Text(
+                            note.syncStatus.label,
+                            style: AppTypography.bodySmall.copyWith(
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                              color: switch (note.syncStatus) {
+                                NoteSyncStatus.synced => const Color(0xFF10B981),
+                                NoteSyncStatus.pendingCreate ||
+                                NoteSyncStatus.pendingUpdate ||
+                                NoteSyncStatus.pendingDelete =>
+                                  AppColors.brandPrimary,
+                                NoteSyncStatus.failed => AppColors.textDanger,
+                              },
+                            ),
+                          ),
+                        ],
                       ],
-                    ],
-                  ),
-                ],
+                    ),
+                  ],
+                ),
               ),
-            ),
-            const SizedBox(width: AppSpacing.sm),
-            Column(
-              children: [
-                if (onPinTap != null)
-                  IconButton(
-                    onPressed: onPinTap,
-                    icon: Icon(
-                      note.isPinned
+              const SizedBox(width: AppSpacing.sm),
+              Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  if (onPinTap != null) ...[
+                    _SmallCardButton(
+                      onTap: onPinTap!,
+                      icon: note.isPinned
                           ? Icons.push_pin_rounded
                           : Icons.push_pin_outlined,
-                      size: 20,
-                      color: note.isPinned
-                          ? AppColors.brandPrimary
-                          : palette.textTertiary,
+                      active: note.isPinned,
+                      activeColor: AppColors.brandPrimary,
+                      inactiveColor: palette.textTertiary,
                     ),
-                  ),
-                if (onFavoriteTap != null)
-                  IconButton(
-                    onPressed: onFavoriteTap,
-                    icon: Icon(
-                      note.isFavorite
+                    const SizedBox(height: AppSpacing.xs),
+                  ],
+                  if (onFavoriteTap != null) ...[
+                    _SmallCardButton(
+                      onTap: onFavoriteTap!,
+                      icon: note.isFavorite
                           ? Icons.star_rounded
                           : Icons.star_border_rounded,
-                      size: 20,
-                      color: note.isFavorite
-                          ? AppColors.brandPrimary
-                          : palette.textTertiary,
+                      active: note.isFavorite,
+                      activeColor: AppColors.brandPrimary,
+                      inactiveColor: palette.textTertiary,
                     ),
-                  ),
-                if (trailing != null) trailing!,
-              ],
-            ),
-          ],
-        ),
-      ),
+                  ],
+                  if (trailing != null) trailing!,
+                ],
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }
@@ -216,6 +218,46 @@ class _MetaPill extends StatelessWidget {
       child: Text(
         label,
         style: AppTypography.bodySmall.copyWith(color: textColor),
+      ),
+    );
+  }
+}
+
+class _SmallCardButton extends StatelessWidget {
+  const _SmallCardButton({
+    required this.onTap,
+    required this.icon,
+    required this.active,
+    required this.activeColor,
+    required this.inactiveColor,
+  });
+
+  final VoidCallback onTap;
+  final IconData icon;
+  final bool active;
+  final Color activeColor;
+  final Color inactiveColor;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: Container(
+        width: 32,
+        height: 32,
+        decoration: BoxDecoration(
+          color: active
+              ? activeColor.withValues(alpha: 0.1)
+              : Colors.transparent,
+          shape: BoxShape.circle,
+        ),
+        alignment: Alignment.center,
+        child: Icon(
+          icon,
+          size: 18,
+          color: active ? activeColor : inactiveColor,
+        ),
       ),
     );
   }

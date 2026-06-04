@@ -614,7 +614,7 @@ class _OnboardingBackdrop extends StatelessWidget {
               colors: [
                 Color(0x206F63FF),
                 Color(0x10B69BFF),
-                Color(0x00FFFFFF),
+                Color(0x00B69BFF),
               ],
             ),
           ),
@@ -626,7 +626,7 @@ class _OnboardingBackdrop extends StatelessWidget {
               colors: [
                 Color(0x18F3A7D8),
                 Color(0x106F63FF),
-                Color(0x00FFFFFF),
+                Color(0x006F63FF),
               ],
             ),
           ),
@@ -638,7 +638,7 @@ class _OnboardingBackdrop extends StatelessWidget {
               colors: [
                 Color(0x16B69BFF),
                 Color(0x126F63FF),
-                Color(0x00FFFFFF),
+                Color(0x006F63FF),
               ],
             ),
           ),
@@ -836,7 +836,7 @@ class _TrustRow extends StatelessWidget {
     final palette = context.palette;
 
     return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         Container(
           width: 32,

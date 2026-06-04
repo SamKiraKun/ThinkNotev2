@@ -65,8 +65,8 @@ class HomeScreen extends ConsumerWidget {
                 return AppHeader(
                   title: AppConstants.appName,
                   subtitle: syncEnabled
-                      ? 'Good morning. Your notes stay on this device first and sync when you are online.'
-                      : 'Good morning. Your notes stay on this device and work offline.',
+                      ? '${AppHeader.timeOfDayGreeting()}. Your notes stay on this device first and sync when you are online.'
+                      : '${AppHeader.timeOfDayGreeting()}. Your notes stay on this device and work offline.',
                   brandStyle: true,
                   leading: const HeaderAvatar(label: 'T'),
                   trailing: syncEnabled
@@ -206,15 +206,22 @@ class HomeScreen extends ConsumerWidget {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text('Recent Notes', style: AppTypography.titleMedium),
-                    TextButton(
+                    TextButton.icon(
                       onPressed: () {
                         ref.read(shellTabProvider.notifier).state =
                             ShellTab.search;
                       },
-                      child: Text(
+                      iconAlignment: IconAlignment.end,
+                      icon: const Icon(
+                        Icons.chevron_right_rounded,
+                        size: 16,
+                        color: AppColors.brandPrimary,
+                      ),
+                      label: Text(
                         'View all',
                         style: AppTypography.bodyMedium.copyWith(
                           color: AppColors.brandPrimary,
+                          fontWeight: FontWeight.w700,
                         ),
                       ),
                     ),
@@ -270,9 +277,11 @@ class HomeScreen extends ConsumerWidget {
 
   void _showSortSheet(
       BuildContext context, WidgetRef ref, NotesState notesState) {
+    final palette = context.palette;
     showModalBottomSheet<void>(
       context: context,
       showDragHandle: true,
+      backgroundColor: palette.surfacePrimary,
       builder: (context) {
         final currentOrder = notesState.preferences.defaultSortOrder;
         return SafeArea(
@@ -370,94 +379,94 @@ class _PinnedNoteCard extends StatelessWidget {
         ),
         child: Stack(
           children: [
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    const Icon(
-                      Icons.push_pin_rounded,
-                      size: 16,
-                      color: AppColors.brandPrimary,
-                    ),
-                    const SizedBox(width: AppSpacing.xs),
-                    Text(
-                      'PINNED NOTE',
-                      style: AppTypography.labelMedium.copyWith(
+            Positioned(
+              left: 0,
+              top: 0,
+              bottom: 0,
+              right: 110,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      const Icon(
+                        Icons.push_pin_rounded,
+                        size: 16,
                         color: AppColors.brandPrimary,
                       ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: AppSpacing.md),
-                SizedBox(
-                  width: 220,
-                  child: Text(
+                      const SizedBox(width: AppSpacing.xs),
+                      Text(
+                        'PINNED NOTE',
+                        style: AppTypography.labelMedium.copyWith(
+                          color: AppColors.brandPrimary,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: AppSpacing.md),
+                  Text(
                     noteTitle,
                     style: AppTypography.titleLarge,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
-                ),
-                const SizedBox(height: AppSpacing.sm),
-                SizedBox(
-                  width: 220,
-                  child: Text(
+                  const SizedBox(height: AppSpacing.sm),
+                  Text(
                     noteExcerpt,
                     style: AppTypography.bodyMedium.copyWith(
                       color: palette.textSecondary,
                     ),
-                    maxLines: 3,
+                    maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                   ),
-                ),
-                const Spacer(),
-                Wrap(
-                  spacing: AppSpacing.sm,
-                  crossAxisAlignment: WrapCrossAlignment.center,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: AppSpacing.md,
-                        vertical: AppSpacing.xs,
-                      ),
-                      decoration: BoxDecoration(
-                        color: palette.surfacePrimary.withValues(alpha: 0.72),
-                        borderRadius: BorderRadius.circular(AppRadius.pill),
-                      ),
-                      child: Text(
-                        folderLabel,
-                        style: AppTypography.bodySmall.copyWith(
-                          color: context.colors.onSurface,
+                  const Spacer(),
+                  Wrap(
+                    spacing: AppSpacing.sm,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: AppSpacing.md,
+                          vertical: AppSpacing.xs,
+                        ),
+                        decoration: BoxDecoration(
+                          color: palette.surfacePrimary.withValues(alpha: 0.72),
+                          borderRadius: BorderRadius.circular(AppRadius.pill),
+                        ),
+                        child: Text(
+                          folderLabel,
+                          style: AppTypography.bodySmall.copyWith(
+                            color: context.colors.onSurface,
+                          ),
                         ),
                       ),
-                    ),
-                    Text(
-                      dateLabel,
-                      style: AppTypography.bodySmall.copyWith(
-                        color: palette.textSecondary,
+                      Text(
+                        dateLabel,
+                        style: AppTypography.bodySmall.copyWith(
+                          color: palette.textSecondary,
+                        ),
                       ),
-                    ),
-                  ],
-                ),
-              ],
+                    ],
+                  ),
+                ],
+              ),
             ),
             Positioned(
-              right: 0,
-              bottom: 0,
+              right: -10,
+              bottom: -15,
               child: _PinnedIllustration(),
             ),
             Positioned(
               top: 0,
               right: 0,
               child: Container(
-                width: 42,
-                height: 42,
+                width: 36,
+                height: 36,
                 decoration: BoxDecoration(
                   color: palette.surfacePrimary.withValues(alpha: 0.68),
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(Icons.more_horiz_rounded),
+                child: const Icon(Icons.more_horiz_rounded, size: 20),
               ),
             ),
           ],
@@ -471,32 +480,42 @@ class _PinnedIllustration extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Stack(
-      alignment: Alignment.bottomCenter,
+      alignment: Alignment.center,
       children: [
         Container(
-          width: 132,
-          height: 92,
+          width: 120,
+          height: 120,
           decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              colors: [Color(0x33FFFFFF), Color(0x66FFFFFF)],
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
+            shape: BoxShape.circle,
+            gradient: RadialGradient(
+              colors: [
+                AppColors.brandPrimaryLight.withValues(alpha: 0.22),
+                Colors.transparent,
+              ],
             ),
-            borderRadius: BorderRadius.circular(24),
           ),
         ),
-        const Icon(
-          Icons.terrain_rounded,
-          size: 92,
-          color: AppColors.brandLavender,
-        ),
-        const Positioned(
-          top: 8,
-          right: 24,
-          child: Icon(
-            Icons.flag_rounded,
-            color: AppColors.brandPrimary,
+        Positioned(
+          right: 10,
+          bottom: 10,
+          child: Container(
+            width: 80,
+            height: 80,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: LinearGradient(
+                colors: [
+                  AppColors.brandPrimaryLight.withValues(alpha: 0.15),
+                  AppColors.brandLavender.withValues(alpha: 0.05),
+                ],
+              ),
+            ),
           ),
+        ),
+        Icon(
+          Icons.auto_awesome,
+          size: 32,
+          color: AppColors.brandPrimary.withValues(alpha: 0.4),
         ),
       ],
     );

@@ -10,6 +10,9 @@ import '../../../../core/theme/app_radius.dart';
 import '../../../../core/theme/app_shadows.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
+import '../../../../shared/widgets/app_confirmation_dialog.dart';
+import '../../../../shared/widgets/app_header.dart';
+import '../../../../shared/widgets/animated_tap_scale.dart';
 import '../../../auth/auth_providers.dart';
 import '../../../auth/domain/entities/auth_session.dart';
 import '../../../auth/domain/entities/authenticated_account.dart';
@@ -110,141 +113,144 @@ class ProfileScreen extends ConsumerWidget {
               AppSpacing.bottomNavReserved,
             ),
             children: [
-              Row(
-                children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Profile',
-                        style: AppTypography.headlinePrimary.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: AppSpacing.xs),
-                      Text(
-                        'Manage your authenticated account and app preferences.',
-                        style: AppTypography.bodyMedium.copyWith(
-                          color: palette.textSecondary,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
+              AppHeader(
+                title: 'Profile',
+                subtitle: 'Manage your authenticated account and app preferences.',
               ),
               const SizedBox(height: AppSpacing.xxl),
 
-              Container(
-                padding: const EdgeInsets.all(AppSpacing.xl),
-                decoration: BoxDecoration(
-                  color: palette.surfacePrimary,
-                  borderRadius: BorderRadius.circular(AppRadius.formCard),
-                  boxShadow: AppShadows.softCard,
+              AnimatedTapScale(
+                onTap: () => _showAccountDetailsSheet(
+                  context,
+                  onboardingProfile,
+                  authenticatedAccount,
+                  authSession,
+                  displayName,
+                  email,
                 ),
-                child: Row(
-                  children: [
-                    Stack(
-                      children: [
-                        Container(
-                          width: 76,
-                          height: 76,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: AppColors.brandLavender,
-                            image: (authenticatedAccount?.avatarUrl ??
-                                        authSession?.photoUrl) !=
-                                    null
-                                ? DecorationImage(
-                                    image: NetworkImage(
-                                      authenticatedAccount?.avatarUrl ??
-                                          authSession!.photoUrl!,
-                                    ),
-                                    fit: BoxFit.cover,
-                                  )
-                                : null,
-                          ),
-                          alignment: Alignment.center,
-                          child: (authenticatedAccount?.avatarUrl ??
-                                      authSession?.photoUrl) ==
-                                  null
-                              ? Text(
-                                  authSession?.initials ??
-                                      displayName.characters.first
-                                          .toUpperCase(),
-                                  style: AppTypography.titleLarge.copyWith(
-                                    color: AppColors.surfaceWhite,
-                                    fontSize: 24,
-                                  ),
-                                )
-                              : null,
-                        ),
-                      ],
+                builder: (context, tapState) {
+                  return Container(
+                    padding: const EdgeInsets.all(AppSpacing.xl),
+                    decoration: BoxDecoration(
+                      color: palette.surfacePrimary,
+                      borderRadius: BorderRadius.circular(AppRadius.formCard),
+                      border: Border.all(color: palette.borderSoft, width: 1.5),
+                      boxShadow: AppShadows.softCard,
                     ),
-                    const SizedBox(width: AppSpacing.lg),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Text(
-                                displayName,
-                                style: AppTypography.titleMedium,
-                              ),
-                              const SizedBox(width: 4),
-                              const Icon(
-                                Icons.auto_awesome_rounded,
+                    child: Row(
+                      children: [
+                        Stack(
+                          children: [
+                            Container(
+                              width: 76,
+                              height: 76,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
                                 color: AppColors.brandLavender,
-                                size: 16,
+                                image: (authenticatedAccount?.avatarUrl ??
+                                            authSession?.photoUrl) !=
+                                        null
+                                    ? DecorationImage(
+                                        image: NetworkImage(
+                                          authenticatedAccount?.avatarUrl ??
+                                              authSession!.photoUrl!,
+                                        ),
+                                        fit: BoxFit.cover,
+                                      )
+                                    : null,
+                              ),
+                              alignment: Alignment.center,
+                              child: (authenticatedAccount?.avatarUrl ??
+                                          authSession?.photoUrl) ==
+                                      null
+                                  ? Text(
+                                      authSession?.initials ??
+                                          displayName.characters.first
+                                              .toUpperCase(),
+                                      style: AppTypography.titleLarge.copyWith(
+                                        color: AppColors.surfaceWhite,
+                                        fontSize: 24,
+                                      ),
+                                    )
+                                  : null,
+                            ),
+                          ],
+                        ),
+                        const SizedBox(width: AppSpacing.lg),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Flexible(
+                                    child: Text(
+                                      displayName,
+                                      style: AppTypography.titleMedium.copyWith(
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 4),
+                                  const Icon(
+                                    Icons.auto_awesome_rounded,
+                                    color: AppColors.brandLavender,
+                                    size: 16,
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: AppSpacing.xs),
+                              Text(
+                                email,
+                                style: AppTypography.bodyMedium.copyWith(
+                                  color: palette.textSecondary,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              const SizedBox(height: AppSpacing.sm),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: AppSpacing.md,
+                                  vertical: AppSpacing.xs,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: palette.surfaceAccent,
+                                  borderRadius:
+                                      BorderRadius.circular(AppRadius.pill),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(
+                                      _focusIcon(onboardingProfile?.workspaceFocus),
+                                      size: 14,
+                                      color: AppColors.brandPrimary,
+                                    ),
+                                    const SizedBox(width: 6),
+                                    Text(
+                                      _focusBioText(onboardingProfile?.workspaceFocus),
+                                      style: AppTypography.bodySmall.copyWith(
+                                        color: AppColors.brandPrimary,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ),
                             ],
                           ),
-                          const SizedBox(height: AppSpacing.xs),
-                          Text(
-                            email,
-                            style: AppTypography.bodyMedium.copyWith(
-                              color: palette.textSecondary,
-                            ),
-                          ),
-                          const SizedBox(height: AppSpacing.sm),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: AppSpacing.md,
-                              vertical: AppSpacing.xs,
-                            ),
-                            decoration: BoxDecoration(
-                              color: palette.surfaceAccent,
-                              borderRadius:
-                                  BorderRadius.circular(AppRadius.pill),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(
-                                  _focusIcon(onboardingProfile?.workspaceFocus),
-                                  size: 14,
-                                  color: AppColors.brandPrimary,
-                                ),
-                                const SizedBox(width: 6),
-                                Text(
-                                  _focusBioText(onboardingProfile?.workspaceFocus),
-                                  style: AppTypography.bodySmall.copyWith(
-                                    color: AppColors.brandPrimary,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
+                        ),
+                        Icon(
+                          Icons.chevron_right_rounded,
+                          color: palette.textTertiary,
+                        ),
+                      ],
                     ),
-                    Icon(
-                      Icons.chevron_right_rounded,
-                      color: palette.textTertiary,
-                    ),
-                  ],
-                ),
+                  );
+                },
               ),
 
               // Appearance Settings Group
@@ -268,8 +274,8 @@ class ProfileScreen extends ConsumerWidget {
                 children: [
                   _SettingsTile(
                     icon: Icons.cloud_queue_outlined,
-                    iconColor: AppColors.brandPrimary,
-                    iconBgColor: AppColors.brandPrimary.withValues(alpha: 0.1),
+                    iconColor: const Color(0xFF3B82F6),
+                    iconBgColor: const Color(0xFF3B82F6).withValues(alpha: 0.1),
                     title: 'Sync & Backup',
                     subtitle: 'Check sync status for your signed-in account',
                     trailing: syncState.isSyncing
@@ -318,11 +324,11 @@ class ProfileScreen extends ConsumerWidget {
                               ),
                     onTap: () => _syncNow(context, ref),
                   ),
-                  const Divider(height: 1, indent: 68, endIndent: 16),
+                  Divider(height: 1, indent: 68, endIndent: 16, color: palette.borderSoft),
                   _SettingsTile(
                     icon: Icons.history_rounded,
-                    iconColor: AppColors.brandPrimary,
-                    iconBgColor: AppColors.brandPrimary.withValues(alpha: 0.1),
+                    iconColor: const Color(0xFF3B82F6),
+                    iconBgColor: const Color(0xFF3B82F6).withValues(alpha: 0.1),
                     title: 'Import & Export',
                     subtitle: 'Move or download your notes',
                     onTap: () => context.push(RouteNames.importExport),
@@ -336,19 +342,19 @@ class ProfileScreen extends ConsumerWidget {
                 children: [
                   _SettingsTile(
                     icon: Icons.lock_outline_rounded,
-                    iconColor: AppColors.brandPrimary,
-                    iconBgColor: AppColors.brandPrimary.withValues(alpha: 0.1),
+                    iconColor: const Color(0xFF10B981),
+                    iconBgColor: const Color(0xFF10B981).withValues(alpha: 0.1),
                     title: 'App Passcode',
                     subtitle:
                         'Require a passcode before ThinkNote opens on this device',
                     trailingText: _isNotesLockOn(ref) ? 'On' : 'Off',
                     onTap: () => context.push(RouteNames.lockNotes),
                   ),
-                  const Divider(height: 1, indent: 68, endIndent: 16),
+                  Divider(height: 1, indent: 68, endIndent: 16, color: palette.borderSoft),
                   _SettingsTile(
                     icon: Icons.shield_outlined,
-                    iconColor: AppColors.brandPrimary,
-                    iconBgColor: AppColors.brandPrimary.withValues(alpha: 0.1),
+                    iconColor: const Color(0xFF10B981),
+                    iconBgColor: const Color(0xFF10B981).withValues(alpha: 0.1),
                     title: 'Privacy',
                     subtitle: 'Manage data and privacy preferences',
                     onTap: () => context.push(RouteNames.privacy),
@@ -368,7 +374,7 @@ class ProfileScreen extends ConsumerWidget {
                       subtitle: 'Sign out from your account',
                       onTap: () => _signOut(context, ref),
                     ),
-                    const Divider(height: 1, indent: 68, endIndent: 16),
+                    Divider(height: 1, indent: 68, endIndent: 16, color: palette.borderSoft),
                     _SettingsTile(
                       icon: Icons.delete_forever_rounded,
                       iconColor: AppColors.textDanger,
@@ -426,21 +432,11 @@ class ProfileScreen extends ConsumerWidget {
       BuildContext context, WidgetRef ref) async {
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Delete account?'),
-        content: const Text(
-          'This permanently deletes your ThinkNote account and synced notes. This cannot be undone.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Delete'),
-          ),
-        ],
+      builder: (context) => const AppConfirmationDialog(
+        title: 'Delete account?',
+        message: 'This permanently deletes your ThinkNote account and synced notes. This cannot be undone.',
+        confirmLabel: 'Delete',
+        isDestructive: true,
       ),
     );
 
@@ -454,6 +450,137 @@ class ProfileScreen extends ConsumerWidget {
       return;
     }
     _showSnack(context, 'Account deleted.');
+  }
+
+  void _showAccountDetailsSheet(
+    BuildContext context,
+    OnboardingProfile? onboardingProfile,
+    AuthenticatedAccount? authenticatedAccount,
+    AuthSession? authSession,
+    String displayName,
+    String email,
+  ) {
+    final palette = context.palette;
+    showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      backgroundColor: palette.surfacePrimary,
+      builder: (context) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(
+              AppSpacing.xxl,
+              0,
+              AppSpacing.xxl,
+              AppSpacing.xxl,
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      width: 48,
+                      height: 48,
+                      decoration: const BoxDecoration(
+                        color: AppColors.brandLavender,
+                        shape: BoxShape.circle,
+                      ),
+                      alignment: Alignment.center,
+                      child: Text(
+                        authSession?.initials ?? displayName.characters.first.toUpperCase(),
+                        style: AppTypography.titleMedium.copyWith(color: Colors.white),
+                      ),
+                    ),
+                    const SizedBox(width: AppSpacing.lg),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            displayName,
+                            style: AppTypography.titleMedium.copyWith(
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            email,
+                            style: AppTypography.bodySmall.copyWith(
+                              color: palette.textSecondary,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: AppSpacing.xl),
+                Divider(color: palette.borderSoft, height: 1),
+                const SizedBox(height: AppSpacing.md),
+                _AccountDetailRow(
+                  label: 'Account Status',
+                  value: authSession != null ? 'Authenticated' : 'Local Workspace',
+                ),
+                const SizedBox(height: AppSpacing.sm),
+                _AccountDetailRow(
+                  label: 'Workspace Focus',
+                  value: _focusBioText(onboardingProfile?.workspaceFocus),
+                ),
+                if (authSession != null) ...[
+                  const SizedBox(height: AppSpacing.sm),
+                  _AccountDetailRow(
+                    label: 'Sync Status',
+                    value: 'Active',
+                  ),
+                ],
+                const SizedBox(height: AppSpacing.xxl),
+                FilledButton(
+                  onPressed: () => Navigator.pop(context),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: AppColors.brandPrimary,
+                    minimumSize: const Size.fromHeight(50),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(AppRadius.button),
+                    ),
+                  ),
+                  child: const Text('Close'),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _AccountDetailRow extends StatelessWidget {
+  const _AccountDetailRow({
+    required this.label,
+    required this.value,
+  });
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = context.palette;
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(
+          label,
+          style: AppTypography.bodyMedium.copyWith(color: palette.textSecondary),
+        ),
+        Text(
+          value,
+          style: AppTypography.titleSmall.copyWith(fontWeight: FontWeight.bold),
+        ),
+      ],
+    );
   }
 }
 
@@ -494,6 +621,7 @@ class _SettingsGroup extends StatelessWidget {
       decoration: BoxDecoration(
         color: palette.surfacePrimary,
         borderRadius: BorderRadius.circular(AppRadius.formCard),
+        border: Border.all(color: palette.borderSoft, width: 1.5),
         boxShadow: AppShadows.softCard,
       ),
       child: Column(children: children),

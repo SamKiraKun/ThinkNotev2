@@ -86,7 +86,7 @@ void main() {
     expect(find.text('Dashboard'), findsWidgets);
     expect(find.text('Recent work'), findsOneWidget);
     expect(
-      find.text('Track active work, decisions, and reference notes in one workspace.'),
+      find.textContaining('Track active work, decisions, and reference notes in one workspace.'),
       findsOneWidget,
     );
   });

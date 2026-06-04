@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../core/extensions/context_extensions.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_radius.dart';
+import '../../core/theme/app_shadows.dart';
 import '../../core/theme/app_typography.dart';
 
 class CategoryChip extends StatelessWidget {
@@ -29,16 +30,18 @@ class CategoryChip extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 180),
-        curve: Curves.easeOutCubic,
+        duration: const Duration(milliseconds: 200),
+        curve: Curves.easeInOut,
         padding: const EdgeInsets.symmetric(horizontal: 16),
-        height: 34,
+        height: 36,
         decoration: BoxDecoration(
           color: selected ? AppColors.brandPrimary : backgroundColor,
           borderRadius: BorderRadius.circular(AppRadius.pill),
-          border: selected 
-            ? null 
-            : Border.all(color: palette.borderPrimary),
+          border: Border.all(
+            color: selected ? Colors.transparent : palette.borderSoft,
+            width: 1.1,
+          ),
+          boxShadow: selected ? AppShadows.softCard : null,
         ),
         alignment: Alignment.center,
         child: Row(
@@ -50,13 +53,13 @@ class CategoryChip extends StatelessWidget {
                 size: 16,
                 color: selected ? AppColors.textInverse : textColor,
               ),
-              const SizedBox(width: 6),
+              const SizedBox(width: 8),
             ],
             Text(
               label,
               style: AppTypography.bodySmall.copyWith(
                 color: selected ? AppColors.textInverse : textColor,
-                fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
+                fontWeight: selected ? FontWeight.w700 : FontWeight.w600,
               ),
             ),
           ],

@@ -3,51 +3,53 @@ import 'package:flutter/material.dart';
 import 'app_colors.dart';
 
 class AppShadows {
+  static const List<BoxShadow> none = [];
+
   static const List<BoxShadow> softCard = [
     BoxShadow(
       color: AppColors.shadowSoft,
-      offset: Offset(0, 8),
-      blurRadius: 24,
+      offset: Offset(0, 4),
+      blurRadius: 16,
     ),
   ];
 
   static const List<BoxShadow> medium = [
     BoxShadow(
       color: AppColors.shadowMedium,
-      offset: Offset(0, 10),
-      blurRadius: 28,
+      offset: Offset(0, 6),
+      blurRadius: 20,
     ),
   ];
 
   static const List<BoxShadow> buttonGlow = [
     BoxShadow(
       color: AppColors.shadowPurpleGlow,
-      offset: Offset(0, 12),
-      blurRadius: 28,
+      offset: Offset(0, 8),
+      blurRadius: 22,
     ),
   ];
 
   static const List<BoxShadow> heroGlow = [
     BoxShadow(
       color: AppColors.shadowIllustrationGlow,
-      offset: Offset(0, 18),
-      blurRadius: 44,
+      offset: Offset(0, 12),
+      blurRadius: 36,
     ),
   ];
 
   static const List<BoxShadow> formCard = [
     BoxShadow(
       color: AppColors.shadowFormGlow,
-      offset: Offset(0, 14),
-      blurRadius: 36,
+      offset: Offset(0, 8),
+      blurRadius: 28,
     ),
   ];
 
   static const List<BoxShadow> socialButton = [
     BoxShadow(
       color: AppColors.shadowSocialButton,
-      offset: Offset(0, 10),
-      blurRadius: 26,
+      offset: Offset(0, 6),
+      blurRadius: 18,
     ),
   ];
 
