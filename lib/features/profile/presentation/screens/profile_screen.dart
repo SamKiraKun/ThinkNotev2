@@ -11,7 +11,9 @@ import '../../../../core/theme/app_shadows.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../shared/widgets/app_confirmation_dialog.dart';
+import '../../../../shared/widgets/app_error_state.dart';
 import '../../../../shared/widgets/app_header.dart';
+import '../../../../shared/widgets/app_loading_state.dart';
 import '../../../../shared/widgets/animated_tap_scale.dart';
 import '../../../auth/auth_providers.dart';
 import '../../../auth/domain/entities/auth_session.dart';
@@ -115,7 +117,8 @@ class ProfileScreen extends ConsumerWidget {
             children: [
               AppHeader(
                 title: 'Profile',
-                subtitle: 'Manage your authenticated account and app preferences.',
+                subtitle:
+                    'Manage your authenticated account and app preferences.',
               ),
               const SizedBox(height: AppSpacing.xxl),
 
@@ -212,6 +215,8 @@ class ProfileScreen extends ConsumerWidget {
                               ),
                               const SizedBox(height: AppSpacing.sm),
                               Container(
+                                constraints: const BoxConstraints(
+                                    maxWidth: double.infinity),
                                 padding: const EdgeInsets.symmetric(
                                   horizontal: AppSpacing.md,
                                   vertical: AppSpacing.xs,
@@ -222,19 +227,24 @@ class ProfileScreen extends ConsumerWidget {
                                       BorderRadius.circular(AppRadius.pill),
                                 ),
                                 child: Row(
-                                  mainAxisSize: MainAxisSize.min,
                                   children: [
                                     Icon(
-                                      _focusIcon(onboardingProfile?.workspaceFocus),
+                                      _focusIcon(
+                                          onboardingProfile?.workspaceFocus),
                                       size: 14,
                                       color: AppColors.brandPrimary,
                                     ),
                                     const SizedBox(width: 6),
-                                    Text(
-                                      _focusBioText(onboardingProfile?.workspaceFocus),
-                                      style: AppTypography.bodySmall.copyWith(
-                                        color: AppColors.brandPrimary,
-                                        fontWeight: FontWeight.bold,
+                                    Flexible(
+                                      child: Text(
+                                        _focusBioText(
+                                            onboardingProfile?.workspaceFocus),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: AppTypography.bodySmall.copyWith(
+                                          color: AppColors.brandPrimary,
+                                          fontWeight: FontWeight.bold,
+                                        ),
                                       ),
                                     ),
                                   ],
@@ -324,7 +334,11 @@ class ProfileScreen extends ConsumerWidget {
                               ),
                     onTap: () => _syncNow(context, ref),
                   ),
-                  Divider(height: 1, indent: 68, endIndent: 16, color: palette.borderSoft),
+                  Divider(
+                      height: 1,
+                      indent: 68,
+                      endIndent: 16,
+                      color: palette.borderSoft),
                   _SettingsTile(
                     icon: Icons.history_rounded,
                     iconColor: const Color(0xFF3B82F6),
@@ -350,7 +364,11 @@ class ProfileScreen extends ConsumerWidget {
                     trailingText: _isNotesLockOn(ref) ? 'On' : 'Off',
                     onTap: () => context.push(RouteNames.lockNotes),
                   ),
-                  Divider(height: 1, indent: 68, endIndent: 16, color: palette.borderSoft),
+                  Divider(
+                      height: 1,
+                      indent: 68,
+                      endIndent: 16,
+                      color: palette.borderSoft),
                   _SettingsTile(
                     icon: Icons.shield_outlined,
                     iconColor: const Color(0xFF10B981),
@@ -374,7 +392,11 @@ class ProfileScreen extends ConsumerWidget {
                       subtitle: 'Sign out from your account',
                       onTap: () => _signOut(context, ref),
                     ),
-                    Divider(height: 1, indent: 68, endIndent: 16, color: palette.borderSoft),
+                    Divider(
+                        height: 1,
+                        indent: 68,
+                        endIndent: 16,
+                        color: palette.borderSoft),
                     _SettingsTile(
                       icon: Icons.delete_forever_rounded,
                       iconColor: AppColors.textDanger,
@@ -390,12 +412,16 @@ class ProfileScreen extends ConsumerWidget {
             ],
           );
         },
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, _) => Center(
-          child: Text(
-            'Unable to load settings.',
-            style: AppTypography.bodyLarge,
-          ),
+        loading: () => const AppLoadingState(
+          title: 'Loading profile',
+          message: 'Preparing account settings and sync status.',
+        ),
+        error: (error, _) => AppErrorState(
+          title: 'Unable to load settings',
+          message: error.toString().replaceFirst('Exception: ', ''),
+          onRetry: () async {
+            await ref.read(notesControllerProvider.notifier).refresh();
+          },
         ),
       ),
     );
@@ -434,7 +460,8 @@ class ProfileScreen extends ConsumerWidget {
       context: context,
       builder: (context) => const AppConfirmationDialog(
         title: 'Delete account?',
-        message: 'This permanently deletes your ThinkNote account and synced notes. This cannot be undone.',
+        message:
+            'This permanently deletes your ThinkNote account and synced notes. This cannot be undone.',
         confirmLabel: 'Delete',
         isDestructive: true,
       ),
@@ -489,8 +516,10 @@ class ProfileScreen extends ConsumerWidget {
                       ),
                       alignment: Alignment.center,
                       child: Text(
-                        authSession?.initials ?? displayName.characters.first.toUpperCase(),
-                        style: AppTypography.titleMedium.copyWith(color: Colors.white),
+                        authSession?.initials ??
+                            displayName.characters.first.toUpperCase(),
+                        style: AppTypography.titleMedium
+                            .copyWith(color: Colors.white),
                       ),
                     ),
                     const SizedBox(width: AppSpacing.lg),
@@ -521,7 +550,8 @@ class ProfileScreen extends ConsumerWidget {
                 const SizedBox(height: AppSpacing.md),
                 _AccountDetailRow(
                   label: 'Account Status',
-                  value: authSession != null ? 'Authenticated' : 'Local Workspace',
+                  value:
+                      authSession != null ? 'Authenticated' : 'Local Workspace',
                 ),
                 const SizedBox(height: AppSpacing.sm),
                 _AccountDetailRow(
@@ -573,7 +603,8 @@ class _AccountDetailRow extends StatelessWidget {
       children: [
         Text(
           label,
-          style: AppTypography.bodyMedium.copyWith(color: palette.textSecondary),
+          style:
+              AppTypography.bodyMedium.copyWith(color: palette.textSecondary),
         ),
         Text(
           value,
@@ -695,24 +726,34 @@ class _SettingsTile extends StatelessWidget {
               ),
             ),
             if (trailing != null)
-              trailing!
+              ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 128),
+                child: trailing!,
+              )
             else if (trailingText != null)
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    trailingText!,
-                    style: AppTypography.bodyMedium.copyWith(
-                      color: palette.textSecondary,
-                      fontWeight: FontWeight.w600,
+              ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 118),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Flexible(
+                      child: Text(
+                        trailingText!,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: AppTypography.bodyMedium.copyWith(
+                          color: palette.textSecondary,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: AppSpacing.xs),
-                  Icon(
-                    Icons.chevron_right_rounded,
-                    color: palette.textTertiary,
-                  ),
-                ],
+                    const SizedBox(width: AppSpacing.xs),
+                    Icon(
+                      Icons.chevron_right_rounded,
+                      color: palette.textTertiary,
+                    ),
+                  ],
+                ),
               )
             else
               Icon(

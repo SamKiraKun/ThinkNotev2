@@ -4,12 +4,12 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../core/constants/route_names.dart';
 import '../../../../core/extensions/context_extensions.dart';
-import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
-import '../../../../core/theme/app_typography.dart';
 import '../../../../core/utils/date_formatter.dart';
 import '../../../../shared/widgets/app_confirmation_dialog.dart';
 import '../../../../shared/widgets/app_empty_state.dart';
+import '../../../../shared/widgets/app_error_state.dart';
+import '../../../../shared/widgets/app_loading_state.dart';
 import '../controllers/notes_controller.dart';
 import '../widgets/note_card.dart';
 
@@ -88,14 +88,16 @@ class ArchivedNotesScreen extends ConsumerWidget {
               },
             );
           },
-          loading: () => const Center(child: CircularProgressIndicator()),
-          error: (error, _) => Center(
-            child: Text(
-              'Unable to load Archive.',
-              style: AppTypography.bodyLarge.copyWith(
-                color: AppColors.textDanger,
-              ),
-            ),
+          loading: () => const AppLoadingState(
+            title: 'Loading archive',
+            message: 'Finding notes you moved out of the main workspace.',
+          ),
+          error: (error, _) => AppErrorState(
+            title: 'Unable to load archive',
+            message: error.toString().replaceFirst('Exception: ', ''),
+            onRetry: () async {
+              await ref.read(notesControllerProvider.notifier).refresh();
+            },
           ),
         ),
       ),

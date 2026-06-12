@@ -117,11 +117,11 @@ const List<({String id, String name, String colorKey, String emoji})>
   String colorKey,
   String emoji,
 })>[
-  (id: 'personal', name: 'Personal', colorKey: 'personal', emoji: '💖'),
-  (id: 'study', name: 'Study', colorKey: 'study', emoji: '📚'),
-  (id: 'ideas', name: 'Ideas', colorKey: 'ideas', emoji: '💡'),
-  (id: 'work', name: 'Work', colorKey: 'work', emoji: '💼'),
-  (id: 'journal', name: 'Journal', colorKey: 'journal', emoji: '✍️'),
+  (id: 'personal', name: 'Personal', colorKey: 'personal', emoji: ''),
+  (id: 'study', name: 'Study', colorKey: 'study', emoji: ''),
+  (id: 'ideas', name: 'Ideas', colorKey: 'ideas', emoji: ''),
+  (id: 'work', name: 'Work', colorKey: 'work', emoji: ''),
+  (id: 'journal', name: 'Journal', colorKey: 'journal', emoji: ''),
 ];
 
 final Set<String> _systemFolderIds =

@@ -14,7 +14,9 @@ import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/utils/date_formatter.dart';
 import '../../../../shared/widgets/app_empty_state.dart';
+import '../../../../shared/widgets/app_error_state.dart';
 import '../../../../shared/widgets/app_header.dart';
+import '../../../../shared/widgets/app_loading_state.dart';
 import '../../../../shared/widgets/app_search_bar.dart';
 import '../../../folders/presentation/widgets/folder_visuals.dart';
 import '../../../notes/data/models/app_preferences_model.dart';
@@ -261,15 +263,16 @@ class HomeScreen extends ConsumerWidget {
             },
           );
         },
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, _) => Center(
-          child: Padding(
-            padding: const EdgeInsets.all(AppSpacing.xxl),
-            child: Text(
-              'Unable to load your notes.',
-              style: AppTypography.bodyLarge,
-            ),
-          ),
+        loading: () => const AppLoadingState(
+          title: 'Loading your notes',
+          message: 'Pulling together your folders, pins, and recent work.',
+        ),
+        error: (error, _) => AppErrorState(
+          title: 'Unable to load your notes',
+          message: error.toString().replaceFirst('Exception: ', ''),
+          onRetry: () async {
+            await ref.read(notesControllerProvider.notifier).refresh();
+          },
         ),
       ),
     );
@@ -365,26 +368,23 @@ class _PinnedNoteCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final palette = context.palette;
+    final textScale = MediaQuery.textScalerOf(context).scale(1);
+    final useCompactPinnedCard =
+        MediaQuery.sizeOf(context).width < 360 || textScale > 1.2;
 
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(AppRadius.formCard),
       child: Container(
-        height: 156,
+        constraints: BoxConstraints(minHeight: useCompactPinnedCard ? 0 : 156),
         padding: const EdgeInsets.all(AppSpacing.lg),
         decoration: BoxDecoration(
           gradient: AppGradients.pinnedCard,
           borderRadius: BorderRadius.circular(AppRadius.formCard),
           boxShadow: AppShadows.floatingCard,
         ),
-        child: Stack(
-          children: [
-            Positioned(
-              left: 0,
-              top: 0,
-              bottom: 0,
-              right: 110,
-              child: Column(
+        child: useCompactPinnedCard
+            ? Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(
@@ -419,9 +419,10 @@ class _PinnedNoteCard extends StatelessWidget {
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                   ),
-                  const Spacer(),
+                  const SizedBox(height: AppSpacing.md),
                   Wrap(
                     spacing: AppSpacing.sm,
+                    runSpacing: AppSpacing.xs,
                     crossAxisAlignment: WrapCrossAlignment.center,
                     children: [
                       Container(
@@ -435,6 +436,8 @@ class _PinnedNoteCard extends StatelessWidget {
                         ),
                         child: Text(
                           folderLabel,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                           style: AppTypography.bodySmall.copyWith(
                             color: context.colors.onSurface,
                           ),
@@ -449,28 +452,106 @@ class _PinnedNoteCard extends StatelessWidget {
                     ],
                   ),
                 ],
+              )
+            : Stack(
+                children: [
+                  Positioned(
+                    left: 0,
+                    top: 0,
+                    bottom: 0,
+                    right: 110,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            const Icon(
+                              Icons.push_pin_rounded,
+                              size: 16,
+                              color: AppColors.brandPrimary,
+                            ),
+                            const SizedBox(width: AppSpacing.xs),
+                            Text(
+                              'PINNED NOTE',
+                              style: AppTypography.labelMedium.copyWith(
+                                color: AppColors.brandPrimary,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: AppSpacing.md),
+                        Text(
+                          noteTitle,
+                          style: AppTypography.titleLarge,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(height: AppSpacing.sm),
+                        Text(
+                          noteExcerpt,
+                          style: AppTypography.bodyMedium.copyWith(
+                            color: palette.textSecondary,
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const Spacer(),
+                        Wrap(
+                          spacing: AppSpacing.sm,
+                          runSpacing: AppSpacing.xs,
+                          crossAxisAlignment: WrapCrossAlignment.center,
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: AppSpacing.md,
+                                vertical: AppSpacing.xs,
+                              ),
+                              decoration: BoxDecoration(
+                                color: palette.surfacePrimary
+                                    .withValues(alpha: 0.72),
+                                borderRadius:
+                                    BorderRadius.circular(AppRadius.pill),
+                              ),
+                              child: Text(
+                                folderLabel,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: AppTypography.bodySmall.copyWith(
+                                  color: context.colors.onSurface,
+                                ),
+                              ),
+                            ),
+                            Text(
+                              dateLabel,
+                              style: AppTypography.bodySmall.copyWith(
+                                color: palette.textSecondary,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  Positioned(
+                    right: -10,
+                    bottom: -15,
+                    child: _PinnedIllustration(),
+                  ),
+                  Positioned(
+                    top: 0,
+                    right: 0,
+                    child: Container(
+                      width: 36,
+                      height: 36,
+                      decoration: BoxDecoration(
+                        color: palette.surfacePrimary.withValues(alpha: 0.68),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(Icons.more_horiz_rounded, size: 20),
+                    ),
+                  ),
+                ],
               ),
-            ),
-            Positioned(
-              right: -10,
-              bottom: -15,
-              child: _PinnedIllustration(),
-            ),
-            Positioned(
-              top: 0,
-              right: 0,
-              child: Container(
-                width: 36,
-                height: 36,
-                decoration: BoxDecoration(
-                  color: palette.surfacePrimary.withValues(alpha: 0.68),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(Icons.more_horiz_rounded, size: 20),
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }

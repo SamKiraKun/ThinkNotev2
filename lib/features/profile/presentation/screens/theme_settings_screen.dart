@@ -7,6 +7,8 @@ import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/theme/app_radius.dart';
 import '../../../../core/theme/app_shadows.dart';
+import '../../../../shared/widgets/app_error_state.dart';
+import '../../../../shared/widgets/app_loading_state.dart';
 import '../../../notes/data/models/app_preferences_model.dart';
 import '../../../notes/presentation/controllers/notes_controller.dart';
 
@@ -38,10 +40,13 @@ class ThemeSettingsScreen extends ConsumerWidget {
                     contentPadding: EdgeInsets.zero,
                     title: Text(option.label),
                     trailing: preferences.themePreference == option
-                        ? const Icon(Icons.check_rounded, color: AppColors.brandPrimary)
+                        ? const Icon(Icons.check_rounded,
+                            color: AppColors.brandPrimary)
                         : null,
                     onTap: () {
-                      ref.read(notesControllerProvider.notifier).updatePreferences(
+                      ref
+                          .read(notesControllerProvider.notifier)
+                          .updatePreferences(
                             preferences.copyWith(themePreference: option),
                           );
                       Navigator.of(context).pop();
@@ -80,10 +85,13 @@ class ThemeSettingsScreen extends ConsumerWidget {
                     contentPadding: EdgeInsets.zero,
                     title: Text(order.label),
                     trailing: preferences.defaultSortOrder == order
-                        ? const Icon(Icons.check_rounded, color: AppColors.brandPrimary)
+                        ? const Icon(Icons.check_rounded,
+                            color: AppColors.brandPrimary)
                         : null,
                     onTap: () {
-                      ref.read(notesControllerProvider.notifier).updatePreferences(
+                      ref
+                          .read(notesControllerProvider.notifier)
+                          .updatePreferences(
                             preferences.copyWith(defaultSortOrder: order),
                           );
                       Navigator.of(context).pop();
@@ -122,10 +130,13 @@ class ThemeSettingsScreen extends ConsumerWidget {
                     contentPadding: EdgeInsets.zero,
                     title: Text('$value lines'),
                     trailing: preferences.previewLines == value
-                        ? const Icon(Icons.check_rounded, color: AppColors.brandPrimary)
+                        ? const Icon(Icons.check_rounded,
+                            color: AppColors.brandPrimary)
                         : null,
                     onTap: () {
-                      ref.read(notesControllerProvider.notifier).updatePreferences(
+                      ref
+                          .read(notesControllerProvider.notifier)
+                          .updatePreferences(
                             preferences.copyWith(previewLines: value),
                           );
                       Navigator.of(context).pop();
@@ -175,23 +186,35 @@ class ThemeSettingsScreen extends ConsumerWidget {
                         title: 'Theme mode',
                         subtitle: 'System, Light, or Dark appearance',
                         trailingText: preferences.themePreference.label,
-                        onTap: () => _showThemeModeSheet(context, ref, preferences),
+                        onTap: () =>
+                            _showThemeModeSheet(context, ref, preferences),
                       ),
-                      Divider(height: 1, indent: 68, endIndent: 16, color: palette.borderSoft),
+                      Divider(
+                          height: 1,
+                          indent: 68,
+                          endIndent: 16,
+                          color: palette.borderSoft),
                       _SettingsActionTile(
                         icon: Icons.sort_rounded,
                         title: 'Default sort',
                         subtitle: 'Sort order for notes in lists',
                         trailingText: preferences.defaultSortOrder.label,
-                        onTap: () => _showSortOrderSheet(context, ref, preferences),
+                        onTap: () =>
+                            _showSortOrderSheet(context, ref, preferences),
                       ),
-                      Divider(height: 1, indent: 68, endIndent: 16, color: palette.borderSoft),
+                      Divider(
+                          height: 1,
+                          indent: 68,
+                          endIndent: 16,
+                          color: palette.borderSoft),
                       _SettingsActionTile(
                         icon: Icons.short_text_rounded,
                         title: 'Preview lines',
                         subtitle: 'Number of text lines shown on card',
-                        trailingText: '${preferences.previewLines} ${preferences.previewLines == 1 ? 'line' : 'lines'}',
-                        onTap: () => _showPreviewLinesSheet(context, ref, preferences),
+                        trailingText:
+                            '${preferences.previewLines} ${preferences.previewLines == 1 ? 'line' : 'lines'}',
+                        onTap: () =>
+                            _showPreviewLinesSheet(context, ref, preferences),
                       ),
                     ],
                   ),
@@ -199,12 +222,16 @@ class ThemeSettingsScreen extends ConsumerWidget {
               ],
             );
           },
-          loading: () => const Center(child: CircularProgressIndicator()),
-          error: (error, _) => Center(
-            child: Text(
-              'Unable to load theme settings.',
-              style: AppTypography.bodyLarge,
-            ),
+          loading: () => const AppLoadingState(
+            title: 'Loading appearance',
+            message: 'Preparing theme and writing preferences.',
+          ),
+          error: (error, _) => AppErrorState(
+            title: 'Unable to load theme settings',
+            message: error.toString().replaceFirst('Exception: ', ''),
+            onRetry: () async {
+              await ref.read(notesControllerProvider.notifier).refresh();
+            },
           ),
         ),
       ),
@@ -275,22 +302,29 @@ class _SettingsActionTile extends StatelessWidget {
                 ],
               ),
             ),
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  trailingText,
-                  style: AppTypography.bodyMedium.copyWith(
-                    color: palette.textSecondary,
-                    fontWeight: FontWeight.w600,
+            ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 118),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Flexible(
+                    child: Text(
+                      trailingText,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppTypography.bodyMedium.copyWith(
+                        color: palette.textSecondary,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
                   ),
-                ),
-                const SizedBox(width: AppSpacing.xs),
-                Icon(
-                  Icons.chevron_right_rounded,
-                  color: palette.textTertiary,
-                ),
-              ],
+                  const SizedBox(width: AppSpacing.xs),
+                  Icon(
+                    Icons.chevron_right_rounded,
+                    color: palette.textTertiary,
+                  ),
+                ],
+              ),
             ),
           ],
         ),

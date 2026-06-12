@@ -124,7 +124,7 @@ class NotesController extends AsyncNotifier<NotesState> {
 
   Future<void> createFolder(
     String name, {
-    String emoji = '\u{1F5C2}\u{FE0F}',
+    String emoji = '',
   }) async {
     final folder = await ref
         .read(notesRepositoryProvider)

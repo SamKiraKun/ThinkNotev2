@@ -34,12 +34,12 @@ class TagModel extends TagEntity {
   static List<TagModel> defaults() {
     final createdAt = DateTime.now();
     return const <({String id, String label, String emoji})>[
-      (id: 'important', label: 'Important', emoji: '📌'),
-      (id: 'review', label: 'To Review', emoji: '👀'),
-      (id: 'inspiration', label: 'Inspiration', emoji: '✨'),
-      (id: 'goals', label: 'Goals', emoji: '🎯'),
-      (id: 'finance', label: 'Finance', emoji: '💰'),
-      (id: 'health', label: 'Health', emoji: '🌿'),
+      (id: 'important', label: 'Important', emoji: ''),
+      (id: 'review', label: 'To Review', emoji: ''),
+      (id: 'inspiration', label: 'Inspiration', emoji: ''),
+      (id: 'goals', label: 'Goals', emoji: ''),
+      (id: 'finance', label: 'Finance', emoji: ''),
+      (id: 'health', label: 'Health', emoji: ''),
     ].map((tag) {
       return TagModel(
         id: tag.id,

@@ -12,6 +12,7 @@ import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/utils/date_formatter.dart';
 import '../../../../shared/widgets/app_empty_state.dart';
+import '../../../../shared/widgets/app_error_state.dart';
 import '../../../../shared/widgets/app_header.dart';
 import '../../../auth/auth_providers.dart';
 import '../../../auth/presentation/controllers/auth_controller.dart';
@@ -282,27 +283,11 @@ class _DashboardErrorStateState extends ConsumerState<_DashboardErrorState> {
 
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(AppSpacing.xxl),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text('Unable to load dashboard', style: AppTypography.headline),
-            const SizedBox(height: AppSpacing.sm),
-            Text(
-              widget.message,
-              style: AppTypography.bodyLarge,
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: AppSpacing.xl),
-            FilledButton(
-              onPressed: _isRetrying ? null : _retry,
-              child: Text(_isRetrying ? 'Retrying...' : 'Retry'),
-            ),
-          ],
-        ),
-      ),
+    return AppErrorState(
+      title: 'Unable to load dashboard',
+      message: widget.message,
+      retryLabel: _isRetrying ? 'Retrying...' : 'Retry',
+      onRetry: _isRetrying ? null : _retry,
     );
   }
 }
@@ -585,7 +570,8 @@ class _DashboardLoadingState extends StatelessWidget {
         // Shimmer header skeleton
         Row(
           children: [
-            _ShimmerBlock(width: 52, height: 52, circular: true, palette: palette),
+            _ShimmerBlock(
+                width: 52, height: 52, circular: true, palette: palette),
             const SizedBox(width: AppSpacing.lg),
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -599,11 +585,16 @@ class _DashboardLoadingState extends StatelessWidget {
         ),
         const SizedBox(height: AppSpacing.xxl),
         // Shimmer search bar
-        _ShimmerBlock(width: double.infinity, height: 52, palette: palette, radius: AppRadius.pill),
+        _ShimmerBlock(
+            width: double.infinity,
+            height: 52,
+            palette: palette,
+            radius: AppRadius.pill),
         const SizedBox(height: AppSpacing.xxl),
         // Shimmer note cards
         for (int i = 0; i < 3; i++) ...[
-          _ShimmerBlock(width: double.infinity, height: 88, palette: palette, radius: 18),
+          _ShimmerBlock(
+              width: double.infinity, height: 88, palette: palette, radius: 18),
           const SizedBox(height: AppSpacing.md),
         ],
         const SizedBox(height: AppSpacing.lg),
@@ -611,11 +602,19 @@ class _DashboardLoadingState extends StatelessWidget {
         Row(
           children: [
             Expanded(
-              child: _ShimmerBlock(width: double.infinity, height: 110, palette: palette, radius: AppRadius.formCard),
+              child: _ShimmerBlock(
+                  width: double.infinity,
+                  height: 110,
+                  palette: palette,
+                  radius: AppRadius.formCard),
             ),
             const SizedBox(width: AppSpacing.md),
             Expanded(
-              child: _ShimmerBlock(width: double.infinity, height: 110, palette: palette, radius: AppRadius.formCard),
+              child: _ShimmerBlock(
+                  width: double.infinity,
+                  height: 110,
+                  palette: palette,
+                  radius: AppRadius.formCard),
             ),
           ],
         ),

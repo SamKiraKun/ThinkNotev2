@@ -199,7 +199,7 @@ class NotesRepositoryImpl implements NotesRepository {
   }
 
   @override
-  Future<FolderModel> createFolder(String name, {String emoji = '🗂️'}) async {
+  Future<FolderModel> createFolder(String name, {String emoji = ''}) async {
     final trimmedName = name.trim();
     if (trimmedName.isEmpty) {
       throw ArgumentError('Folder name cannot be empty.');

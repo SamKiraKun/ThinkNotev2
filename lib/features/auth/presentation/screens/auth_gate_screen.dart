@@ -172,42 +172,47 @@ class _AuthGateScreenState extends ConsumerState<AuthGateScreen>
                           ],
                         ),
                         const Divider(height: 1, color: AppColors.formDivider),
-                        AnimatedContainer(
-                          duration: const Duration(milliseconds: 200),
-                          height: _tabController.index == 0 ? 370 : 450,
-                          child: TabBarView(
-                            controller: _tabController,
-                            children: [
-                              // Sign In Form
-                              Form(
-                                key: _signInFormKey,
-                                child: _AuthForm(
-                                  isBusy: isBusy,
-                                  emailController: _signInEmailController,
-                                  passwordController: _signInPasswordController,
-                                  onSubmit: _submitSignIn,
-                                  primaryLabel: 'Sign In',
-                                  secondaryActionLabel: 'Forgot Password?',
-                                  onSecondaryAction: _showResetPasswordDialog,
-                                  footer:
-                                      'Use your account email and password to open your notes.',
-                                ),
-                              ),
-                              // Sign Up Form
-                              Form(
-                                key: _signUpFormKey,
-                                child: _AuthForm(
-                                  isBusy: isBusy,
-                                  nameController: _signUpNameController,
-                                  emailController: _signUpEmailController,
-                                  passwordController: _signUpPasswordController,
-                                  onSubmit: _submitSignUp,
-                                  primaryLabel: 'Create account',
-                                  footer:
-                                      'Create your secure ThinkNote account. We will send a verification link before notes can sync to this signed-in identity.',
-                                ),
-                              ),
-                            ],
+                        AnimatedSize(
+                          duration: const Duration(milliseconds: 220),
+                          curve: Curves.easeOutCubic,
+                          alignment: Alignment.topCenter,
+                          child: AnimatedSwitcher(
+                            duration: const Duration(milliseconds: 180),
+                            switchInCurve: Curves.easeOutCubic,
+                            switchOutCurve: Curves.easeOutCubic,
+                            child: _tabController.index == 0
+                                ? Form(
+                                    key: _signInFormKey,
+                                    child: _AuthForm(
+                                      key: const ValueKey('sign-in-form'),
+                                      isBusy: isBusy,
+                                      emailController: _signInEmailController,
+                                      passwordController:
+                                          _signInPasswordController,
+                                      onSubmit: _submitSignIn,
+                                      primaryLabel: 'Sign In',
+                                      secondaryActionLabel: 'Forgot Password?',
+                                      onSecondaryAction:
+                                          _showResetPasswordDialog,
+                                      footer:
+                                          'Use your account email and password to open your notes.',
+                                    ),
+                                  )
+                                : Form(
+                                    key: _signUpFormKey,
+                                    child: _AuthForm(
+                                      key: const ValueKey('sign-up-form'),
+                                      isBusy: isBusy,
+                                      nameController: _signUpNameController,
+                                      emailController: _signUpEmailController,
+                                      passwordController:
+                                          _signUpPasswordController,
+                                      onSubmit: _submitSignUp,
+                                      primaryLabel: 'Create account',
+                                      footer:
+                                          'Create your secure ThinkNote account. We will send a verification link before notes can sync to this signed-in identity.',
+                                    ),
+                                  ),
                           ),
                         ),
                       ],
@@ -443,6 +448,7 @@ class _AuthStatusBanner extends StatelessWidget {
 
 class _AuthForm extends StatefulWidget {
   const _AuthForm({
+    super.key,
     required this.emailController,
     required this.passwordController,
     required this.onSubmit,
@@ -475,8 +481,7 @@ class _AuthFormState extends State<_AuthForm> {
   Widget build(BuildContext context) {
     final palette = context.palette;
 
-    return SingleChildScrollView(
-      physics: const ClampingScrollPhysics(),
+    return Padding(
       padding: const EdgeInsets.symmetric(
         horizontal: AppSpacing.xl,
         vertical: AppSpacing.lg,

@@ -73,5 +73,5 @@ class AppSpacing {
   static const double pinnedToRecent = 24.0;
   static const double recentHeaderToList = 12.0;
   static const double noteCardGap = 10.0;
-  static const double bottomNavReserved = 108.0;
+  static const double bottomNavReserved = 136.0;
 }

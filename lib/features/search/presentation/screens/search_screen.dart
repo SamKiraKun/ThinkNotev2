@@ -11,7 +11,9 @@ import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/utils/date_formatter.dart';
 import '../../../../shared/widgets/app_empty_state.dart';
+import '../../../../shared/widgets/app_error_state.dart';
 import '../../../../shared/widgets/app_header.dart';
+import '../../../../shared/widgets/app_loading_state.dart';
 import '../../../../shared/widgets/app_search_bar.dart';
 import '../../../notes/data/models/app_preferences_model.dart';
 import '../../../notes/presentation/controllers/notes_controller.dart';
@@ -50,6 +52,9 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     final topPicks = ref.watch(searchTopPicksProvider);
     final hasFilters = ref.watch(hasSearchFiltersProvider);
     final palette = context.palette;
+    final textScale = MediaQuery.textScalerOf(context).scale(1);
+    final useCompactCards =
+        MediaQuery.sizeOf(context).width < 360 || textScale > 1.2;
 
     if (_controller.text != searchState.query) {
       _controller.value = _controller.value.copyWith(
@@ -286,7 +291,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
 
                 if (index == offset + 2) {
                   return SizedBox(
-                    height: 220,
+                    height: useCompactCards ? 236 : 220,
                     child: ListView.separated(
                       scrollDirection: Axis.horizontal,
                       itemBuilder: (context, topPickIndex) {
@@ -298,6 +303,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                           folderLabel: folder?.displayName ?? 'Unsorted',
                           folderColorKey: folder?.colorKey ?? 'personal',
                           isFavorite: note.isFavorite,
+                          compact: useCompactCards,
                           onTap: () {
                             if (searchState.query.trim().isNotEmpty) {
                               ref
@@ -400,12 +406,16 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
             },
           );
         },
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, _) => Center(
-          child: Text(
-            'Unable to load search.',
-            style: AppTypography.bodyLarge,
-          ),
+        loading: () => const AppLoadingState(
+          title: 'Indexing your workspace',
+          message: 'Preparing notes, tags, and folders for search.',
+        ),
+        error: (error, _) => AppErrorState(
+          title: 'Unable to load search',
+          message: error.toString().replaceFirst('Exception: ', ''),
+          onRetry: () async {
+            await ref.read(notesControllerProvider.notifier).refresh();
+          },
         ),
       ),
     );
@@ -601,13 +611,16 @@ class _ModeChip extends StatelessWidget {
               Icon(
                 icon,
                 size: 14,
-                color: selected ? context.colors.onPrimary : palette.textSecondary,
+                color:
+                    selected ? context.colors.onPrimary : palette.textSecondary,
               ),
               const SizedBox(width: 6),
               Text(
                 label,
                 style: AppTypography.bodyMedium.copyWith(
-                  color: selected ? context.colors.onPrimary : palette.textSecondary,
+                  color: selected
+                      ? context.colors.onPrimary
+                      : palette.textSecondary,
                   fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
                 ),
               ),
@@ -683,6 +696,7 @@ class _TopPickCard extends StatelessWidget {
     required this.folderLabel,
     required this.folderColorKey,
     required this.isFavorite,
+    required this.compact,
     required this.onTap,
   });
 
@@ -691,6 +705,7 @@ class _TopPickCard extends StatelessWidget {
   final String folderLabel;
   final String folderColorKey;
   final bool isFavorite;
+  final bool compact;
   final VoidCallback onTap;
 
   @override
@@ -702,7 +717,7 @@ class _TopPickCard extends StatelessWidget {
       onTap: onTap,
       borderRadius: BorderRadius.circular(AppRadius.formCard),
       child: Container(
-        width: 220,
+        width: compact ? 200 : 220,
         padding: const EdgeInsets.all(AppSpacing.lg),
         decoration: BoxDecoration(
           color: palette.surfacePrimary,
@@ -728,14 +743,15 @@ class _TopPickCard extends StatelessWidget {
             const SizedBox(height: AppSpacing.md),
             Text(
               noteTitle,
-              maxLines: 2,
+              maxLines: compact ? 1 : 2,
               overflow: TextOverflow.ellipsis,
-              style: AppTypography.titleMedium.copyWith(fontWeight: FontWeight.w700),
+              style: AppTypography.titleMedium
+                  .copyWith(fontWeight: FontWeight.w700),
             ),
             const SizedBox(height: AppSpacing.sm),
             Text(
               noteExcerpt,
-              maxLines: 3,
+              maxLines: compact ? 2 : 3,
               overflow: TextOverflow.ellipsis,
               style: AppTypography.bodyMedium.copyWith(
                 color: palette.textSecondary,
@@ -753,6 +769,8 @@ class _TopPickCard extends StatelessWidget {
               ),
               child: Text(
                 folderLabel,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
                 style: AppTypography.bodySmall.copyWith(
                   color: palette.textSecondary,
                 ),

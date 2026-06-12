@@ -11,6 +11,7 @@ import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/utils/date_formatter.dart';
 import '../../../../shared/widgets/app_confirmation_dialog.dart';
+import '../../../../shared/widgets/app_loading_state.dart';
 import '../../../folders/data/models/folder_model.dart';
 import '../../../folders/presentation/widgets/folder_visuals.dart';
 import '../../data/models/note_model.dart';
@@ -78,6 +79,8 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
     final readTime = DateFormatter.estimateReadTime(editorState.content);
     final saveLabel = _saveLabel(editorState, syncState);
     final saveIcon = _saveIcon(editorState, syncState);
+    final screenWidth = MediaQuery.sizeOf(context).width;
+    final isCompactWidth = screenWidth < 360;
 
     ref.listen(noteEditorControllerProvider(_args), (previous, next) {
       if (previous?.errorMessage != next.errorMessage &&
@@ -118,7 +121,10 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
         resizeToAvoidBottomInset: true,
         body: SafeArea(
           child: editorState.isLoading
-              ? const Center(child: CircularProgressIndicator())
+              ? const AppLoadingState(
+                  title: 'Opening note',
+                  message: 'Preparing a clean writing space.',
+                )
               : Column(
                   children: [
                     Padding(
@@ -140,52 +146,19 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
                               shape: const CircleBorder(),
                               side: BorderSide(color: palette.borderSoft),
                             ),
-                            icon: Icon(Icons.arrow_back_rounded, color: palette.textPrimary, size: 20),
+                            icon: Icon(Icons.arrow_back_rounded,
+                                color: palette.textPrimary, size: 20),
                           ),
                           Expanded(
                             child: Center(
-                              child: InkWell(
+                              child: _EditorFolderPicker(
+                                label: folder?.displayName ?? 'Choose folder',
+                                colorKey: folder?.colorKey ?? 'personal',
                                 onTap: () => _showFolderSelector(
                                   context,
                                   ref,
                                   notesState?.folders ?? const <FolderModel>[],
                                   editorState.folderId,
-                                ),
-                                borderRadius: BorderRadius.circular(AppRadius.pill),
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: AppSpacing.md,
-                                    vertical: 6,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: palette.surfacePrimary,
-                                    borderRadius: BorderRadius.circular(AppRadius.pill),
-                                    border: Border.all(color: palette.borderSoft),
-                                  ),
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Icon(
-                                        folderVisualsFor(folder?.colorKey ?? 'personal').icon,
-                                        size: 16,
-                                        color: folderVisualsFor(folder?.colorKey ?? 'personal').accentColor,
-                                      ),
-                                      const SizedBox(width: AppSpacing.sm),
-                                      Text(
-                                        folder?.displayName ?? 'Choose folder',
-                                        style: AppTypography.bodySmall.copyWith(
-                                          fontWeight: FontWeight.w700,
-                                          color: palette.textPrimary,
-                                        ),
-                                      ),
-                                      const SizedBox(width: AppSpacing.xs),
-                                      Icon(
-                                        Icons.keyboard_arrow_down_rounded,
-                                        size: 16,
-                                        color: palette.textSecondary,
-                                      ),
-                                    ],
-                                  ),
                                 ),
                               ),
                             ),
@@ -200,7 +173,8 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
                                 border: Border.all(color: palette.borderSoft),
                               ),
                               alignment: Alignment.center,
-                              child: Icon(Icons.more_horiz_rounded, color: palette.textPrimary, size: 20),
+                              child: Icon(Icons.more_horiz_rounded,
+                                  color: palette.textPrimary, size: 20),
                             ),
                             onSelected: (value) async {
                               if (value == 'favorite') {
@@ -268,28 +242,49 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
                                 ),
                             ],
                           ),
-                          const SizedBox(width: AppSpacing.sm),
-                          FilledButton(
-                            onPressed: () async {
-                              FocusScope.of(context).unfocus();
-                              await _saveAndClose(editorController);
-                            },
-                            style: FilledButton.styleFrom(
-                              backgroundColor: AppColors.brandPrimary,
-                              minimumSize: const Size(64, 42),
-                              padding: const EdgeInsets.symmetric(horizontal: 16),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(AppRadius.pill),
+                          const SizedBox(width: AppSpacing.xs),
+                          if (isCompactWidth)
+                            IconButton(
+                              tooltip: 'Save',
+                              onPressed: () async {
+                                FocusScope.of(context).unfocus();
+                                await _saveAndClose(editorController);
+                              },
+                              style: IconButton.styleFrom(
+                                backgroundColor: AppColors.brandPrimary,
+                                foregroundColor: Colors.white,
+                                minimumSize: const Size(42, 42),
+                                shape: const CircleBorder(),
+                              ),
+                              icon: const Icon(
+                                Icons.check_rounded,
+                                size: 20,
+                              ),
+                            )
+                          else
+                            FilledButton(
+                              onPressed: () async {
+                                FocusScope.of(context).unfocus();
+                                await _saveAndClose(editorController);
+                              },
+                              style: FilledButton.styleFrom(
+                                backgroundColor: AppColors.brandPrimary,
+                                minimumSize: const Size(64, 42),
+                                padding:
+                                    const EdgeInsets.symmetric(horizontal: 16),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius:
+                                      BorderRadius.circular(AppRadius.pill),
+                                ),
+                              ),
+                              child: Text(
+                                'Save',
+                                style: AppTypography.buttonLabel.copyWith(
+                                  color: Colors.white,
+                                  fontSize: 13,
+                                ),
                               ),
                             ),
-                            child: Text(
-                              'Save',
-                              style: AppTypography.buttonLabel.copyWith(
-                                color: Colors.white,
-                                fontSize: 13,
-                              ),
-                            ),
-                          ),
                         ],
                       ),
                     ),
@@ -498,44 +493,20 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
                                         horizontal: AppSpacing.xl,
                                         vertical: AppSpacing.md,
                                       ),
-                                      child: Row(
+                                      child: Wrap(
+                                        spacing: AppSpacing.sm,
+                                        runSpacing: AppSpacing.xs,
+                                        crossAxisAlignment:
+                                            WrapCrossAlignment.center,
                                         children: [
-                                          Container(
-                                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                                            decoration: BoxDecoration(
-                                              color: palette.surfaceSecondary,
-                                              borderRadius: BorderRadius.circular(AppRadius.sm),
-                                            ),
-                                            child: Text(
-                                              '$wordCount words',
-                                              style: AppTypography.bodySmall.copyWith(
-                                                color: palette.textSecondary,
-                                                fontWeight: FontWeight.w600,
-                                              ),
-                                            ),
+                                          _EditorMetaChip(
+                                            label: '$wordCount words',
                                           ),
-                                          const SizedBox(width: AppSpacing.sm),
-                                          Container(
-                                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                                            decoration: BoxDecoration(
-                                              color: palette.surfaceSecondary,
-                                              borderRadius: BorderRadius.circular(AppRadius.sm),
-                                            ),
-                                            child: Text(
-                                              readTime,
-                                              style: AppTypography.bodySmall.copyWith(
-                                                color: palette.textSecondary,
-                                                fontWeight: FontWeight.w600,
-                                              ),
-                                            ),
-                                          ),
-                                          const Spacer(),
-                                          Text(
-                                            saveLabel,
-                                            style: AppTypography.bodySmall.copyWith(
-                                              color: palette.textSecondary,
-                                              fontWeight: FontWeight.w700,
-                                            ),
+                                          _EditorMetaChip(label: readTime),
+                                          _EditorMetaChip(
+                                            label: saveLabel,
+                                            icon: saveIcon,
+                                            emphasized: true,
                                           ),
                                         ],
                                       ),
@@ -709,36 +680,39 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text('Select folder', style: AppTypography.titleMedium),
-                                const SizedBox(height: AppSpacing.lg),
-                                for (final folder in folders)
-                                  ListTile(
-                                    contentPadding: EdgeInsets.zero,
-                                    leading: Container(
-                                      width: 36,
-                                      height: 36,
-                                      decoration: BoxDecoration(
-                                        color: folderVisualsFor(folder.colorKey).backgroundColor,
-                                        shape: BoxShape.circle,
-                                      ),
-                                      alignment: Alignment.center,
-                                      child: Icon(
-                                        folderVisualsFor(folder.colorKey).icon,
-                                        color: folderVisualsFor(folder.colorKey).accentColor,
-                                        size: 18,
-                                      ),
-                                    ),
-                                    title: Text(
-                                      folder.displayName,
-                                      style: AppTypography.bodyLarge.copyWith(
-                                        fontWeight: selectedFolderId == folder.id ? FontWeight.w700 : FontWeight.w500,
-                                      ),
-                                    ),
-                                    trailing: selectedFolderId == folder.id
-                                        ? const Icon(Icons.check_rounded,
-                                            color: AppColors.brandPrimary)
-                                        : null,
-                                    onTap: () => Navigator.of(context).pop(folder.id),
-                                  ),
+                const SizedBox(height: AppSpacing.lg),
+                for (final folder in folders)
+                  ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    leading: Container(
+                      width: 36,
+                      height: 36,
+                      decoration: BoxDecoration(
+                        color:
+                            folderVisualsFor(folder.colorKey).backgroundColor,
+                        shape: BoxShape.circle,
+                      ),
+                      alignment: Alignment.center,
+                      child: Icon(
+                        folderVisualsFor(folder.colorKey).icon,
+                        color: folderVisualsFor(folder.colorKey).accentColor,
+                        size: 18,
+                      ),
+                    ),
+                    title: Text(
+                      folder.displayName,
+                      style: AppTypography.bodyLarge.copyWith(
+                        fontWeight: selectedFolderId == folder.id
+                            ? FontWeight.w700
+                            : FontWeight.w500,
+                      ),
+                    ),
+                    trailing: selectedFolderId == folder.id
+                        ? const Icon(Icons.check_rounded,
+                            color: AppColors.brandPrimary)
+                        : null,
+                    onTap: () => Navigator.of(context).pop(folder.id),
+                  ),
               ],
             ),
           ),
@@ -780,7 +754,8 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
                       FilterChip(
                         label: Text(tag.displayLabel),
                         selected: selectedTags.contains(tag.label),
-                        selectedColor: AppColors.brandPrimary.withValues(alpha: 0.14),
+                        selectedColor:
+                            AppColors.brandPrimary.withValues(alpha: 0.14),
                         checkmarkColor: AppColors.brandPrimary,
                         labelStyle: TextStyle(
                           color: selectedTags.contains(tag.label)
@@ -924,6 +899,131 @@ IconData _saveIcon(NoteEditorState editorState, SyncState syncState) {
   return Icons.cloud_done_outlined;
 }
 
+class _EditorFolderPicker extends StatelessWidget {
+  const _EditorFolderPicker({
+    required this.label,
+    required this.colorKey,
+    required this.onTap,
+  });
+
+  final String label;
+  final String colorKey;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = context.palette;
+    final visuals = folderVisualsFor(colorKey);
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return ConstrainedBox(
+          constraints: BoxConstraints(
+            maxWidth: constraints.maxWidth.clamp(0, 180).toDouble(),
+          ),
+          child: InkWell(
+            onTap: onTap,
+            borderRadius: BorderRadius.circular(AppRadius.pill),
+            child: Container(
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.md,
+                vertical: 6,
+              ),
+              decoration: BoxDecoration(
+                color: palette.surfacePrimary,
+                borderRadius: BorderRadius.circular(AppRadius.pill),
+                border: Border.all(color: palette.borderSoft),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    visuals.icon,
+                    size: 16,
+                    color: visuals.accentColor,
+                  ),
+                  const SizedBox(width: AppSpacing.sm),
+                  Flexible(
+                    child: Text(
+                      label,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppTypography.bodySmall.copyWith(
+                        fontWeight: FontWeight.w700,
+                        color: palette.textPrimary,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: AppSpacing.xs),
+                  Icon(
+                    Icons.keyboard_arrow_down_rounded,
+                    size: 16,
+                    color: palette.textSecondary,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _EditorMetaChip extends StatelessWidget {
+  const _EditorMetaChip({
+    required this.label,
+    this.icon,
+    this.emphasized = false,
+  });
+
+  final String label;
+  final IconData? icon;
+  final bool emphasized;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = context.palette;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: emphasized
+            ? AppColors.brandPrimary.withValues(alpha: 0.08)
+            : palette.surfaceSecondary,
+        borderRadius: BorderRadius.circular(AppRadius.sm),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (icon != null) ...[
+            Icon(
+              icon,
+              size: 13,
+              color:
+                  emphasized ? AppColors.brandPrimary : palette.textSecondary,
+            ),
+            const SizedBox(width: 4),
+          ],
+          ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 180),
+            child: Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: AppTypography.bodySmall.copyWith(
+                color:
+                    emphasized ? AppColors.brandPrimary : palette.textSecondary,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _EditorActionChip extends StatelessWidget {
   const _EditorActionChip({
     required this.icon,
@@ -1063,7 +1163,8 @@ class _TagBadge extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.brandPrimary.withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(AppRadius.pill),
-        border: Border.all(color: AppColors.brandPrimary.withValues(alpha: 0.16)),
+        border:
+            Border.all(color: AppColors.brandPrimary.withValues(alpha: 0.16)),
       ),
       child: Text(
         label,

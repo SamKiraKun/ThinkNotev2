@@ -24,6 +24,9 @@ class MainBottomNav extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final palette = context.palette;
+    final bottomInset = MediaQuery.viewPaddingOf(context).bottom;
+    final width = MediaQuery.sizeOf(context).width;
+    final hideLabels = width < 340;
 
     return Stack(
       clipBehavior: Clip.none,
@@ -37,8 +40,8 @@ class MainBottomNav extends StatelessWidget {
           child: BackdropFilter(
             filter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
             child: Container(
-              height: 94,
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 14),
+              height: 94 + bottomInset,
+              padding: EdgeInsets.fromLTRB(12, 12, 12, 14 + bottomInset),
               decoration: BoxDecoration(
                 color: palette.glassSurface,
                 borderRadius: const BorderRadius.only(
@@ -58,11 +61,12 @@ class MainBottomNav extends StatelessWidget {
                   Expanded(
                     child: Center(
                       child: _NavItem(
-                        label: 'Dashboard',
+                        label: 'Home',
                         icon: activeTab == ShellTab.home
                             ? Icons.home_rounded
                             : Icons.home_outlined,
                         isActive: activeTab == ShellTab.home,
+                        showLabel: !hideLabels,
                         onTap: () => onTabSelected(ShellTab.home),
                       ),
                     ),
@@ -73,11 +77,12 @@ class MainBottomNav extends StatelessWidget {
                         label: 'Search',
                         icon: Icons.search_rounded,
                         isActive: activeTab == ShellTab.search,
+                        showLabel: !hideLabels,
                         onTap: () => onTabSelected(ShellTab.search),
                       ),
                     ),
                   ),
-                  const SizedBox(width: 76),
+                  const SizedBox(width: 70),
                   Expanded(
                     child: Center(
                       child: _NavItem(
@@ -86,6 +91,7 @@ class MainBottomNav extends StatelessWidget {
                             ? Icons.folder_copy_rounded
                             : Icons.folder_copy_outlined,
                         isActive: activeTab == ShellTab.folders,
+                        showLabel: !hideLabels,
                         onTap: () => onTabSelected(ShellTab.folders),
                       ),
                     ),
@@ -98,6 +104,7 @@ class MainBottomNav extends StatelessWidget {
                             ? Icons.person_rounded
                             : Icons.person_outline_rounded,
                         isActive: activeTab == ShellTab.profile,
+                        showLabel: !hideLabels,
                         onTap: () => onTabSelected(ShellTab.profile),
                       ),
                     ),
@@ -121,12 +128,14 @@ class _NavItem extends StatelessWidget {
     required this.label,
     required this.icon,
     required this.isActive,
+    required this.showLabel,
     required this.onTap,
   });
 
   final String label;
   final IconData icon;
   final bool isActive;
+  final bool showLabel;
   final VoidCallback onTap;
 
   @override
@@ -149,15 +158,19 @@ class _NavItem extends StatelessWidget {
               color: isActive ? AppColors.brandPrimary : palette.textSecondary,
               size: 24,
             ),
-            const SizedBox(height: 2),
-            Text(
-              label,
-              style: AppTypography.navLabel.copyWith(
-                color:
-                    isActive ? AppColors.brandPrimary : palette.textSecondary,
-                fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
+            if (showLabel) ...[
+              const SizedBox(height: 2),
+              Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: AppTypography.navLabel.copyWith(
+                  color:
+                      isActive ? AppColors.brandPrimary : palette.textSecondary,
+                  fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
+                ),
               ),
-            ),
+            ],
             const SizedBox(height: 1),
             AnimatedContainer(
               duration: const Duration(milliseconds: 200),

@@ -23,10 +23,12 @@ class AppPasscodeUnlockScreen extends ConsumerStatefulWidget {
   const AppPasscodeUnlockScreen({super.key});
 
   @override
-  ConsumerState<AppPasscodeUnlockScreen> createState() => _AppPasscodeUnlockScreenState();
+  ConsumerState<AppPasscodeUnlockScreen> createState() =>
+      _AppPasscodeUnlockScreenState();
 }
 
-class _AppPasscodeUnlockScreenState extends ConsumerState<AppPasscodeUnlockScreen>
+class _AppPasscodeUnlockScreenState
+    extends ConsumerState<AppPasscodeUnlockScreen>
     with SingleTickerProviderStateMixin {
   static const int _maxFailedAttemptsBeforeCooldown = 5;
   static const Duration _cooldownDuration = Duration(seconds: 30);
@@ -139,15 +141,13 @@ class _AppPasscodeUnlockScreenState extends ConsumerState<AppPasscodeUnlockScree
   void _restoreThrottleState() {
     final preferences = ref.read(sharedPreferencesProvider);
     _failedAttempts = preferences.getInt(StorageKeys.lockFailedAttempts) ?? 0;
-    final cooldownUntilMs =
-        preferences.getInt(StorageKeys.lockCooldownUntilMs);
+    final cooldownUntilMs = preferences.getInt(StorageKeys.lockCooldownUntilMs);
 
     if (cooldownUntilMs == null) {
       return;
     }
 
-    final cooldownUntil =
-        DateTime.fromMillisecondsSinceEpoch(cooldownUntilMs);
+    final cooldownUntil = DateTime.fromMillisecondsSinceEpoch(cooldownUntilMs);
     if (cooldownUntil.isAfter(DateTime.now())) {
       _cooldownUntil = cooldownUntil;
       _startCooldownTicker();
@@ -241,102 +241,130 @@ class _AppPasscodeUnlockScreenState extends ConsumerState<AppPasscodeUnlockScree
     return Scaffold(
       backgroundColor: palette.pageBackground,
       body: SafeArea(
-        child: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 400),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxl),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Spacer(),
-                  // Lock Icon header
-                  Container(
-                    width: 72,
-                    height: 72,
-                    decoration: BoxDecoration(
-                      gradient: AppGradients.authAppIcon,
-                      borderRadius: BorderRadius.circular(22),
-                    ),
-                    alignment: Alignment.center,
-                    child: const Icon(
-                      Icons.lock_rounded,
-                      color: Colors.white,
-                      size: 34,
-                    ),
-                  ),
-                  const SizedBox(height: AppSpacing.xl),
-                  Text(
-                    'Workspace Locked',
-                    style: AppTypography.headlinePrimary.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: AppSpacing.xs),
-                  Text(
-                    'Enter your local passcode to unlock this workspace on this device.',
-                    style: AppTypography.bodyLarge.copyWith(
-                      color: palette.textSecondary,
-                    ),
-                  ),
-                  const SizedBox(height: AppSpacing.xxl),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final isShort = constraints.maxHeight < 620;
+            final keypadHeight = isShort ? 58.0 : 72.0;
+            final verticalGap = isShort ? AppSpacing.md : AppSpacing.xxl;
 
-                  // Digits indicator row
-                  AnimatedBuilder(
-                    animation: _shakeAnimation,
-                    builder: (context, child) {
-                      return Transform.translate(
-                        offset: Offset(_shakeAnimation.value * (1.0 - _shakeController.value), 0),
-                        child: child,
-                      );
-                    },
-                    child: Row(
+            return Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 400),
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.xxl,
+                    vertical: AppSpacing.xl,
+                  ),
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(
+                      minHeight: constraints.maxHeight - (AppSpacing.xl * 2),
+                    ),
+                    child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
-                      children: List.generate(4, (index) {
-                        final isFilled = index < _currentDigits.length;
-                        return AnimatedContainer(
-                          duration: const Duration(milliseconds: 150),
-                          margin: const EdgeInsets.symmetric(horizontal: 10),
-                          width: 18,
-                          height: 18,
+                      children: [
+                        // Lock Icon header
+                        Container(
+                          width: isShort ? 60 : 72,
+                          height: isShort ? 60 : 72,
                           decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: isFilled ? AppColors.brandPrimary : Colors.transparent,
-                            border: Border.all(
-                              color: isFilled ? AppColors.brandPrimary : palette.textPlaceholder,
-                              width: 2,
-                            ),
+                            gradient: AppGradients.authAppIcon,
+                            borderRadius: BorderRadius.circular(22),
                           ),
-                        );
-                      }),
-                    ),
-                  ),
-                  const SizedBox(height: AppSpacing.md),
-                  if (_errorMessage != null)
-                    Text(
-                      _errorMessage!,
-                      style: AppTypography.bodyMedium.copyWith(
-                        color: AppColors.textDanger,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  const Spacer(),
+                          alignment: Alignment.center,
+                          child: Icon(
+                            Icons.lock_rounded,
+                            color: Colors.white,
+                            size: isShort ? 28 : 34,
+                          ),
+                        ),
+                        SizedBox(
+                            height: isShort ? AppSpacing.lg : AppSpacing.xl),
+                        Text(
+                          'Workspace Locked',
+                          style: AppTypography.headlinePrimary.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: AppSpacing.xs),
+                        Text(
+                          'Enter your local passcode to unlock this workspace on this device.',
+                          style: AppTypography.bodyLarge.copyWith(
+                            color: palette.textSecondary,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                        SizedBox(height: verticalGap),
 
-                  // Numeric Keypad Grid
-                  AnimatedOpacity(
-                    duration: const Duration(milliseconds: 150),
-                    opacity: _isCooldownActive ? 0.45 : 1,
-                    child: _KeypadGrid(
-                      onDigitPressed: _digitPressed,
-                      onBackspace: _backspacePressed,
-                      onClear: _clearPressed,
+                        // Digits indicator row
+                        AnimatedBuilder(
+                          animation: _shakeAnimation,
+                          builder: (context, child) {
+                            return Transform.translate(
+                              offset: Offset(
+                                _shakeAnimation.value *
+                                    (1.0 - _shakeController.value),
+                                0,
+                              ),
+                              child: child,
+                            );
+                          },
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: List.generate(4, (index) {
+                              final isFilled = index < _currentDigits.length;
+                              return AnimatedContainer(
+                                duration: const Duration(milliseconds: 150),
+                                margin:
+                                    const EdgeInsets.symmetric(horizontal: 10),
+                                width: 18,
+                                height: 18,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: isFilled
+                                      ? AppColors.brandPrimary
+                                      : Colors.transparent,
+                                  border: Border.all(
+                                    color: isFilled
+                                        ? AppColors.brandPrimary
+                                        : palette.textPlaceholder,
+                                    width: 2,
+                                  ),
+                                ),
+                              );
+                            }),
+                          ),
+                        ),
+                        const SizedBox(height: AppSpacing.md),
+                        if (_errorMessage != null)
+                          Text(
+                            _errorMessage!,
+                            style: AppTypography.bodyMedium.copyWith(
+                              color: AppColors.textDanger,
+                              fontWeight: FontWeight.bold,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        SizedBox(height: verticalGap),
+
+                        // Numeric Keypad Grid
+                        AnimatedOpacity(
+                          duration: const Duration(milliseconds: 150),
+                          opacity: _isCooldownActive ? 0.45 : 1,
+                          child: _KeypadGrid(
+                            buttonHeight: keypadHeight,
+                            onDigitPressed: _digitPressed,
+                            onBackspace: _backspacePressed,
+                            onClear: _clearPressed,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                  const SizedBox(height: AppSpacing.xxl),
-                ],
+                ),
               ),
-            ),
-          ),
+            );
+          },
         ),
       ),
     );
@@ -345,11 +373,13 @@ class _AppPasscodeUnlockScreenState extends ConsumerState<AppPasscodeUnlockScree
 
 class _KeypadGrid extends StatelessWidget {
   const _KeypadGrid({
+    required this.buttonHeight,
     required this.onDigitPressed,
     required this.onBackspace,
     required this.onClear,
   });
 
+  final double buttonHeight;
   final ValueChanged<int> onDigitPressed;
   final VoidCallback onBackspace;
   final VoidCallback onClear;
@@ -360,33 +390,45 @@ class _KeypadGrid extends StatelessWidget {
       children: [
         TableRow(
           children: [
-            _KeypadButton(digit: 1, onTap: () => onDigitPressed(1)),
-            _KeypadButton(digit: 2, onTap: () => onDigitPressed(2)),
-            _KeypadButton(digit: 3, onTap: () => onDigitPressed(3)),
+            _KeypadButton(
+                digit: 1, height: buttonHeight, onTap: () => onDigitPressed(1)),
+            _KeypadButton(
+                digit: 2, height: buttonHeight, onTap: () => onDigitPressed(2)),
+            _KeypadButton(
+                digit: 3, height: buttonHeight, onTap: () => onDigitPressed(3)),
           ],
         ),
         TableRow(
           children: [
-            _KeypadButton(digit: 4, onTap: () => onDigitPressed(4)),
-            _KeypadButton(digit: 5, onTap: () => onDigitPressed(5)),
-            _KeypadButton(digit: 6, onTap: () => onDigitPressed(6)),
+            _KeypadButton(
+                digit: 4, height: buttonHeight, onTap: () => onDigitPressed(4)),
+            _KeypadButton(
+                digit: 5, height: buttonHeight, onTap: () => onDigitPressed(5)),
+            _KeypadButton(
+                digit: 6, height: buttonHeight, onTap: () => onDigitPressed(6)),
           ],
         ),
         TableRow(
           children: [
-            _KeypadButton(digit: 7, onTap: () => onDigitPressed(7)),
-            _KeypadButton(digit: 8, onTap: () => onDigitPressed(8)),
-            _KeypadButton(digit: 9, onTap: () => onDigitPressed(9)),
+            _KeypadButton(
+                digit: 7, height: buttonHeight, onTap: () => onDigitPressed(7)),
+            _KeypadButton(
+                digit: 8, height: buttonHeight, onTap: () => onDigitPressed(8)),
+            _KeypadButton(
+                digit: 9, height: buttonHeight, onTap: () => onDigitPressed(9)),
           ],
         ),
         TableRow(
           children: [
             _UtilityKeypadButton(
+              height: buttonHeight,
               icon: Icons.clear_rounded,
               onTap: onClear,
             ),
-            _KeypadButton(digit: 0, onTap: () => onDigitPressed(0)),
+            _KeypadButton(
+                digit: 0, height: buttonHeight, onTap: () => onDigitPressed(0)),
             _UtilityKeypadButton(
+              height: buttonHeight,
               icon: Icons.backspace_outlined,
               onTap: onBackspace,
             ),
@@ -400,10 +442,12 @@ class _KeypadGrid extends StatelessWidget {
 class _KeypadButton extends StatelessWidget {
   const _KeypadButton({
     required this.digit,
+    required this.height,
     required this.onTap,
   });
 
   final int digit;
+  final double height;
   final VoidCallback onTap;
 
   @override
@@ -416,7 +460,7 @@ class _KeypadButton extends StatelessWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(AppRadius.pill),
         child: Container(
-          height: 72,
+          height: height,
           decoration: BoxDecoration(
             color: palette.surfacePrimary,
             shape: BoxShape.circle,
@@ -438,10 +482,12 @@ class _KeypadButton extends StatelessWidget {
 
 class _UtilityKeypadButton extends StatelessWidget {
   const _UtilityKeypadButton({
+    required this.height,
     required this.icon,
     required this.onTap,
   });
 
+  final double height;
   final IconData icon;
   final VoidCallback onTap;
 
@@ -455,7 +501,7 @@ class _UtilityKeypadButton extends StatelessWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(AppRadius.pill),
         child: Container(
-          height: 72,
+          height: height,
           alignment: Alignment.center,
           child: Icon(
             icon,

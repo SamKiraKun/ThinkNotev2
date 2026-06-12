@@ -13,11 +13,5 @@ class TagEntity {
   final DateTime updatedAt;
   final String emoji;
 
-  String get displayLabel {
-    if (emoji.trim().isEmpty) {
-      return label;
-    }
-
-    return '$emoji $label';
-  }
+  String get displayLabel => label;
 }

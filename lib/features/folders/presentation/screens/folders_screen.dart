@@ -13,7 +13,9 @@ import '../../../../core/theme/app_typography.dart';
 import '../../../../shared/widgets/animated_tap_scale.dart';
 import '../../../../shared/widgets/app_confirmation_dialog.dart';
 import '../../../../shared/widgets/app_empty_state.dart';
+import '../../../../shared/widgets/app_error_state.dart';
 import '../../../../shared/widgets/app_header.dart';
+import '../../../../shared/widgets/app_loading_state.dart';
 import '../../../../shared/widgets/app_search_bar.dart';
 import '../../../../shared/widgets/tag_chip.dart';
 import '../../../notes/presentation/controllers/notes_controller.dart';
@@ -78,12 +80,16 @@ class FoldersScreen extends ConsumerWidget {
             ],
           );
         },
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, _) => Center(
-          child: Text(
-            'Unable to load folders.',
-            style: AppTypography.bodyLarge,
-          ),
+        loading: () => const AppLoadingState(
+          title: 'Loading collections',
+          message: 'Preparing folders, tags, and saved note groups.',
+        ),
+        error: (error, _) => AppErrorState(
+          title: 'Unable to load folders',
+          message: error.toString().replaceFirst('Exception: ', ''),
+          onRetry: () async {
+            await ref.read(notesControllerProvider.notifier).refresh();
+          },
         ),
       ),
     );
@@ -171,6 +177,9 @@ class _SegmentedToggle extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final palette = context.palette;
+    final textScale = MediaQuery.textScalerOf(context).scale(1);
+    final showSegmentLabels =
+        MediaQuery.sizeOf(context).width >= 360 && textScale <= 1.25;
 
     return Container(
       padding: const EdgeInsets.all(4),
@@ -201,7 +210,8 @@ class _SegmentedToggle extends StatelessWidget {
                     children: [
                       Icon(
                         switch (segment) {
-                          FolderViewSegment.folders => Icons.folder_copy_rounded,
+                          FolderViewSegment.folders =>
+                            Icons.folder_copy_rounded,
                           FolderViewSegment.tags => Icons.sell_rounded,
                           FolderViewSegment.collections => Icons.layers_rounded,
                         },
@@ -210,20 +220,26 @@ class _SegmentedToggle extends StatelessWidget {
                             ? context.colors.onPrimary
                             : palette.textSecondary,
                       ),
-                      const SizedBox(width: AppSpacing.sm),
-                      Text(
-                        switch (segment) {
-                          FolderViewSegment.folders => 'Folders',
-                          FolderViewSegment.tags => 'Tags',
-                          FolderViewSegment.collections => 'Collections',
-                        },
-                        style: AppTypography.bodyMedium.copyWith(
-                          fontWeight: FontWeight.bold,
-                          color: value == segment
-                              ? context.colors.onPrimary
-                              : palette.textSecondary,
+                      if (showSegmentLabels) ...[
+                        const SizedBox(width: AppSpacing.sm),
+                        Flexible(
+                          child: Text(
+                            switch (segment) {
+                              FolderViewSegment.folders => 'Folders',
+                              FolderViewSegment.tags => 'Tags',
+                              FolderViewSegment.collections => 'Collections',
+                            },
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: AppTypography.bodyMedium.copyWith(
+                              fontWeight: FontWeight.bold,
+                              color: value == segment
+                                  ? context.colors.onPrimary
+                                  : palette.textSecondary,
+                            ),
+                          ),
                         ),
-                      ),
+                      ],
                     ],
                   ),
                 ),
@@ -269,37 +285,45 @@ class _FoldersGrid extends ConsumerWidget {
           ],
         ),
         const SizedBox(height: AppSpacing.md),
-        GridView.builder(
-          itemCount: notesState.folderSummaries.length + 1,
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 2,
-            mainAxisSpacing: AppSpacing.lg,
-            crossAxisSpacing: AppSpacing.lg,
-            childAspectRatio: 1.1,
-          ),
-          itemBuilder: (context, index) {
-            if (index == notesState.folderSummaries.length) {
-              return _CreateFolderCard(onTap: onCreateFolder);
-            }
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final textScale = MediaQuery.textScalerOf(context).scale(1);
+            final useSingleColumn =
+                constraints.maxWidth < 330 || textScale > 1.25;
 
-            final summary = notesState.folderSummaries[index];
-            return _FolderCard(
-              title: summary.folder.displayName,
-              noteCount: summary.noteCount,
-              colorKey: summary.folder.colorKey,
-              onTap: () {
-                ref.read(homeSelectedFolderProvider.notifier).state =
-                    summary.folder.id;
-                ref.read(shellTabProvider.notifier).state = ShellTab.home;
-              },
-              onRename: () => _showRenameFolderDialog(
-                  context, ref, summary.folder.id, summary.folder.name),
-              onDelete: summary.folder.isSystem
-                  ? null
-                  : () => _confirmDeleteFolder(
+            return GridView.builder(
+              itemCount: notesState.folderSummaries.length + 1,
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: useSingleColumn ? 1 : 2,
+                mainAxisSpacing: AppSpacing.lg,
+                crossAxisSpacing: AppSpacing.lg,
+                childAspectRatio: useSingleColumn ? 1.8 : 1.1,
+              ),
+              itemBuilder: (context, index) {
+                if (index == notesState.folderSummaries.length) {
+                  return _CreateFolderCard(onTap: onCreateFolder);
+                }
+
+                final summary = notesState.folderSummaries[index];
+                return _FolderCard(
+                  title: summary.folder.displayName,
+                  noteCount: summary.noteCount,
+                  colorKey: summary.folder.colorKey,
+                  onTap: () {
+                    ref.read(homeSelectedFolderProvider.notifier).state =
+                        summary.folder.id;
+                    ref.read(shellTabProvider.notifier).state = ShellTab.home;
+                  },
+                  onRename: () => _showRenameFolderDialog(
                       context, ref, summary.folder.id, summary.folder.name),
+                  onDelete: summary.folder.isSystem
+                      ? null
+                      : () => _confirmDeleteFolder(
+                          context, ref, summary.folder.id, summary.folder.name),
+                );
+              },
             );
           },
         ),
@@ -482,23 +506,30 @@ class _CollectionsSection extends ConsumerWidget {
       ),
     ];
 
-    return GridView.builder(
-      itemCount: items.length,
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        mainAxisSpacing: AppSpacing.lg,
-        crossAxisSpacing: AppSpacing.lg,
-        childAspectRatio: 1.1,
-      ),
-      itemBuilder: (context, index) {
-        final item = items[index];
-        return _CollectionCard(
-          title: item.title,
-          subtitle: item.subtitle,
-          icon: item.icon,
-          onTap: item.onTap,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final textScale = MediaQuery.textScalerOf(context).scale(1);
+        final useSingleColumn = constraints.maxWidth < 330 || textScale > 1.25;
+
+        return GridView.builder(
+          itemCount: items.length,
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: useSingleColumn ? 1 : 2,
+            mainAxisSpacing: AppSpacing.lg,
+            crossAxisSpacing: AppSpacing.lg,
+            childAspectRatio: useSingleColumn ? 1.8 : 1.1,
+          ),
+          itemBuilder: (context, index) {
+            final item = items[index];
+            return _CollectionCard(
+              title: item.title,
+              subtitle: item.subtitle,
+              icon: item.icon,
+              onTap: item.onTap,
+            );
+          },
         );
       },
     );
@@ -586,7 +617,8 @@ class _FolderCard extends StatelessWidget {
                     title,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: AppTypography.titleMedium.copyWith(fontWeight: FontWeight.w700),
+                    style: AppTypography.titleMedium
+                        .copyWith(fontWeight: FontWeight.w700),
                   ),
                   const SizedBox(height: AppSpacing.xs),
                   Text(
@@ -709,7 +741,8 @@ class DashedBorderPainter extends CustomPainter {
       while (distance < measurePath.length) {
         final double nextDistance = distance + dashWidth;
         dashPath.addPath(
-          measurePath.extractPath(distance, nextDistance.clamp(0.0, measurePath.length)),
+          measurePath.extractPath(
+              distance, nextDistance.clamp(0.0, measurePath.length)),
           Offset.zero,
         );
         distance = nextDistance + dashGap;
@@ -765,7 +798,8 @@ class _CollectionCard extends StatelessWidget {
               const Spacer(),
               Text(
                 title,
-                style: AppTypography.titleMedium.copyWith(fontWeight: FontWeight.bold),
+                style: AppTypography.titleMedium
+                    .copyWith(fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: AppSpacing.xs),
               Text(

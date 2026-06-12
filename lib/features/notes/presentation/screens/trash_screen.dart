@@ -10,6 +10,8 @@ import '../../../../core/theme/app_typography.dart';
 import '../../../../core/utils/date_formatter.dart';
 import '../../../../shared/widgets/app_confirmation_dialog.dart';
 import '../../../../shared/widgets/app_empty_state.dart';
+import '../../../../shared/widgets/app_error_state.dart';
+import '../../../../shared/widgets/app_loading_state.dart';
 import '../../../notes/presentation/controllers/notes_controller.dart';
 import '../../../notes/presentation/widgets/note_card.dart';
 
@@ -95,12 +97,16 @@ class TrashScreen extends ConsumerWidget {
               },
             );
           },
-          loading: () => const Center(child: CircularProgressIndicator()),
-          error: (error, _) => Center(
-            child: Text(
-              'Unable to load Trash.',
-              style: AppTypography.bodyLarge,
-            ),
+          loading: () => const AppLoadingState(
+            title: 'Loading trash',
+            message: 'Checking notes that can still be restored.',
+          ),
+          error: (error, _) => AppErrorState(
+            title: 'Unable to load trash',
+            message: error.toString().replaceFirst('Exception: ', ''),
+            onRetry: () async {
+              await ref.read(notesControllerProvider.notifier).refresh();
+            },
           ),
         ),
       ),

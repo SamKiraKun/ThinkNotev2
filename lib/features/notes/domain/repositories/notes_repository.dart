@@ -38,7 +38,7 @@ abstract class NotesRepository {
   Future<NoteModel> toggleFavorite(String id);
   Future<FolderModel> createFolder(
     String name, {
-    String emoji = '🗂️',
+    String emoji = '',
   });
   Future<FolderModel> renameFolder(String id, String name);
   Future<void> deleteFolder(String id);

@@ -16,6 +16,8 @@ import '../../../../core/theme/app_shadows.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../shared/widgets/app_confirmation_dialog.dart';
+import '../../../../shared/widgets/app_error_state.dart';
+import '../../../../shared/widgets/app_loading_state.dart';
 import '../../../notes/data/models/notes_store_model.dart';
 import '../../../notes/presentation/controllers/notes_controller.dart';
 
@@ -71,12 +73,16 @@ class _ImportExportScreenState extends ConsumerState<ImportExportScreen> {
                 _buildImportTab(context),
             ],
           ),
-          loading: () => const Center(child: CircularProgressIndicator()),
-          error: (error, _) => Center(
-            child: Text(
-              'Unable to load import/export tools.',
-              style: AppTypography.bodyLarge,
-            ),
+          loading: () => const AppLoadingState(
+            title: 'Preparing data tools',
+            message: 'Loading your current note store safely.',
+          ),
+          error: (error, _) => AppErrorState(
+            title: 'Unable to load import/export tools',
+            message: error.toString().replaceFirst('Exception: ', ''),
+            onRetry: () async {
+              await ref.read(notesControllerProvider.notifier).refresh();
+            },
           ),
         ),
       ),
@@ -101,14 +107,17 @@ class _ImportExportScreenState extends ConsumerState<ImportExportScreen> {
               child: Container(
                 padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
                 decoration: BoxDecoration(
-                  color: _currentTab == 0 ? AppColors.brandPrimary : Colors.transparent,
+                  color: _currentTab == 0
+                      ? AppColors.brandPrimary
+                      : Colors.transparent,
                   borderRadius: BorderRadius.circular(AppRadius.pill),
                 ),
                 alignment: Alignment.center,
                 child: Text(
                   'Export Data',
                   style: AppTypography.bodyLarge.copyWith(
-                    color: _currentTab == 0 ? Colors.white : palette.textSecondary,
+                    color:
+                        _currentTab == 0 ? Colors.white : palette.textSecondary,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -122,14 +131,17 @@ class _ImportExportScreenState extends ConsumerState<ImportExportScreen> {
               child: Container(
                 padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
                 decoration: BoxDecoration(
-                  color: _currentTab == 1 ? AppColors.brandPrimary : Colors.transparent,
+                  color: _currentTab == 1
+                      ? AppColors.brandPrimary
+                      : Colors.transparent,
                   borderRadius: BorderRadius.circular(AppRadius.pill),
                 ),
                 alignment: Alignment.center,
                 child: Text(
                   'Import Data',
                   style: AppTypography.bodyLarge.copyWith(
-                    color: _currentTab == 1 ? Colors.white : palette.textSecondary,
+                    color:
+                        _currentTab == 1 ? Colors.white : palette.textSecondary,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -158,7 +170,8 @@ class _ImportExportScreenState extends ConsumerState<ImportExportScreen> {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Icon(Icons.warning_amber_rounded, color: Colors.orange, size: 24),
+              const Icon(Icons.warning_amber_rounded,
+                  color: Colors.orange, size: 24),
               const SizedBox(width: AppSpacing.md),
               Expanded(
                 child: Column(
@@ -241,9 +254,11 @@ class _ImportExportScreenState extends ConsumerState<ImportExportScreen> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text('Backup Package Ready', style: AppTypography.titleMedium),
+                    Text('Backup Package Ready',
+                        style: AppTypography.titleMedium),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 4),
                       decoration: BoxDecoration(
                         color: Colors.green.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(12),
@@ -278,11 +293,15 @@ class _ImportExportScreenState extends ConsumerState<ImportExportScreen> {
                 const SizedBox(height: AppSpacing.lg),
                 FilledButton.icon(
                   onPressed: _saveToLocalFile,
-                  icon: Icon(_isSavedLocally ? Icons.check : Icons.save_alt_rounded),
-                  label: Text(_isSavedLocally ? 'Saved File' : 'Save Encrypted Backup File'),
+                  icon: Icon(
+                      _isSavedLocally ? Icons.check : Icons.save_alt_rounded),
+                  label: Text(_isSavedLocally
+                      ? 'Saved File'
+                      : 'Save Encrypted Backup File'),
                   style: FilledButton.styleFrom(
                     minimumSize: const Size.fromHeight(48),
-                    backgroundColor: _isSavedLocally ? Colors.green : AppColors.brandPrimary,
+                    backgroundColor:
+                        _isSavedLocally ? Colors.green : AppColors.brandPrimary,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(AppRadius.button),
                     ),
@@ -329,12 +348,14 @@ class _ImportExportScreenState extends ConsumerState<ImportExportScreen> {
           decoration: BoxDecoration(
             color: AppColors.textDanger.withValues(alpha: 0.08),
             borderRadius: BorderRadius.circular(AppRadius.formCard),
-            border: Border.all(color: AppColors.textDanger.withValues(alpha: 0.3)),
+            border:
+                Border.all(color: AppColors.textDanger.withValues(alpha: 0.3)),
           ),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Icon(Icons.report_problem_rounded, color: AppColors.textDanger, size: 24),
+              const Icon(Icons.report_problem_rounded,
+                  color: AppColors.textDanger, size: 24),
               const SizedBox(width: AppSpacing.md),
               Expanded(
                 child: Column(
@@ -391,7 +412,8 @@ class _ImportExportScreenState extends ConsumerState<ImportExportScreen> {
                   fontSize: 13,
                 ),
                 decoration: InputDecoration(
-                  hintText: '{\n  "notes": [...],\n  "folders": [...],\n  "tags": [...]\n}',
+                  hintText:
+                      '{\n  "notes": [...],\n  "folders": [...],\n  "tags": [...]\n}',
                   hintStyle: TextStyle(color: palette.textPlaceholder),
                   filled: true,
                   fillColor: palette.surfaceSecondary,
@@ -460,11 +482,13 @@ class _ImportExportScreenState extends ConsumerState<ImportExportScreen> {
             decoration: BoxDecoration(
               color: AppColors.textDanger.withValues(alpha: 0.08),
               borderRadius: BorderRadius.circular(AppRadius.formCard),
-              border: Border.all(color: AppColors.textDanger.withValues(alpha: 0.3)),
+              border: Border.all(
+                  color: AppColors.textDanger.withValues(alpha: 0.3)),
             ),
             child: Row(
               children: [
-                const Icon(Icons.error_outline_rounded, color: AppColors.textDanger, size: 24),
+                const Icon(Icons.error_outline_rounded,
+                    color: AppColors.textDanger, size: 24),
                 const SizedBox(width: AppSpacing.md),
                 Expanded(
                   child: Text(
@@ -494,7 +518,8 @@ class _ImportExportScreenState extends ConsumerState<ImportExportScreen> {
               children: [
                 Row(
                   children: [
-                    const Icon(Icons.check_circle_outline_rounded, color: Colors.green, size: 24),
+                    const Icon(Icons.check_circle_outline_rounded,
+                        color: Colors.green, size: 24),
                     const SizedBox(width: AppSpacing.md),
                     Expanded(
                       child: Text(
@@ -539,16 +564,16 @@ class _ImportExportScreenState extends ConsumerState<ImportExportScreen> {
     final keyBytes = sha256.convert(utf8.encode(password)).bytes;
     final secretKey = SecretKey(keyBytes);
     final cipher = AesGcm.with256bits();
-    
+
     final random = Random.secure();
     final nonce = List<int>.generate(12, (_) => random.nextInt(256));
-    
+
     final secretBox = await cipher.encrypt(
       utf8.encode(plaintextJson),
       secretKey: secretKey,
       nonce: nonce,
     );
-    
+
     final payload = {
       'encrypted': true,
       'ciphertext': base64UrlEncode(secretBox.cipherText),
@@ -563,17 +588,17 @@ class _ImportExportScreenState extends ConsumerState<ImportExportScreen> {
     if (decoded['encrypted'] != true) {
       throw const FormatException('This backup is not encrypted.');
     }
-    
+
     final keyBytes = sha256.convert(utf8.encode(password)).bytes;
     final secretKey = SecretKey(keyBytes);
     final cipher = AesGcm.with256bits();
-    
+
     final secretBox = SecretBox(
       base64Url.decode(decoded['ciphertext'] as String),
       nonce: base64Url.decode(decoded['nonce'] as String),
       mac: Mac(base64Url.decode(decoded['mac'] as String)),
     );
-    
+
     final clearBytes = await cipher.decrypt(
       secretBox,
       secretKey: secretKey,
@@ -584,7 +609,8 @@ class _ImportExportScreenState extends ConsumerState<ImportExportScreen> {
   Future<void> _exportPressed(NotesStoreModel store) async {
     final passwordChoice = await _showPasswordPromptDialog(
       title: 'Secure Backup',
-      message: 'Choose a password to encrypt this backup. This prevents unauthorized access to your notes if the backup package is exposed.',
+      message:
+          'Choose a password to encrypt this backup. This prevents unauthorized access to your notes if the backup package is exposed.',
       buttonLabel: 'Encrypt & Export',
       isExport: true,
     );
@@ -599,10 +625,10 @@ class _ImportExportScreenState extends ConsumerState<ImportExportScreen> {
   Future<void> _generateExport(NotesStoreModel store, String? password) async {
     const encoder = JsonEncoder.withIndent('  ');
     final jsonText = encoder.convert(store.toJson());
-    
+
     String finalOutput;
     bool isEncrypted = false;
-    
+
     if (password != null) {
       finalOutput = await _encryptBackup(jsonText, password);
       isEncrypted = true;
@@ -616,7 +642,7 @@ class _ImportExportScreenState extends ConsumerState<ImportExportScreen> {
 
     setState(() {
       _generatedJson = finalOutput;
-      _exportFilename = isEncrypted 
+      _exportFilename = isEncrypted
           ? 'thinknote_backup_$timestamp.enc.json'
           : 'thinknote_backup_$timestamp.json';
       _exportSizeString = '${sizeKb.toStringAsFixed(2)} KB';
@@ -660,9 +686,8 @@ class _ImportExportScreenState extends ConsumerState<ImportExportScreen> {
       }
 
       backupFiles.sort(
-        (left, right) => right
-            .lastModifiedSync()
-            .compareTo(left.lastModifiedSync()),
+        (left, right) =>
+            right.lastModifiedSync().compareTo(left.lastModifiedSync()),
       );
 
       final latestFile = backupFiles.first;
@@ -693,19 +718,21 @@ class _ImportExportScreenState extends ConsumerState<ImportExportScreen> {
       if (decoded['encrypted'] == true) {
         final password = await _showPasswordPromptDialog(
           title: 'Decryption Required',
-          message: 'This backup is secured with a password. Enter the password to decrypt it.',
+          message:
+              'This backup is secured with a password. Enter the password to decrypt it.',
           buttonLabel: 'Decrypt & Validate',
         );
         if (password == null) {
           return; // User cancelled
         }
-        
+
         final decryptedRaw = await _decryptBackup(raw, password);
         final decryptedDecoded = jsonDecode(decryptedRaw);
         if (decryptedDecoded is! Map<String, dynamic>) {
-          throw const FormatException('Decrypted root element must be a JSON object.');
+          throw const FormatException(
+              'Decrypted root element must be a JSON object.');
         }
-        
+
         final store = NotesStoreModel.fromJson(decryptedDecoded);
         setState(() {
           _validatedStore = store;
@@ -718,7 +745,8 @@ class _ImportExportScreenState extends ConsumerState<ImportExportScreen> {
           context: context,
           builder: (_) => const AppConfirmationDialog(
             title: 'Unencrypted Backup',
-            message: 'This backup package is not encrypted. Importing unencrypted data is allowed, but please ensure the source is trusted.',
+            message:
+                'This backup package is not encrypted. Importing unencrypted data is allowed, but please ensure the source is trusted.',
             confirmLabel: 'Proceed',
             isDestructive: false,
           ),
@@ -772,7 +800,8 @@ class _ImportExportScreenState extends ConsumerState<ImportExportScreen> {
                       keyboardType: TextInputType.visiblePassword,
                       decoration: InputDecoration(
                         labelText: 'Password',
-                        hintText: isExport ? 'Min 4 characters' : 'Enter password',
+                        hintText:
+                            isExport ? 'Min 4 characters' : 'Enter password',
                         filled: true,
                         fillColor: palette.surfaceSecondary,
                         border: OutlineInputBorder(
@@ -780,7 +809,9 @@ class _ImportExportScreenState extends ConsumerState<ImportExportScreen> {
                           borderSide: BorderSide(color: palette.borderSoft),
                         ),
                         suffixIcon: IconButton(
-                          icon: Icon(obscure ? Icons.visibility_off : Icons.visibility),
+                          icon: Icon(obscure
+                              ? Icons.visibility_off
+                              : Icons.visibility),
                           onPressed: () => setState(() => obscure = !obscure),
                         ),
                       ),
@@ -800,7 +831,8 @@ class _ImportExportScreenState extends ConsumerState<ImportExportScreen> {
               actions: [
                 TextButton(
                   onPressed: () => Navigator.of(context).pop(),
-                  child: Text('Cancel', style: TextStyle(color: palette.textSecondary)),
+                  child: Text('Cancel',
+                      style: TextStyle(color: palette.textSecondary)),
                 ),
                 FilledButton(
                   onPressed: () {
@@ -838,7 +870,9 @@ class _ImportExportScreenState extends ConsumerState<ImportExportScreen> {
     if (confirmed != true) return;
 
     try {
-      await ref.read(notesControllerProvider.notifier).replaceStore(_validatedStore!);
+      await ref
+          .read(notesControllerProvider.notifier)
+          .replaceStore(_validatedStore!);
       _importController.clear();
       setState(() {
         _validatedStore = null;
