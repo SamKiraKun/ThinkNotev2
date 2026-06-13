@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -38,11 +39,13 @@ class NoteEditorScreen extends ConsumerStatefulWidget {
   ConsumerState<NoteEditorScreen> createState() => _NoteEditorScreenState();
 }
 
-class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> with WidgetsBindingObserver {
+class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen>
+    with WidgetsBindingObserver {
   late final TextEditingController _titleController;
   late final TextEditingController _bodyController;
   late final FocusNode _titleFocusNode;
   late final FocusNode _bodyFocusNode;
+  late final ScrollController _bodyScrollController;
   late final NoteEditorArgs _args;
 
   @override
@@ -57,6 +60,7 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> with Widget
     _bodyController = TextEditingController();
     _titleFocusNode = FocusNode();
     _bodyFocusNode = FocusNode();
+    _bodyScrollController = ScrollController();
     WidgetsBinding.instance.addObserver(this);
   }
 
@@ -67,13 +71,16 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> with Widget
     _bodyController.dispose();
     _titleFocusNode.dispose();
     _bodyFocusNode.dispose();
+    _bodyScrollController.dispose();
     super.dispose();
   }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.inactive || state == AppLifecycleState.paused) {
-      final editorController = ref.read(noteEditorControllerProvider(_args).notifier);
+    if (state == AppLifecycleState.inactive ||
+        state == AppLifecycleState.paused) {
+      final editorController =
+          ref.read(noteEditorControllerProvider(_args).notifier);
       editorController.saveNow(queueSyncImmediately: true);
     }
   }
@@ -81,11 +88,14 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> with Widget
   @override
   Widget build(BuildContext context) {
     final palette = context.palette;
-    final isLoading = ref.watch(noteEditorControllerProvider(_args).select((state) => state.isLoading));
-    final editorController = ref.read(noteEditorControllerProvider(_args).notifier);
+    final isLoading = ref.watch(
+        noteEditorControllerProvider(_args).select((state) => state.isLoading));
+    final editorController =
+        ref.read(noteEditorControllerProvider(_args).notifier);
 
     // Watcher listeners to safely sync text fields and display error snackbars.
-    ref.listen<NoteEditorState>(noteEditorControllerProvider(_args), (previous, next) {
+    ref.listen<NoteEditorState>(noteEditorControllerProvider(_args),
+        (previous, next) {
       if (previous?.errorMessage != next.errorMessage &&
           next.errorMessage != null) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -131,8 +141,9 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> with Widget
       },
       child: Scaffold(
         backgroundColor: palette.pageBackground,
-        resizeToAvoidBottomInset: true,
+        resizeToAvoidBottomInset: false,
         body: SafeArea(
+          bottom: false,
           child: Column(
             children: [
               _EditorAppBar(
@@ -150,10 +161,13 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> with Widget
               ),
               const SizedBox(height: AppSpacing.lg),
               Expanded(
-                child: _EditorMainCard(
-                  args: _args,
-                  bodyController: _bodyController,
-                  bodyFocusNode: _bodyFocusNode,
+                child: _EditorViewportInset(
+                  child: _EditorMainCard(
+                    args: _args,
+                    bodyController: _bodyController,
+                    bodyFocusNode: _bodyFocusNode,
+                    bodyScrollController: _bodyScrollController,
+                  ),
                 ),
               ),
             ],
@@ -181,6 +195,25 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> with Widget
   }
 }
 
+class _EditorViewportInset extends StatelessWidget {
+  const _EditorViewportInset({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final keyboardInset = MediaQuery.viewInsetsOf(context).bottom;
+    final bottomSafeArea = MediaQuery.viewPaddingOf(context).bottom;
+
+    return Padding(
+      padding: EdgeInsets.only(
+        bottom: math.max(keyboardInset, bottomSafeArea),
+      ),
+      child: child,
+    );
+  }
+}
+
 // -----------------------------------------------------------------------------
 // Isolated Widgets & Sub-components
 // -----------------------------------------------------------------------------
@@ -199,20 +232,35 @@ class _EditorAppBar extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final palette = context.palette;
-    final folderId = ref.watch(noteEditorControllerProvider(args).select((s) => s.folderId));
-    final notesState = ref.watch(notesControllerProvider).valueOrNull;
-    final folder = notesState?.folderById(folderId);
+    final folderId =
+        ref.watch(noteEditorControllerProvider(args).select((s) => s.folderId));
+    final folder = ref.watch(
+      notesControllerProvider.select(
+        (state) => state.valueOrNull?.folderById(folderId),
+      ),
+    );
+    final availableFolders = ref.watch(
+      notesControllerProvider.select(
+        (state) => state.valueOrNull?.folders ?? const <FolderModel>[],
+      ),
+    );
 
-    final isPinned = ref.watch(noteEditorControllerProvider(args).select((s) => s.isPinned));
-    final isFavorite = ref.watch(noteEditorControllerProvider(args).select((s) => s.isFavorite));
-    final isArchived = ref.watch(noteEditorControllerProvider(args).select((s) => s.isArchived));
-    final noteId = ref.watch(noteEditorControllerProvider(args).select((s) => s.noteId));
-    final editorController = ref.read(noteEditorControllerProvider(args).notifier);
+    final isPinned =
+        ref.watch(noteEditorControllerProvider(args).select((s) => s.isPinned));
+    final isFavorite = ref
+        .watch(noteEditorControllerProvider(args).select((s) => s.isFavorite));
+    final isArchived = ref
+        .watch(noteEditorControllerProvider(args).select((s) => s.isArchived));
+    final noteId =
+        ref.watch(noteEditorControllerProvider(args).select((s) => s.noteId));
+    final editorController =
+        ref.read(noteEditorControllerProvider(args).notifier);
 
     final screenWidth = MediaQuery.sizeOf(context).width;
     final isCompactWidth = screenWidth < 360;
 
     return Padding(
+      key: const ValueKey('note-editor-app-bar'),
       padding: const EdgeInsets.fromLTRB(
         AppSpacing.xxl,
         AppSpacing.xl,
@@ -241,7 +289,7 @@ class _EditorAppBar extends ConsumerWidget {
                   context,
                   ref,
                   args,
-                  notesState?.folders ?? const <FolderModel>[],
+                  availableFolders,
                   folderId,
                 ),
               ),
@@ -372,28 +420,34 @@ class _EditorMetadataSection extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final palette = context.palette;
-    final editorController = ref.read(noteEditorControllerProvider(args).notifier);
+    final editorController =
+        ref.read(noteEditorControllerProvider(args).notifier);
 
-    final folderId = ref.watch(noteEditorControllerProvider(args).select((s) => s.folderId));
-    final tags = ref.watch(noteEditorControllerProvider(args).select((s) => s.tags));
-    final isPinned = ref.watch(noteEditorControllerProvider(args).select((s) => s.isPinned));
-    final isFavorite = ref.watch(noteEditorControllerProvider(args).select((s) => s.isFavorite));
-    final isArchived = ref.watch(noteEditorControllerProvider(args).select((s) => s.isArchived));
-
-    final isSaving = ref.watch(noteEditorControllerProvider(args).select((s) => s.isSaving));
-    final hasChanges = ref.watch(noteEditorControllerProvider(args).select((s) => s.hasChanges));
-    final lastSavedAt = ref.watch(noteEditorControllerProvider(args).select((s) => s.lastSavedAt));
-    final syncState = ref.watch(syncControllerProvider);
-
-    final notesState = ref.watch(notesControllerProvider).valueOrNull;
-    final folder = notesState?.folderById(folderId);
-
-    final saveLabel = _saveLabelFromState(isSaving, hasChanges, lastSavedAt, syncState);
-    final saveIcon = _saveIconFromState(isSaving, hasChanges, syncState);
+    final folderId =
+        ref.watch(noteEditorControllerProvider(args).select((s) => s.folderId));
+    final tags =
+        ref.watch(noteEditorControllerProvider(args).select((s) => s.tags));
+    final isPinned =
+        ref.watch(noteEditorControllerProvider(args).select((s) => s.isPinned));
+    final isFavorite = ref
+        .watch(noteEditorControllerProvider(args).select((s) => s.isFavorite));
+    final isArchived = ref
+        .watch(noteEditorControllerProvider(args).select((s) => s.isArchived));
+    final folder = ref.watch(
+      notesControllerProvider.select(
+        (state) => state.valueOrNull?.folderById(folderId),
+      ),
+    );
+    final availableFolders = ref.watch(
+      notesControllerProvider.select(
+        (state) => state.valueOrNull?.folders ?? const <FolderModel>[],
+      ),
+    );
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxl),
       child: Container(
+        key: const ValueKey('note-editor-metadata-card'),
         height: 120,
         padding: const EdgeInsets.symmetric(
           horizontal: AppSpacing.xl,
@@ -440,7 +494,7 @@ class _EditorMetadataSection extends ConsumerWidget {
                       context,
                       ref,
                       args,
-                      notesState?.folders ?? const <FolderModel>[],
+                      availableFolders,
                       folderId,
                     ),
                   ),
@@ -456,10 +510,7 @@ class _EditorMetadataSection extends ConsumerWidget {
                     ),
                   ),
                   const SizedBox(width: AppSpacing.sm),
-                  _EditorInfoChip(
-                    icon: saveIcon,
-                    label: saveLabel,
-                  ),
+                  _EditorHeaderSaveStatusChip(args: args),
                   if (isPinned) ...[
                     const SizedBox(width: AppSpacing.sm),
                     const _StatusBadge(
@@ -500,16 +551,19 @@ class _EditorMainCard extends ConsumerWidget {
     required this.args,
     required this.bodyController,
     required this.bodyFocusNode,
+    required this.bodyScrollController,
   });
 
   final NoteEditorArgs args;
   final TextEditingController bodyController;
   final FocusNode bodyFocusNode;
+  final ScrollController bodyScrollController;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final palette = context.palette;
-    final editorController = ref.read(noteEditorControllerProvider(args).notifier);
+    final editorController =
+        ref.read(noteEditorControllerProvider(args).notifier);
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(
@@ -519,6 +573,7 @@ class _EditorMainCard extends ConsumerWidget {
         AppSpacing.xl,
       ),
       child: Container(
+        key: const ValueKey('note-editor-main-card'),
         decoration: BoxDecoration(
           color: palette.surfacePrimary,
           borderRadius: BorderRadius.circular(AppRadius.formCard),
@@ -584,8 +639,10 @@ class _EditorMainCard extends ConsumerWidget {
             Divider(height: 1, color: palette.borderSoft),
             Expanded(
               child: TextField(
+                key: const ValueKey('note-editor-body-field'),
                 controller: bodyController,
                 focusNode: bodyFocusNode,
+                scrollController: bodyScrollController,
                 onChanged: editorController.updateContent,
                 expands: true,
                 maxLines: null,
@@ -593,6 +650,7 @@ class _EditorMainCard extends ConsumerWidget {
                 keyboardType: TextInputType.multiline,
                 textCapitalization: TextCapitalization.sentences,
                 textAlignVertical: TextAlignVertical.top,
+                scrollPadding: const EdgeInsets.only(bottom: 12),
                 decoration: InputDecoration(
                   contentPadding: const EdgeInsets.all(20),
                   border: InputBorder.none,
@@ -625,17 +683,6 @@ class _EditorBottomStatsRow extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final content = ref.watch(noteEditorControllerProvider(args).select((s) => s.content));
-    final isSaving = ref.watch(noteEditorControllerProvider(args).select((s) => s.isSaving));
-    final hasChanges = ref.watch(noteEditorControllerProvider(args).select((s) => s.hasChanges));
-    final lastSavedAt = ref.watch(noteEditorControllerProvider(args).select((s) => s.lastSavedAt));
-    final syncState = ref.watch(syncControllerProvider);
-
-    final wordCount = _countWords(content);
-    final readTime = DateFormatter.estimateReadTime(content);
-    final saveLabel = _saveLabelFromState(isSaving, hasChanges, lastSavedAt, syncState);
-    final saveIcon = _saveIconFromState(isSaving, hasChanges, syncState);
-
     return Padding(
       padding: const EdgeInsets.symmetric(
         horizontal: AppSpacing.xl,
@@ -648,28 +695,16 @@ class _EditorBottomStatsRow extends ConsumerWidget {
           scrollDirection: Axis.horizontal,
           child: Row(
             children: [
-              _EditorMetaChip(label: '$wordCount words'),
+              _EditorWordCountChip(args: args),
               const SizedBox(width: AppSpacing.sm),
-              _EditorMetaChip(label: readTime),
+              _EditorReadTimeChip(args: args),
               const SizedBox(width: AppSpacing.sm),
-              _EditorMetaChip(
-                label: saveLabel,
-                icon: saveIcon,
-                emphasized: true,
-              ),
+              _EditorFooterSaveStatusChip(args: args),
             ],
           ),
         ),
       ),
     );
-  }
-
-  int _countWords(String content) {
-    final trimmed = content.trim();
-    if (trimmed.isEmpty) {
-      return 0;
-    }
-    return trimmed.split(RegExp(r'\s+')).length;
   }
 }
 
@@ -677,22 +712,24 @@ class _EditorBottomStatsRow extends ConsumerWidget {
 // Pure Helpers & State Mapping
 // -----------------------------------------------------------------------------
 
-String _saveLabelFromState(
-  bool isSaving,
-  bool hasChanges,
-  DateTime? lastSavedAt,
-  SyncState syncState,
-) {
+String _saveLabelFromState({
+  required bool isSaving,
+  required bool hasChanges,
+  required DateTime? lastSavedAt,
+  required bool isSyncing,
+  required String? lastError,
+  required SyncErrorType? lastErrorType,
+}) {
   if (isSaving || hasChanges) {
     return 'Saving locally...';
   }
 
-  if (syncState.isSyncing) {
+  if (isSyncing) {
     return 'Syncing...';
   }
 
-  if (syncState.lastError != null) {
-    return switch (syncState.lastErrorType) {
+  if (lastError != null) {
+    return switch (lastErrorType) {
       SyncErrorType.noInternet ||
       SyncErrorType.dns ||
       SyncErrorType.tls ||
@@ -710,20 +747,21 @@ String _saveLabelFromState(
   return 'Saved ${DateFormatter.formatRelative(lastSavedAt)}';
 }
 
-IconData _saveIconFromState(
-  bool isSaving,
-  bool hasChanges,
-  SyncState syncState,
-) {
+IconData _saveIconFromState({
+  required bool isSaving,
+  required bool hasChanges,
+  required bool isSyncing,
+  required String? lastError,
+}) {
   if (isSaving || hasChanges) {
     return Icons.save_outlined;
   }
 
-  if (syncState.isSyncing) {
+  if (isSyncing) {
     return Icons.cloud_sync_outlined;
   }
 
-  if (syncState.lastError != null) {
+  if (lastError != null) {
     return Icons.cloud_off_outlined;
   }
 
@@ -894,8 +932,7 @@ Future<void> _showFolderSelector(
                     width: 36,
                     height: 36,
                     decoration: BoxDecoration(
-                      color:
-                          folderVisualsFor(folder.colorKey).backgroundColor,
+                      color: folderVisualsFor(folder.colorKey).backgroundColor,
                       shape: BoxShape.circle,
                     ),
                     alignment: Alignment.center,
@@ -1141,11 +1178,13 @@ class _EditorMetaChip extends StatelessWidget {
     required this.label,
     this.icon,
     this.emphasized = false,
+    this.width,
   });
 
   final String label;
   final IconData? icon;
   final bool emphasized;
+  final double? width;
 
   @override
   Widget build(BuildContext context) {
@@ -1159,33 +1198,66 @@ class _EditorMetaChip extends StatelessWidget {
             : palette.surfaceSecondary,
         borderRadius: BorderRadius.circular(AppRadius.sm),
       ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (icon != null) ...[
-            Icon(
-              icon,
-              size: 13,
-              color:
-                  emphasized ? AppColors.brandPrimary : palette.textSecondary,
-            ),
-            const SizedBox(width: 4),
-          ],
-          ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 180),
-            child: Text(
-              label,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: AppTypography.bodySmall.copyWith(
-                color:
-                  emphasized ? AppColors.brandPrimary : palette.textSecondary,
-                fontWeight: FontWeight.w700,
+      child: width == null
+          ? Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (icon != null) ...[
+                  Icon(
+                    icon,
+                    size: 13,
+                    color: emphasized
+                        ? AppColors.brandPrimary
+                        : palette.textSecondary,
+                  ),
+                  const SizedBox(width: 4),
+                ],
+                ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 180),
+                  child: Text(
+                    label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppTypography.bodySmall.copyWith(
+                      color: emphasized
+                          ? AppColors.brandPrimary
+                          : palette.textSecondary,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+              ],
+            )
+          : SizedBox(
+              width: width,
+              child: Row(
+                children: [
+                  if (icon != null) ...[
+                    Icon(
+                      icon,
+                      size: 13,
+                      color: emphasized
+                          ? AppColors.brandPrimary
+                          : palette.textSecondary,
+                    ),
+                    const SizedBox(width: 4),
+                  ],
+                  Expanded(
+                    child: Text(
+                      label,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppTypography.bodySmall.copyWith(
+                        color: emphasized
+                            ? AppColors.brandPrimary
+                            : palette.textSecondary,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
-          ),
-        ],
-      ),
     );
   }
 }
@@ -1238,16 +1310,21 @@ class _EditorInfoChip extends StatelessWidget {
   const _EditorInfoChip({
     required this.icon,
     required this.label,
+    this.width,
+    this.chipKey,
   });
 
   final IconData icon;
   final String label;
+  final double? width;
+  final Key? chipKey;
 
   @override
   Widget build(BuildContext context) {
     final palette = context.palette;
 
     return Container(
+      key: chipKey,
       padding: const EdgeInsets.symmetric(
         horizontal: AppSpacing.md,
         vertical: AppSpacing.sm,
@@ -1256,21 +1333,168 @@ class _EditorInfoChip extends StatelessWidget {
         color: palette.surfacePrimary.withValues(alpha: 0.72),
         borderRadius: BorderRadius.circular(AppRadius.pill),
       ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 16, color: palette.textSecondary),
-          const SizedBox(width: AppSpacing.xs),
-          Text(
-            label,
-            style: AppTypography.bodySmall.copyWith(
-              color: palette.textSecondary,
+      child: width == null
+          ? Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(icon, size: 16, color: palette.textSecondary),
+                const SizedBox(width: AppSpacing.xs),
+                ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 180),
+                  child: Text(
+                    label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppTypography.bodySmall.copyWith(
+                      color: palette.textSecondary,
+                    ),
+                  ),
+                ),
+              ],
+            )
+          : SizedBox(
+              width: width,
+              child: Row(
+                children: [
+                  Icon(icon, size: 16, color: palette.textSecondary),
+                  const SizedBox(width: AppSpacing.xs),
+                  Expanded(
+                    child: Text(
+                      label,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppTypography.bodySmall.copyWith(
+                        color: palette.textSecondary,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ),
-        ],
-      ),
     );
   }
+}
+
+class _EditorHeaderSaveStatusChip extends ConsumerWidget {
+  const _EditorHeaderSaveStatusChip({required this.args});
+
+  final NoteEditorArgs args;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final status = _watchEditorStatus(ref, args);
+
+    return _EditorInfoChip(
+      chipKey: const ValueKey('note-editor-header-status'),
+      icon: status.icon,
+      label: status.label,
+      width: 176,
+    );
+  }
+}
+
+class _EditorFooterSaveStatusChip extends ConsumerWidget {
+  const _EditorFooterSaveStatusChip({required this.args});
+
+  final NoteEditorArgs args;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final status = _watchEditorStatus(ref, args);
+
+    return _EditorMetaChip(
+      label: status.label,
+      icon: status.icon,
+      emphasized: true,
+      width: 176,
+    );
+  }
+}
+
+class _EditorWordCountChip extends ConsumerWidget {
+  const _EditorWordCountChip({required this.args});
+
+  final NoteEditorArgs args;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final content = ref.watch(
+      noteEditorControllerProvider(args).select((state) => state.content),
+    );
+
+    return _EditorMetaChip(label: '${_countWords(content)} words');
+  }
+}
+
+class _EditorReadTimeChip extends ConsumerWidget {
+  const _EditorReadTimeChip({required this.args});
+
+  final NoteEditorArgs args;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final content = ref.watch(
+      noteEditorControllerProvider(args).select((state) => state.content),
+    );
+
+    return _EditorMetaChip(label: DateFormatter.estimateReadTime(content));
+  }
+}
+
+class _EditorStatusVisual {
+  const _EditorStatusVisual({
+    required this.label,
+    required this.icon,
+  });
+
+  final String label;
+  final IconData icon;
+}
+
+_EditorStatusVisual _watchEditorStatus(WidgetRef ref, NoteEditorArgs args) {
+  final (:isSaving, :hasChanges, :lastSavedAt) = ref.watch(
+    noteEditorControllerProvider(args).select(
+      (state) => (
+        isSaving: state.isSaving,
+        hasChanges: state.hasChanges,
+        lastSavedAt: state.lastSavedAt,
+      ),
+    ),
+  );
+  final (:isSyncing, :lastError, :lastErrorType) = ref.watch(
+    syncControllerProvider.select(
+      (state) => (
+        isSyncing: state.isSyncing,
+        lastError: state.lastError,
+        lastErrorType: state.lastErrorType,
+      ),
+    ),
+  );
+
+  return _EditorStatusVisual(
+    label: _saveLabelFromState(
+      isSaving: isSaving,
+      hasChanges: hasChanges,
+      lastSavedAt: lastSavedAt,
+      isSyncing: isSyncing,
+      lastError: lastError,
+      lastErrorType: lastErrorType,
+    ),
+    icon: _saveIconFromState(
+      isSaving: isSaving,
+      hasChanges: hasChanges,
+      isSyncing: isSyncing,
+      lastError: lastError,
+    ),
+  );
+}
+
+int _countWords(String content) {
+  final trimmed = content.trim();
+  if (trimmed.isEmpty) {
+    return 0;
+  }
+  return trimmed.split(RegExp(r'\s+')).length;
 }
 
 class _StatusBadge extends StatelessWidget {
