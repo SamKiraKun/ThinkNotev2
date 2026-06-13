@@ -133,17 +133,17 @@ void main() {
     expect(find.text('Write anything instantly.'), findsOneWidget);
 
     await tester.tap(find.text('Continue'));
-    await tester.pumpAndSettle();
+    await tester.pump(const Duration(milliseconds: 300));
 
     expect(find.text('Designed for your ideas.'), findsOneWidget);
 
     await tester.tap(find.text('Continue'));
-    await tester.pumpAndSettle();
+    await tester.pump(const Duration(milliseconds: 300));
 
     expect(find.text('Private and secure.'), findsOneWidget);
 
     await tester.tap(find.text('Get Started'));
-    await tester.pumpAndSettle();
+    await tester.pump(const Duration(milliseconds: 300));
 
     expect(onboardingController.completedWorkspaceName, 'My Workspace');
     expect(onboardingController.completedFocus, WorkspaceFocus.capture);
@@ -158,10 +158,10 @@ void main() {
     expect(find.text('Write anything instantly.'), findsOneWidget);
 
     await tester.tap(find.text('Continue'));
-    await tester.pumpAndSettle();
+    await tester.pump(const Duration(milliseconds: 300));
 
     await tester.tap(find.text('Continue'));
-    await tester.pumpAndSettle();
+    await tester.pump(const Duration(milliseconds: 300));
 
     await tester.tap(find.text('Get Started'));
     await tester.pump(const Duration(milliseconds: 250));
@@ -184,17 +184,17 @@ void main() {
 
     await tester.ensureVisible(find.text('Forgot Password?'));
     await tester.tap(find.text('Forgot Password?'));
-    await tester.pumpAndSettle();
+    await tester.pump(const Duration(milliseconds: 300));
 
     await tester.enterText(find.byType(TextField).last, 'sam@example.com');
     await tester.tap(find.widgetWithText(FilledButton, 'Send Reset Link'));
-    await tester.pumpAndSettle();
+    await tester.pump(const Duration(milliseconds: 300));
 
     expect(authController.passwordResetEmail, 'sam@example.com');
     expect(find.text('Reset password'), findsNothing);
 
     await tester.tap(find.text('Create Account').first);
-    await tester.pumpAndSettle();
+    await tester.pump(const Duration(milliseconds: 300));
 
     expect(
       find.textContaining('verification link'),
@@ -205,7 +205,7 @@ void main() {
     await tester.enterText(find.byType(TextField).at(1), 'sam@example.com');
     await tester.enterText(find.byType(TextField).at(2), 'password123');
     await tester.tap(find.widgetWithText(FilledButton, 'Create account'));
-    await tester.pumpAndSettle();
+    await tester.pump(const Duration(milliseconds: 300));
 
     expect(authController.signUpEmail, 'sam@example.com');
     expect(authController.signUpDisplayName, 'Sam');
@@ -233,7 +233,7 @@ Future<void> _pumpScreen(
       ),
     ),
   );
-  await tester.pumpAndSettle();
+  await tester.pump(const Duration(milliseconds: 300));
 }
 
 Future<void> _pumpRouter(
@@ -262,7 +262,7 @@ Future<void> _pumpRouter(
     ),
   );
   await tester.pump();
-  await tester.pumpAndSettle();
+  await tester.pump(const Duration(milliseconds: 300));
 }
 
 OnboardingProfile _completedProfile() {
