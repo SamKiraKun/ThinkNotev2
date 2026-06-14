@@ -2,14 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:thinknote/bootstrap/dependency_injection.dart';
-import 'package:thinknote/core/database/app_database.dart';
 import 'package:thinknote/core/theme/app_theme.dart';
 import 'package:thinknote/features/auth/auth_providers.dart';
 import 'package:thinknote/features/folders/data/models/folder_model.dart';
 import 'package:thinknote/features/folders/data/models/tag_model.dart';
-import 'package:thinknote/features/notes/data/datasources/notes_local_datasource.dart';
 import 'package:thinknote/features/notes/data/models/app_preferences_model.dart';
 import 'package:thinknote/features/notes/data/models/note_model.dart';
 import 'package:thinknote/features/notes/data/models/notes_store_model.dart';
@@ -30,16 +27,6 @@ void main() {
   testWidgets(
     'editor viewport stays anchored through keyboard, save, and sync updates',
     (tester) async {
-      SharedPreferences.setMockInitialValues(<String, Object>{});
-      final preferences = await SharedPreferences.getInstance();
-      final database = AppDatabase.memory();
-      addTearDown(database.close);
-
-      final localDataSource = NotesLocalDataSource(
-        preferences,
-        database,
-        databaseName: ':memory:',
-      );
       final repository = _ImmediateNotesRepository();
       late _FakeSyncController fakeSyncController;
 
@@ -55,7 +42,6 @@ void main() {
         ProviderScope(
           overrides: [
             currentAuthSessionProvider.overrideWithValue(null),
-            notesLocalDataSourceProvider.overrideWithValue(localDataSource),
             notesRepositoryProvider.overrideWithValue(repository),
             notesControllerProvider.overrideWith(
               () => _FakeNotesController(_notesState()),
@@ -161,6 +147,13 @@ void main() {
       expect(tester.getTopLeft(mainCardFinder).dy, mainCardTopBefore);
       expect(tester.getTopLeft(bodyFieldFinder).dy, bodyTopBefore);
       expect(find.text('A stable editor should not jump.'), findsOneWidget);
+
+      // Flush delayed save/sync timers and dispose the editor before the test
+      // ends so no widget-owned async work survives into teardown.
+      await tester.pump(const Duration(milliseconds: 1200));
+      await tester.pump();
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pump();
     },
   );
 }
@@ -194,7 +187,7 @@ class _FakeNotesController extends NotesController {
 }
 
 class _FakeSyncController extends SyncController {
-  _FakeSyncController(super.ref);
+  _FakeSyncController(super.ref) : super(restoreMetadataOnInit: false);
 
   @override
   Future<void> scheduleSync({

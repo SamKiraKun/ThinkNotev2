@@ -88,8 +88,11 @@ class SyncState {
 }
 
 class SyncController extends StateNotifier<SyncState> {
-  SyncController(this._ref) : super(const SyncState()) {
-    unawaited(_restoreSyncMetadata());
+  SyncController(this._ref, {bool restoreMetadataOnInit = true})
+      : super(const SyncState()) {
+    if (restoreMetadataOnInit) {
+      unawaited(_restoreSyncMetadata());
+    }
   }
 
   final Ref _ref;
