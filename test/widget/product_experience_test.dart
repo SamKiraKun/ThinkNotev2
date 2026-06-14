@@ -133,17 +133,17 @@ void main() {
     expect(find.text('Write anything instantly.'), findsOneWidget);
 
     await tester.tap(find.text('Continue'));
-    await tester.pump(const Duration(milliseconds: 300));
+    await tester.pumpAndSettle();
 
     expect(find.text('Designed for your ideas.'), findsOneWidget);
 
     await tester.tap(find.text('Continue'));
-    await tester.pump(const Duration(milliseconds: 300));
+    await tester.pumpAndSettle();
 
     expect(find.text('Private and secure.'), findsOneWidget);
 
     await tester.tap(find.text('Get Started'));
-    await tester.pump(const Duration(milliseconds: 300));
+    await tester.pumpAndSettle();
 
     expect(onboardingController.completedWorkspaceName, 'My Workspace');
     expect(onboardingController.completedFocus, WorkspaceFocus.capture);
@@ -184,28 +184,42 @@ void main() {
 
     await tester.ensureVisible(find.text('Forgot Password?'));
     await tester.tap(find.text('Forgot Password?'));
-    await tester.pump(const Duration(milliseconds: 300));
+    await tester.pumpAndSettle();
 
-    await tester.enterText(find.byType(TextField).last, 'sam@example.com');
+    final resetDialog = find.widgetWithText(AlertDialog, 'Reset Password');
+    final resetEmailField = find.descendant(
+      of: resetDialog,
+      matching: find.byType(TextField),
+    );
+
+    await tester.enterText(resetEmailField, 'sam@example.com');
+    await tester.pump();
     await tester.tap(find.widgetWithText(FilledButton, 'Send Reset Link'));
-    await tester.pump(const Duration(milliseconds: 300));
+    await tester.pumpAndSettle();
 
     expect(authController.passwordResetEmail, 'sam@example.com');
     expect(find.text('Reset password'), findsNothing);
 
-    await tester.tap(find.text('Create Account').first);
-    await tester.pump(const Duration(milliseconds: 300));
+    await tester.tap(find.widgetWithText(Tab, 'Create Account'));
+    await tester.pumpAndSettle();
 
     expect(
       find.textContaining('verification link'),
       findsOneWidget,
     );
 
-    await tester.enterText(find.byType(TextField).at(0), 'Sam');
-    await tester.enterText(find.byType(TextField).at(1), 'sam@example.com');
-    await tester.enterText(find.byType(TextField).at(2), 'password123');
+    final signUpForm = find.byKey(const ValueKey('sign-up-form'));
+    final signUpFields = find.descendant(
+      of: signUpForm,
+      matching: find.byType(TextField),
+    );
+
+    await tester.enterText(signUpFields.at(0), 'Sam');
+    await tester.enterText(signUpFields.at(1), 'sam@example.com');
+    await tester.enterText(signUpFields.at(2), 'password123');
+    await tester.pump();
     await tester.tap(find.widgetWithText(FilledButton, 'Create account'));
-    await tester.pump(const Duration(milliseconds: 300));
+    await tester.pumpAndSettle();
 
     expect(authController.signUpEmail, 'sam@example.com');
     expect(authController.signUpDisplayName, 'Sam');
