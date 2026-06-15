@@ -158,13 +158,13 @@ void main() {
     expect(find.text('Write anything instantly.'), findsOneWidget);
 
     await tester.tap(find.text('Continue'));
-    await tester.pump(const Duration(milliseconds: 300));
+    await tester.pumpAndSettle();
 
     await tester.tap(find.text('Continue'));
-    await tester.pump(const Duration(milliseconds: 300));
+    await tester.pumpAndSettle();
 
     await tester.tap(find.text('Get Started'));
-    await tester.pump(const Duration(milliseconds: 250));
+    await tester.pumpAndSettle();
 
     expect(find.byType(AuthGateScreen), findsOneWidget);
     expect(find.text('Sign in to continue.'), findsOneWidget);
