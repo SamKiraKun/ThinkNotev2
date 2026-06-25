@@ -88,11 +88,25 @@ async function persistAuthenticatedUser(
   try {
     await upsertAuthenticatedUser(database, user, now, user.email);
   } catch (error) {
+    if (isUsersAvatarUrlColumnError(error)) {
+      await upsertAuthenticatedUserLegacy(database, user, now, user.email);
+      return;
+    }
+
     if (!user.email || !isUsersEmailConstraintError(error)) {
       throw error;
     }
 
-    await upsertAuthenticatedUser(database, user, now, null);
+    try {
+      await upsertAuthenticatedUser(database, user, now, null);
+    } catch (retryError) {
+      if (isUsersAvatarUrlColumnError(retryError)) {
+        await upsertAuthenticatedUserLegacy(database, user, now, null);
+        return;
+      }
+
+      throw retryError;
+    }
   }
 }
 
@@ -123,6 +137,25 @@ async function upsertAuthenticatedUser(
   });
 }
 
+async function upsertAuthenticatedUserLegacy(
+  database: Pick<typeof db, "execute">,
+  user: AuthUserProfile,
+  now: string,
+  email: string | null,
+) {
+  await database.execute({
+    sql: `
+      INSERT INTO users (id, email, name, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?)
+      ON CONFLICT(id) DO UPDATE SET
+        email = excluded.email,
+        name = excluded.name,
+        updated_at = excluded.updated_at
+    `,
+    args: [user.id, email, user.name, now, now],
+  });
+}
+
 function isUsersEmailConstraintError(error: unknown) {
   const message = error instanceof Error ? error.message : String(error);
   const code =
@@ -133,6 +166,14 @@ function isUsersEmailConstraintError(error: unknown) {
   return (
     message.includes("UNIQUE constraint failed: users.email") ||
     (code === "SQLITE_CONSTRAINT_UNIQUE" && message.includes("users.email"))
+  );
+}
+
+function isUsersAvatarUrlColumnError(error: unknown) {
+  const message = error instanceof Error ? error.message : String(error);
+  return (
+    message.includes("table users has no column named avatar_url") ||
+    message.includes("no such column: avatar_url")
   );
 }
 
